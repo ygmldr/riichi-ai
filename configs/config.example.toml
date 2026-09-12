@@ -1,0 +1,175 @@
+# This is only an example. Most values are dummy placeholders just to match the
+# types; they are often not optimal and must be tuned.
+
+[control]
+version = 4
+online = false
+
+state_file = '/root/riichi-ai/checkpoints/mortal.pth'
+best_state_file = '/root/riichi-ai/checkpoints/best.pth'
+tensorboard_dir = '/root/riichi-ai/runs'
+
+device = 'cuda:0'
+enable_cudnn_benchmark = false
+enable_amp = false
+enable_compile = false
+
+batch_size = 512
+opt_step_every = 1
+
+save_every = 400
+test_every = 20000
+submit_every = 400
+
+# using env `TRAIN_PLAY_PROFILE`
+[train_play.default]
+games = 800
+log_dir = '/root/riichi-ai/runs/train_play'
+boltzmann_epsilon = 0.005
+boltzmann_temp = 0.05
+top_p = 1.0
+repeats = 1
+
+[test_play]
+games = 3000
+log_dir = '/root/riichi-ai/runs/test_play'
+
+[dataset]
+globs = ['/root/riichi-ai/datasets/**/*.mjson']
+file_index = '/root/riichi-ai/checkpoints/file_index.pth'
+file_batch_size = 15
+reserve_ratio = 0.0
+num_workers = 1
+player_names_files = []
+num_epochs = 1
+enable_augmentation = false
+augmented_first = false
+
+[env]
+gamma = 1
+pts = [6.0, 4.0, 2.0, 0.0]
+
+[resnet]
+conv_channels = 192
+num_blocks = 40
+
+[cql]
+min_q_weight = 5
+
+[aux]
+next_rank_weight = 0.2
+
+[freeze_bn]
+# `true` in online training
+mortal = false
+
+[optim]
+eps = 1e-8
+betas = [0.9, 0.999]
+weight_decay = 0.1
+max_grad_norm = 0
+
+[optim.scheduler]
+peak = 1e-4
+final = 1e-4
+warm_up_steps = 0
+max_steps = 0
+
+[baseline.train]
+device = 'cuda:0'
+enable_compile = false
+state_file = '/root/riichi-ai/checkpoints/baseline.pth'
+
+[baseline.test]
+device = 'cuda:0'
+enable_compile = false
+state_file = '/root/riichi-ai/checkpoints/baseline.pth'
+
+[online]
+history_window = 50
+enable_compile = false
+
+[online.remote]
+host = '127.0.0.1'
+port = 5000
+
+[online.server]
+buffer_dir = '/root/riichi-ai/runs/buffer'
+drain_dir = '/root/riichi-ai/runs/drain'
+sample_reuse_rate = 0
+sample_reuse_threshold = 0
+capacity = 1600
+force_sequential = false
+
+[1v3]
+seed_key = -1
+games_per_iter = 2000
+# 每个 iter 跑 games_per_iter 局(默认 2000);iters = 500(上游默认) = 100 万局,照抄会近似无限跑。
+# 首次验证先 iters = 1(2000 局,几分钟),确认日志可被 parse_eval.py 解析后,验收时再加大(如 10-50)。
+iters = 1
+log_dir = '/root/riichi-ai/runs/1v3'
+
+[1v3.challenger]
+device = 'cuda:0'
+name = 'mortal'
+# 训练产物:DQN 训练输出的 checkpoints/mortal.pth
+state_file = '/root/riichi-ai/checkpoints/mortal.pth'
+stochastic_latent = false
+enable_compile = false
+enable_amp = true
+enable_rule_based_agari_guard = true
+
+[1v3.champion]
+device = 'cuda:0'
+name = 'baseline'
+state_file = '/root/riichi-ai/checkpoints/baseline.pth'
+stochastic_latent = false
+enable_compile = false
+enable_amp = true
+enable_rule_based_agari_guard = true
+
+[1v3.akochan]
+# 可选的第三方对手(获取/构建见 RUNBOOK「准备 akochan 对手」)。
+# enabled = false 时对手为 [1v3.champion](baseline 模型),无需 akochan 即可验收;
+# vendor/akochan 构建完成前务必保持 false,否则评估启动即崩。
+enabled = false
+dir = '/root/riichi-ai/vendor/akochan'
+tactics = '/root/riichi-ai/vendor/akochan/tactics.json'
+
+[grp]
+state_file = '/root/riichi-ai/checkpoints/grp.pth'
+
+[grp.network]
+hidden_size = 64
+num_layers = 2
+
+[grp.control]
+device = 'cuda:0'
+enable_cudnn_benchmark = false
+tensorboard_dir = '/root/riichi-ai/runs/grp'
+
+batch_size = 512
+save_every = 2000
+val_steps = 400
+
+[grp.dataset]
+train_globs = [
+    '/root/riichi-ai/datasets/2019/**/*.mjson',
+    '/root/riichi-ai/datasets/2020/**/*.mjson',
+    '/root/riichi-ai/datasets/2021/01/**/*.mjson',
+    '/root/riichi-ai/datasets/2021/02/**/*.mjson',
+    # ...
+]
+val_globs = [
+    '/root/riichi-ai/datasets/2021/10/**/*.mjson',
+    '/root/riichi-ai/datasets/2021/11/**/*.mjson',
+    # ...
+]
+file_index = '/root/riichi-ai/checkpoints/grp_file_index.pth'
+file_batch_size = 50
+
+[grp.optim]
+lr = 1e-5
+
+# --- GRP 数据划分(追加覆盖)---
+# 训练: 2009-2022 全年; 验证: 2023 全年(与 DQN 训练数据错开)
