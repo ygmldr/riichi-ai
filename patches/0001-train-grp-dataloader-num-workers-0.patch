@@ -1,0 +1,20 @@
+--- a/mortal/train_grp.py
++++ b/mortal/train_grp.py
+@@ -139,7 +139,7 @@
+         dataset = train_file_data,
+         batch_size = batch_size,
+         drop_last = True,
+-        num_workers = 1,
++        num_workers = 0,
+         collate_fn = collate,
+     ))
+ 
+@@ -152,7 +152,7 @@
+         dataset = val_file_data,
+         batch_size = batch_size,
+         drop_last = True,
+-        num_workers = 1,
++        num_workers = 0,
+         collate_fn = collate,
+     ))
+ 
