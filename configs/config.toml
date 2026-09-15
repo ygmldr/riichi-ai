@@ -112,8 +112,8 @@ enable_rule_based_agari_guard = true
 
 [1v3.champion]
 device = "cuda:0"
-name = "baseline"
-state_file = "/home/ygsldr/riichi-ai/checkpoints/baseline.pth"
+name = "old148800"
+state_file = "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800"
 stochastic_latent = false
 enable_compile = false
 enable_amp = true
