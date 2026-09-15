@@ -30,6 +30,9 @@ for zip in "${ZIPS[@]}"; do
     unzip -o -q "$zip" -d "$EXTRACT_DIR/$year"
 done
 
+echo ">>> 规范化 .mjson 为 gzip(2025/2026 年度 zip 内是未压缩明文 JSON,必须压缩,否则训练崩溃)"
+python3 "$REPO_ROOT/scripts/normalize_gzip.py" "$EXTRACT_DIR"
+
 echo ">>> 生成 GRP 数据划分(训练: 2009-2022, 验证: 2023)"
 TRAIN_GLOBS="$DATA_DIR/grp_train_globs.txt"
 VAL_GLOBS="$DATA_DIR/grp_val_globs.txt"
