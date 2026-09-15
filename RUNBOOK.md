@@ -48,6 +48,11 @@ bash scripts/run_eval.sh configs/config.toml  # P3 验收: 1v3 duplicate mahjong
 
 注: 4 个 runner 脚本(grp/train/resume/eval)都会自动 `mkdir -p checkpoints`,无需手工创建。
 
+数据格式注意: 2025/2026 年度的 zip 内 `.mjson` 是**未压缩明文 JSON**(其余年度为 gzip),
+而 Mortal 加载器(libriichi `load_gz_log_files`)严格要求 gzip。`prepare_data_on_gpu.sh` 已内置
+`scripts/normalize_gzip.py` 会自动规范化;若手动解压数据,务必自己跑一遍该脚本,否则训练会在
+随机读到相关文件时崩溃(`invalid gzip header`,2026-09-14 实际发生过)。
+
 ## baseline.pth 引导(P3 DQN 训练前置)
 `train.py` 启动时无条件构造 `TestPlayer()`(vendor/mortal/mortal/train.py:97),立即加载
 config 的 `[baseline.test] state_file`(`checkpoints/baseline.pth`)。该文件缺失时
