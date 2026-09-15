@@ -1,76 +1,58 @@
 #!/usr/bin/env python3
-"""解析 1v3 duplicate mahjong 评估日志,输出 challenger / champion 顺位分对比。
+"""解析 1v3 评估日志, 输出顺位分对比。
 
-用法: python3 scripts/parse_eval.py <eval.log> [eval2.log ...]
-默认(无参数): runs/1v3/eval.log
+用法: python3 scripts/parse_eval.py <eval.log>
 
-数据来源: one_vs_three.py 每轮迭代打印一行(challenger 的顺位分布):
-    challenger rankings: [n1 n2 n3 n4] (avg_rank, avg_pt)
-其中 n1..n4 = 该轮 challenger 拿到 1st..4th 的局数(每 4 局使用同一副牌,
-即 duplicate mahjong,消除运气因素)。
+日志来源: one_vs_three.py 每个 iter 输出一行:
+    challenger rankings: [508 504 527 461] (2.4705, 3.0825pt)
+四元组依次为 challenger 取得 1/2/3/4 名的局数。
 
-champion 说明: stdout 只打印 challenger 的分布。由于每局 4 个座位恰好占据
-1st..4th 各一次,champion(每局 3 个座位)在 rank r 的局数 = 总局数 - challenger
-在 rank r 的局数,故 champion 的均顺位分可由 challenger 分布精确反推。
-
-顺位分(jun_pt,与 Mortal 文档一致): 1st=90, 2nd=45, 3rd=0, 4th=-135。
-challenger 相对 champion 的均顺位分 > 0 => challenger 更强(验收标准)。
+输出: challenger / champion(按零和换算) 的均顺位与均顺位分(90/45/0/-135),
+及 challenger 相对 champion 的均顺位分差(>0 即 challenger 更强, 即 P3 验收通过)。
 """
+import math
 import re
 import sys
 
-PT = {"1st": 90, "2nd": 45, "3rd": 0, "4th": -135}
-RANKS = ["1st", "2nd", "3rd", "4th"]
-
-# one_vs_three.py 真实输出格式:
-#   challenger rankings: [45 32 11 12] (1.63, 25.2pt)
-CHALLENGER_RE = re.compile(
-    r"challenger\s+rankings:\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]"
+RANK_PTS = (90, 45, 0, -135)
+LINE_RE = re.compile(
+    r"challenger rankings:\s*\[(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\]\s*"
+    r"\(([-\d.]+),\s*([-\d.]+)pt\)"
 )
 
 
 def main():
-    paths = sys.argv[1:] or ["runs/1v3/eval.log"]
-    counts = [0, 0, 0, 0]  # challenger 累计顺位局数: 1st..4th
-    total = 0              # challenger 累计总局数
+    log_path = sys.argv[1] if len(sys.argv) > 1 else "runs/1v3/eval.log"
+    iters = []
+    with open(log_path) as f:
+        for line in f:
+            m = LINE_RE.search(line)
+            if m:
+                iters.append([int(m.group(i)) for i in range(1, 5)])
 
-    for path in paths:
-        try:
-            f = open(path, encoding="utf-8", errors="replace")
-        except OSError as e:
-            print(f"跳过无法读取的日志: {path} ({e})")
-            continue
-        with f:
-            for line in f:
-                m = CHALLENGER_RE.search(line)
-                if not m:
-                    continue
-                row = [int(m.group(i + 1)) for i in range(4)]
-                for i in range(4):
-                    counts[i] += row[i]
-                total += sum(row)
+    if not iters:
+        sys.exit(f"未在 {log_path} 中找到 'challenger rankings' 行(确认日志来自 one_vs_three.py)")
 
-    if total == 0:
-        print(f"未在 {', '.join(paths)} 中找到 challenger rankings 行(共 {total} 局)。")
-        sys.exit(1)
+    total = [sum(col) for col in zip(*iters)]
+    games = sum(total)
+    pit = sum(n * pts for n, pts in zip(total, RANK_PTS)) / games
+    rank = sum(n * r for n, r in zip(total, (1, 2, 3, 4))) / games
 
-    chal_pts = sum(counts[i] * PT[RANKS[i]] for i in range(4))
-    chal_avg = chal_pts / total
+    # 零和换算: 每局 1 个 challenger 席位 + 3 个 champion 席位, 顺位分/顺位在两侧互补
+    cham_pit = -pit / 3
+    cham_rank = (10 - rank) / 3
+    delta = pit - cham_pit
 
-    # champion 组(3 座位/局)分布: rank r 局数 = 总局数 - challenger 在 r 的局数
-    cham_counts = [total - c for c in counts]
-    cham_total = total * 3
-    cham_pts = sum(cham_counts[i] * PT[RANKS[i]] for i in range(4))
-    cham_avg = cham_pts / cham_total
+    print(f"iters={len(iters)} 局数={games} 分布(1/2/3/4 名)={total}")
+    print(f"challenger: 均顺位 {rank:.4f} | 均顺位分 {pit:+.4f}")
+    print(f"champion  : 均顺位 {cham_rank:.4f} | 均顺位分 {cham_pit:+.4f}")
+    verdict = "challenger 更强(验收通过)" if delta > 0 else "challenger 未超过 champion"
+    print(f"顺位分差: {delta:+.4f} | {verdict}")
 
-    print(f"challenger(mortal): {total} 局, 均顺位分 {chal_avg:+.3f}")
-    print(f"champion(3 座位/局): {cham_total} 座位局, 均顺位分 {cham_avg:+.3f}")
-    print(f"  顺位分布 challenger: 1st={counts[0]} 2nd={counts[1]} 3rd={counts[2]} 4th={counts[3]}")
-    print(f"  顺位分布 champion  : 1st={cham_counts[0]} 2nd={cham_counts[1]} 3rd={cham_counts[2]} 4th={cham_counts[3]}")
-
-    delta = chal_avg - cham_avg
-    verdict = "challenger 更强(顺位分转正)" if delta > 0 else "challenger 尚未超过 champion"
-    print(f"顺位分差(challenger - champion): {delta:+.3f} | {verdict}")
+    # 粗略噪声参考(按局独立近似, 未校正 duplicate 相关性)
+    var = sum(n * (p - pit) ** 2 for n, p in zip(total, RANK_PTS)) / games
+    se = math.sqrt(var / games) * 4 / 3
+    print(f"(粗略 95% CI: {delta - 1.96 * se:+.2f} ~ {delta + 1.96 * se:+.2f}; 局独立近似, 仅供参考)")
 
 
 if __name__ == "__main__":
