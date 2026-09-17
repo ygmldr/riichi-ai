@@ -11,17 +11,17 @@ if ! command -v cargo &> /dev/null; then
     exit 1
 fi
 
-echo ">>> cargo build -p libriichi --lib"
-cargo build -p libriichi --lib
+echo ">>> cargo build -p libriichi --lib --release"
+cargo build -p libriichi --lib --release
 
-SO_PATH="$(pwd)/target/debug/libriichi.so"
+SO_PATH="$(pwd)/target/release/libriichi.so"
 if [ ! -f "$SO_PATH" ]; then
     echo "ERROR: 构建产物不存在: $SO_PATH"
     exit 1
 fi
 
 echo ">>> 验证 import libriichi"
-PYTHONPATH="$(pwd)/target/debug" python3 -c "
+PYTHONPATH="$(pwd)/target/release" python3 -c "
 import libriichi
 print('libriichi OK:', libriichi.__file__)
 from libriichi.consts import ACTION_SPACE, obs_shape
