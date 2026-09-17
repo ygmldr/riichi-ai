@@ -1,0 +1,20 @@
+diff --git a/mortal/player.py b/mortal/player.py
+index 07eee57..1bcb7bd 100644
+--- a/mortal/player.py
++++ b/mortal/player.py
+@@ -51,6 +51,7 @@ class TestPlayer:
+             version = self.chal_version,
+             device = device,
+             enable_amp = True,
++            enable_rule_based_agari_guard = True,
+             name = 'mortal',
+         )
+ 
+@@ -129,6 +130,7 @@ class TrainPlayer:
+             top_p = self.top_p,
+             device = device,
+             enable_amp = True,
++            enable_rule_based_agari_guard = True,
+             name = 'trainee',
+         )
+ 
