@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/A1/games_shuffle,shuffle,423244137402621143,30000,3000,12000,0,2869,2910,2960,3261,[2869 2910 2960 3261],2.551083,2.5341645833333333,2.5695833333333336,-4.256250,-5.6851875,-2.92875,0
