@@ -1,0 +1,209 @@
+# Learnings — fork-roadmap-steps-1-10
+
+Conventions, patterns, and successful approaches discovered during work on this plan.
+
+_Auto-scaffolded by /start-work. Append new entries below - never overwrite._
+
+---
+
+## [2026-09-17T05:15Z] Session start — environment & repo ground truth (Atlas)
+
+- **Conda env**: base `python3` has NO torch. Every python/cargo command MUST run after `source /home/ygsldr/riichi-ai/scripts/activate_env.sh` (activates conda env `mortal`; sets `PYTHONPATH` to `vendor/mortal/target/release` when present, else `target/debug`).
+- **Patch discipline**: `vendor/mortal` is pinned at `0cff2b5` and its working tree ALREADY carries patches 0001 + 0002 as uncommitted changes. `mortal/train.py` is dirty (= patch 0002 exactly). New patches must NOT bundle 0002's hunks:
+  - target file pristine (`libriichi/src/dataset/gameplay.rs`, `mortal/player.py`, `mortal/one_vs_three.py`) → `git -C vendor/mortal diff -- <path>` is exact;
+  - target file `mortal/train.py` → snapshot the file BEFORE editing, then produce hunks with `diff -u` (never raw `git diff`).
+- **Eval ground truth**: `runs/1v3/` holds 2004 `*.json.gz`; 2000 files = seed_key `579411421376059130` (= `0x80a7b9e2dec96fa`), seeds 10000–10499 × 4 splits; 4 legacy files (seed 10000, key `423244137402621143`) must surface as `ignored_files == 4`. Verified baseline from `runs/1v3/eval_20260915_1835.log`: 500 sets / 2000 games, rank distribution `[508 504 527 461]`, avg-rank `2.4705`, pt `3.0825`.
+- **Hardware**: RTX 5070 Ti 16 GB (idle at session start), 14 cores, **19 GB RAM total**, 826 GB disk free. Frugal with RAM: dataset workers × batch 1024 are memory-hungry.
+- No training process alive at session start (`runs/dqn_train.log` last written 02:04, ~11 h earlier; `runs/` newest TF event 02:03).
+
+## [2026-09-17T13:19Z] T1 — #115 gamma discount + release-only build (completed)
+
+- **`activate_env.sh` falls back to `.venv` in non-interactive shells**: `command -v conda` fails inside the bash tool, so it activates `/home/ygsldr/riichi-ai/.venv` (Python 3.12.3, torch 2.11.0+cu128, CUDA available) instead of conda `mortal`. Functionally OK for libriichi + torch; noted so later tasks don't mistake the banner for an error.
+- **Release build is cheap once the Aug-10 dep cache exists: ~24 s** (`cargo build -p libriichi --lib --release` recompiled only pyo3/numpy/libriichi). Rebuilding the release `.so` before evals is cheap — do it whenever a Rust patch lands.
+- **Artifact sizes / do-not-delete**: debug `.so` = 58,885,088 B (mtime 2026-08-10 12:06, left untouched); release `.so` = 23,281,568 B (rebuilt 2026-09-17 13:16). `activate_env.sh` prepends `target/release` to `PYTHONPATH`, so from T1 onward every later task imports the patched release build.
+- **Patch 0003** (`patches/0003-gamma-discount-labels.patch`) = 1 file / 2 lines: `libriichi/src/dataset/gameplay.rs` `label <= 37` → `label <= 36 || label == 42` (aka discards 34–36 discount; riichi 37 no longer does; kan declaration 42 does). Submodule now has `gameplay.rs` (0003) + `mortal/train.py` (0002) dirty; regenerate 0003 with `git -C vendor/mortal diff -- libriichi/src/dataset/gameplay.rs`, never a bare `git diff`.
+
+## [2026-09-17T13:25Z] T8 — game-log replay ground truth for #111 quantification (completed)
+
+- **Event-log replay is only exact if you compensate two invisible score movements** (verified: 0 mismatches across every round of all 2004 logs, and the 2000-game challenger rank distribution reproduces the recorded eval baseline `[508 504 527 461]`, avg `2.4705`):
+  1. `reach_accepted` deducts 1000 from the actor and adds 1 to the pot, but emits **no deltas** — a naive `start_kyoku.scores + hora.deltas` replay over-counts by 1000 per riichi;
+  2. `hora.deltas` already include the whole pot (winner's `kyotaku_point`), while `ryukyoku.deltas` do not (pot carries over); at game end leftover pot goes to the **top-score player** (ties → lowest seat), `arena/game.rs:182-184`.
+- **1576/2004 games reach all-last** (`bakaze == "S" && kyoku == 4`); 428 end early by tobi. Of the 1576, **71 enter 西入 (W1–W4)** — so "牌谱末局" ≠ "S4 局" for ~4.5% of all-last games. `runs/analysis/alllast.json` emits both bases (metric_b 27/159 final vs 37/181 at-S4-end) instead of silently choosing one.
+- **Scoring math is independently anchored**: summed final scores are exactly 100000 for every game; the S4-end basis satisfies `sum == 100000 − 1000×pot_resolved` exactly.
+- `runs/analysis/alllast.json` = 5.3 MB, full run 5.5 s / 24 MB RSS (single process, stdlib only); `runs/` and `.omo/` are gitignored, so the todo-8 commit is just `scripts/analyze_alllast.py`.
+- Caveat to carry into `docs/quant-111-alllast.md`: 2 of the 1576 all-last games come from the 4 legacy akochan files; slice via `by_filename_key`/`by_names` for the pure 1574-game main corpus.
+
+## [2026-09-17T13:35Z] T4 — `scripts/eval_report.py` reproduces the eval baseline exactly (completed)
+
+- **Reproduction gate PASSES**: `--games-dir=runs/1v3 --seed-key=0x80a7b9e2dec96fa --seed-range=10000-10500` → 500 sets / 2000 games / `[508 504 527 461]` / 2.4705 / +3.0825 / `ignored_files=4` / exit 0. Two ranking traps each cost exactly one game before they were fixed:
+  1. **Ordinal (stable) rank, not competition rank.** Engine = `scores` sorted desc with ties → lower seat first (`rankings.rs:9-10`); `1 + #{strictly greater}` gives `[509 503 527 461]` and fails.
+  2. **Leftover pot goes to the first MAX score**, not the min: `game.rs:182-184` uses `min_by_key(|s| -**s)` which is an argmax despite the name (T8 learned this too). 47/2004 files end with a live pot; min-compensation gives `[508 504 524 464]`.
+  - `comp=max + ordinal` is the engine's true behavior; `comp=none + ordinal` coincidentally also gives truth — do not "simplify" by dropping the compensation.
+- **Arm of the 2000-file corpus**: challenger `mortal` = the step-175,200 live checkpoint (internal save 2026-09-15 03:02:37; snapshotted 18:46 as `checkpoints/mortal.pth.at-175200`) vs champion `old148800` = `mortal.pth.at-148800`. No training wrote between 03:02 and 18:46 (see `runs/dqn_train.log`), so the 18:35–18:44 eval ran the 175,200-step weights — the corpus is already the at-175200 vs at-148800 arm. `start_game.names` proves it per-file (`mortal` at split seat a=0/b=1/c=2/d=3).
+- **`ignored_files` counts only `*.json.gz` candidates** matching `^\d+_\d+_[abcd]\.json\.gz$` that fail the filter. The 2 `.log` files in `runs/1v3/` are reported separately as `non-game files skipped`; counting them would make `ignored_files=6`, violating the expected 4.
+- Legacy 4 files = `ako_vs_py` akochan benchmark (key `423244137402621143`, `start_game.names[split]=='akochan'`, champion `mortal`). With no `--seed-key` they form their own group: `sets=501 games=2004 seed_key_groups=2`, the legacy group's CI is degenerate (1 set).
+  - Bootstrap: `numpy.random.default_rng(0)` + `np.percentile` linear interpolation → byte-identical stdout across runs; 2000 resamples × 500 sets × 4 games parses+bootstraps all 2000 files in ~5 s single-process (stdlib gzip/json + numpy only).
+
+## [2026-09-17T13:37Z] T9 — report `docs/quant-111-alllast.md` + full re-run (completed)
+
+- **Re-run reproduced the T8 artifact exactly** (except `generated_at_utc`/`wall_seconds`): 2004 files / skipped 0 / all-last 1576 / west 71 / replay & filename mismatches 0; wall 5.06 s. Self-check sample passed. `totals == groups['runs/1v3'].metrics` is True.
+- **Choosing the wrong basis changes a threshold statistic 7×**: "4th within 8000 of 1st" = **4/1576 final basis vs 28/1576 at-S4-end**; metric_b = 27/159 (17.0%) final vs 37/181 (20.4%) at-S4-end. Any #111 quote MUST name its basis; the report cites final as primary and gives the S4 value everywhere.
+- **The 27 "won but still 4th" games are 1.71% of all-last** (27/1576), but 17.0% of the "4th-place player wins the last hand" subset (159 games = 10.1% of all-last). 45.1% of all-last games have 3rd-4th gap < 8000, so the "overtake threshold" decision surface is wide even though the outright anomaly rate is small.
+- Group checks: `by_split` metric_b = 13.9/17.5/17.6/18.8% (denominators only 32-51, no seat trend); legacy key `423244137402621143` = 2 games with denominator 0; the four `mortal|old148800|...` name groups = 396/399/393/386.
+- Commit `987e712 docs: quantify #111 all-last overtake impact` (1 file, +59). Artifact commit is doc-only because `runs/` + `.omo/` are gitignored. Evidence: `.omo/start-work/evidence/T9.txt` (47/47 item-by-item checks PASS; checker at `/tmp/opencode/t9_check.py`).
+
+---
+
+## [2026-09-17T13:39Z] T2 — #114 agari guard on trainee/challenger (completed)
+
+- **Bug confirmed & fixed**: `mortal/player.py` omitted `enable_rule_based_agari_guard` in its two non-baseline `MortalEngine` constructions; `engine.py:19` defaults to `False`, so the challenger (`name='mortal'`, `TestPlayer.test_play`) and trainee (`name='trainee'`, `TrainPlayer.train_play`) played with the rule-based agari guard OFF while both baseline engines (and `one_vs_three.py`, which reads it from `[1v3.*]` config) had it ON. Patch 0004 adds `enable_rule_based_agari_guard = True` at both sites (same spelling/placement as `:39`/`:100`). `grep -c` 2→4.
+- **Runtime spy pattern (reusable)**: patch `player.MortalEngine` — the name player.py bound via `from engine import MortalEngine` — with a subclass that records caller `file:line` + kwargs in `__init__`, calls `super().__init__`, then records `self.enable_rule_based_agari_guard`. `/tmp/opencode/spy_114.py` ran one real `test_play(seed_count=1)` + `train_play(seed_count=1)`: all 4 constructions `(baseline:32, mortal:47, baseline:94, trainee:123)` recorded `True/True`. **Trap**: a script under `/tmp` gets its own dir as `sys.path[0]`, NOT cwd — run `cd vendor/mortal/mortal` **and** `PYTHONPATH=$PWD:$PYTHONPATH` or `import player` fails.
+- **Smoke**: `MORTAL_CFG=/tmp/opencode/config-114-smoke.toml python3 one_vs_three.py` (`games_per_iter=200` → seeds `[10000,10050)`, 200 hanchans) exit 0 in ~1m46s; 200 `*.json.gz` in `runs/exp/114/games/`. Temp config generated via `toml.dump` from the repo config changing ONLY `1v3.games_per_iter` + three `log_dir`s; challenger/champion `state_file` asserted unchanged (`checkpoints/mortal.pth` / `mortal.pth.at-148800`).
+- **Patch round-trip in-evidence**: `apply -R` → count drops to 2 → `apply --check` exit 0 → `apply` → `cmp` diff vs patch file BYTE-IDENTICAL. `grep -c train.py patch` = 0.
+- Artifacts: `runs/exp/114/verify.txt` (spy + smoke), `.omo/start-work/evidence/T2.txt`. Patch sha256 `9a9a4437c9fc87d2e8cc85669428cac018bddbd993d5a5b923f6b5f4e59a09cf`.
+- **Found while grepping**: `patches/0002-train-remove-per-step-cuda-sync.patch` is still **untracked** in the superproject (only 0001/0003 were committed) — a later task may want to commit it.
+
+
+## [2026-09-17T13:52Z] T11 — v4 obs plane layout map (completed)
+
+- **v4 `IntegerEncoder` ignores `rbf_intervals`** (`obs_repr.rs:92-104` honors only `one_hot`+`rescale`). This is the entire reason the v4 channel sum lands on 1012: honba/kyotaku/doras_owned/doras_unseen consume 1 plane each, not 2-4. A first manual pass that counted rbf gave 1027 — when an enumeration mismatches, check this branch first.
+- **`fill` semantics**: a channel "one-hot" is a FULL 34-wide row set to 1.0 (rank/kyoku/shanten/can_*), and aka flags in `encode_tile_set`/`fuuro` are also full 34-wide rows. Fully-lit rows are flags, not tile codes; tile codes live in columns.
+- **Layout artifact**: `scripts/obs_layout.py` -> `runs/analysis/obs_layout.json` (64 blocks, contiguous [0,1012), 0 gaps). River windows for A1: self [35,59) stride 4, [59,131) stride 4; shimocha [132,180)/[180,324), toimen [327,375)/[375,519), kamicha [522,570)/[570,714), all stride 8 (item planes: +0/+1 chi_pon consumed min/max, +2 kan, +3 sutehai, +4 aka, +5 dora, +6 tedashi, +7 riichi). Recency planes [131]/[324,327)/[519,522)/[714,717). `kawa_overview` [723,751) is an order-insensitive tile-set summary — NOT a valid A1 permutation target. Failure mode: prints `gap interval [a,b) -> n unaccounted channel(s)` and exits 1 without writing the JSON.
+- **Kawa slots contain `None` pads** (turns skipped by a call via `pad_kawa_for_pon_or_daiminkan`; pre-dealer pads via `pad_kawa_at_start`; called tiles are NOT removed). Pads sit INSIDE both windows, so "Some count == min(L,6)/min(L,18)" only holds when no pad falls in the window — A1 must permute per item slot regardless of Some/None.
+- **Runtime QA recipe that actually validates offsets** (2 games x 4 perspectives x all obs, ~1 s, release libriichi): (a) oya obs0 is an exact anchor vs `start_kyoku` (hand copy planes, aka, rotated scores 2-plane, dora marker column, kaze E, tiles_left=1.0 full row, doras_unseen=7/23, all river blocks zero); (b) per obs, recency argmax column == newest window-B item tile (weights strictly increase with turn); (c) window tile kinds subset of `kawa_overview` distinct columns; (d) recency distinct columns == `kawa_overview` distinct columns; (e) oldest window-A Some item == player's first East-1 discard. All passed. The naive `count(Some) == min(river_len, window)` check FAILS (None pads; `kawa_overview` planes are copy-planes, not tiles).
+
+
+## [2026-09-17T13:58Z] T3 — 12k eval protocol + seed_start + pinned at-175200 (completed)
+
+- **`seed_start` is wired through a shared function, not a literal**: `one_vs_three.py` now has module-level `seed_interval(cfg)` (`seeds_per_iter = games_per_iter // 4`; `seed_start = cfg.get('seed_start', 10000)`; returns `(start, start + seeds_per_iter * iters)`), and `main()` consumes it (`seed_start, seed_end = seed_interval(cfg)`). Dry-run proof = importing that exact function (`from one_vs_three import seed_interval`) and printing `[10000, 13000)` — 12000/4 = 3000 seeds/sets × 4 splits. The now-unused local `iters = cfg['iters']` was removed (else the patch leaves a dead variable). Back-compat: `seed_interval({'games_per_iter': 2000, 'iters': 1})` → `(10000, 10500)`, exactly the historic corpus range.
+- **`git -C vendor/mortal apply` resolves patch paths relative to the submodule**, not the superproject: `git -C vendor/mortal apply patches/0012...` fails `can't open patch`; always pass `"$(pwd)/patches/..."` (T2's convention). Round-trip = `apply -R` → `git diff --quiet` clean → `apply --check` → `apply` → `cmp` live diff vs patch BYTE-IDENTICAL. Patch 0012 sha256 `c81a309776c72984266b9eb1f9e7d4744872a96d5fc46a3fbacfa096a83e99dc`, 1 file / 33 lines / 0 `train.py` hits.
+- **`seed_key = 0x5dfaa4cef265cd7` (dec `423244137402621143`) equals the legacy akochan key already in `runs/1v3/`** (4 files, seed 10000), and pool A also starts at seed 10000 — same `(seed, key)` pair. Harmless only because every arm writes to its own `runs/exp/<ID>/games_<arm>/`; never feed `runs/1v3/` and an eval arm dir to `eval_report.py` as one directory, or those legacy games merge into the `(10000, key)` set (the frozen main corpus key is `0x80a7b9e2dec96fa` = `579411421376059130`).
+- **Pinned challenger**: `runs/exp/PINNED/mortal.pth.at-175200` (130,780,507 B, sha256 `f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9` == `checkpoints/mortal.pth.at-175200`), `[1v3.challenger].state_file` now points there with `name='mortal'` + `enable_rule_based_agari_guard = true`; champion `old148800` untouched. `configs/config.toml.bak-3` = pre-edit sha256 `b165e8a2...` (config.toml was already dirty vs git; T3 committed on top). Commit `33a9c97` = exactly 2 files (config + patch); `runs/` + `.omo/` are gitignored so PREREG/PINNED/evidence never enter git.
+- **Cross-task breakage to hand to todo 16**: `scripts/eval_akochan.sh:50-53` asserts the *string* `games_per_iter = 2000` and `seed_key = -1` in the repo config — T3's values make it assert-fail on invocation; it needs updating before its next use. `scripts/run_eval.sh:12` hardcodes `LOG_DIR=runs/1v3`, so every future eval appends one `eval_*.log` to the frozen corpus dir (counted as a non-game file, not as `ignored_files`, by `eval_report.py`).
+- 12k ≈ 1 h extrapolation from the 2000-game baseline (8 min 49 s) and the full protocol are frozen in `runs/1v3/PREREG.md`: pool A `seed_start=10000` (selection), pool B `seed_start=50000` (exactly-once final confirm), variance pools 10000/20000/30000 under `runs/variance/`, per-arm `log_dir` = `runs/exp/<ID>/games_<arm>/`.
+
+
+---
+
+## [2026-09-17T14:40Z] T5 — 12k pool-A verdict: at-175200 vs at-148800 (completed)
+
+- **Throughput measured (12k games): 32 min 36 s wall** (14:01:15 → 14:33:51 CST), i.e. **~6.2 games/s** — 1.6× faster than extrapolating the 2000-game baseline (8 m 49 s ≈ 3.8 games/s, ~53 min). The dump phase is not the bottleneck: `one_vs_three.rs:193` runs ALL games first, then `:195-224` writes all `.json.gz` in a rayon-parallel burst with a progress bar — 12000 files in ~6 s (492 MB). So during the run `games/` stays at **0 files until the very end**; poll the PID + log (`dumping game logs`), not the file count. NV ML throughput estimate for todo 6 (3×12k variance pools): ~1 h 40 m if the same host state holds.
+- **Verdict (pool A, seed [10000,13000) × key 0x5dfaa4cef265cd7, B=2000 set-level bootstrap rng seed 0)**: challenger `runs/exp/PINNED/mortal.pth.at-175200` vs champion `checkpoints/mortal.pth.at-148800` — dist(1/2/3/4) `[3010 3149 2950 2891]`, avg_rank **2.4768** CI **[2.4599, 2.4938]**, pt **+1.8600** CI **[+0.5663, +3.2026]**. Both CIs exclude parity (2.5 / 0) → at-175200 is ahead, but only modestly (avg_rank edge 0.023). NOTE this is NOT comparable to the frozen 2000-game corpus (different `seed_key`; that gate only fires for `runs/1v3` + `0x80a7b9e2dec96fa` + `10000-10500`). Pool A is selection data — final confirmation still owes pool B exactly once.
+- **`eval_report.py` cost at 12k**: 32.4 s wall (sequential NDJSON replay of 12000 gz + 2000×(3000-set) bootstrap) — cheap; reruns are fine.
+- **Frozen-corpus invariant held** (checked before/during/after): `runs/1v3/*.json.gz` == **2004** throughout. New games went only to `runs/exp/EVAL_A_175200/games/`. The one allowed addition to `runs/1v3/` is the non-game log `eval_20260917_1401.log` (run_eval.sh:12 hardcodes LOG_DIR there). This protects T4's replay (`ignored_files == 4` on the frozen dir with key `0x80a7b9e2dec96fa`).
+- **Commit mechanics for `runs/` artifacts**: `runs/` and `.omo/` are gitignored, so the verdict commit used `git add -f` for exactly 4 small text files (`runs/exp/EVAL_A_175200/report.csv`, `runs/1v3/PREREG.md`, `runs/1v3/eval_20260917_1401.log`, `configs/config.toml` — its only change is `[1v3].log_dir`). Never add the `.json.gz` corpus or checkpoints.
+
+## [2026-09-17T07:37Z] T13 — A2 linear probe on the frozen 1024-d embedding (completed)
+
+- **Verdict: honest negative → `gate_belief = block`.** Pre-registered primary (`opp_any_tenpai`, any of 3 opponents tenpai, decoded from oracle tensors): **AUC 0.9334** (bootstrap CI [0.9312,0.9354]), ECE 0.0099, **random-label control 0.5007** (seeds 0.4994/0.5002/0.5025 → required gate |auc_random−0.5|<0.02 PASSES). **But** a 24-feature *public* baseline (tiles_left, own at_turns/17, opp riichi flags, own shanten one-hot, round/honba/tiles_seen/dora count) scores **0.9399 — higher than phi 0.9334**. Genuinely-hidden aka target: phi 0.6055 vs public 0.6158. ⇒ the strong-looking AUC is a public-information readout, **not** evidence of hidden-state encoding beyond public cues. Artifacts `runs/exp/A2/{PREREG.md,results.json,supplementary.json,README.md}`, commit `08b8784`.
+- **Decode verified end-to-end over 262,339 decision points / 787,017 opponent observations**: all critical PREREG counters 0 (one-hot rows, norm==n/6, count ranges, binary planes, own-shanten obs==`take_shantens()`, **concealed hand size == 13−3·fuuro−4·ankan (+0/+1) from public obs planes 0/787,017**). Informational only: `waits≠∅ ⇔ shanten==0` had 225 exceptions (0.029%, Rust-side). Label source opponents, no degradation.
+- **Oracle layout (v4)**: `take_invisible_obs()` = (217,34); 3 opponents × 17 rows (hand counts via 4 copy-planes `assign_rows(base+c, tile)`, aka +4..6, shanten one-hot +7..13, n/6 +14, waits +15, furiten +16); public meld planes for the same seats: `fuuro_overview` [771,831) (3×20), `ankan_overview` [832,835).
+- **Probe-is-a-lower-bound trap (reusable)**: `phi = encoder(obs)` does not linearly expose even fully visible facts — meld-presence control scored 0.795 from phi while 6 raw meld planes scored **1.0000** (pipeline validation). Always pair an embedding probe with a direct public-feature baseline and a *label-defining* raw-feature control before claiming hidden-state encoding; otherwise a 0.93 AUC looks like evidence when it is public readout.
+- **Pre-registration mechanics**: PREREG written before the run (amendments recorded pre-run: A1 30→100 epochs from a synthetic convergence check; A2 K 300→400 after a 20-file yield probe = 670 pts/file). Positive-control expectation (≥0.90) failed (0.7947) → machine verdict `pipeline_valid=false / gate_belief=block` was left unedited; post-hoc evidence (controls ≈0.5, exact-determinant 1.0000, bit-identical phi reproduction) shows the measurement path is sound, and both readings converge on `block`. Sample: 400 files, 262,339 points, file-level 80/20 split (209,610/52,729).
+- **Ops gotchas**: (a) PyO3 returns `Vec<u8>` as **bytes** — `take_at_turns()`/`take_at_kyoku()` need `np.frombuffer`, not `np.asarray(list)`; (b) `nohup ... &` alone is killed when a shell-tool call times out (process-group kill) — use `setsid nohup ... < /dev/null &` and poll; (c) `runs/` + `.omo/` are gitignored — `git add -f` tiny text artifacts (`results.json`/PREREG/README/supplementary.json) per T5 precedent; (d) streaming per 3-file batch + 2048-point embedding chunks keeps probe peak RSS 6.5 GB, MemAvailable never < 8.1 GB, and did not perturb the concurrent 12k eval.
+- Frozen `runs/1v3/*.json.gz` invariant held at 2004 before/during/after; no writes to vendor/config/variance/pinned dirs; no training.
+
+---
+
+## [2026-09-17T16:30Z] T6 — 评估噪声地板:三个互斥种子池(completed)
+
+- **墙钟(串行,每池 12000 局/3000 sets)**: pool_1 35m10s(14:40:55→15:16:05)、pool_2 32m52s(15:17:16→15:50:08)、pool_3 30m33s(15:51:07→16:21:40);均值 32m52s,与 T5 的 32m36s 一致(±7%)。三池期间各有一个 `nice -n 19` 单核重放作业并行,GPU 只跑单 arena,无 VRAM/RAM 压力。`eval_report.py` 12k 单次 ≈30-45 s。
+- **三池结果(key `0x5dfaa4cef265cd7`,challenger `runs/exp/PINNED/…at-175200` vs champion `at-148800`)**:
+  pool_1(seed 10000)`[3010 3149 2950 2891]` 2.476833 `[2.459912,2.493754]` +1.860000 `[+0.566250,+3.202594]`;
+  pool_2(20000)`[2952 3080 3025 2943]` 2.496583 `[2.479748,2.513252]` +0.581250 `[-0.701344,+1.901250]`;
+  pool_3(30000)`[2975 2977 3058 2990]` 2.505250 `[2.487917,2.521002]` −0.161250 `[-1.436438,+1.132594]`。
+  → **池 A 的"挑战者更优、CI 排除 parity"没能在 pool_2/pool_3 重现**(两者 CI 含 parity);同臂均值跨池极差 avg_rank 0.0284 / pt 2.02。
+- **确定性(first-class finding)**: pool_1 与池 A 同 seed 区间 → 报告 CSV 数值字段全部一致(仅 `source_dir`/`checkpoint` 标签列不同);逐文件 sha256 全部不同,但**唯一差异是 `meta.eval_time_ns`(壁钟纳秒)**;去掉该字段后 12000/12000 文件规范化哈希完全一致。⇒ arena 语义确定性,但 **pool_1 ≡ 池 A 的复制,不是独立复现**;独立复现只有 pool_2/3。
+- **噪声地板**: set 级 σ(精确重放 ddof=1)pool_1 0.477185/36.509978、pool_2 0.468818/35.949106、pool_3 0.479221/36.603709 → 合并 RMS **0.475096 / 36.355413**(rank/pt,pt=RANK_PTS 90/45/0/−135);由 CI 反推 `σ≈(hi−lo)·√sets/(2·1.959964)` 得合并 **0.467788 / 36.368346**,两口径差 rank 1.5%、pt 0.04%。
+- **可分辨效应公式**: `SE(n)=2σ/√n`;`Δ_MDD=(z.975+z.80)·SE=2.801585·SE`;反解 `n=31.3955·σ²/Δ²`。实测 rank `n≈6.87-7.09/Δ²`、pt `n≈41496-41525/Δ²`;12k 局可分辨 **Δavg_rank≈0.0239、Δpt≈1.860**——池 A 观察效应 (+0.0232 rank / +1.86 pt) 正好落在边界。继承规划 `10.3/Δ²` 对应 σ≈0.573,比实测大 ~21%,即**继承偏保守**。池 A 量级效应需 ≳17k 局或合并互斥池。
+- **池间散布自检**: 三池均值样本 SD vs 单池预测 SE: rank 1.68×(χ² p≈0.060)、pt 1.54×(p≈0.093);3 池检验力弱,不能排除种子窗口异质性,多池合并时留意。
+- **Ops**: (a) `cmd && ... & echo $! > pid` 会把**整条链**放后台且 `$!` 是子 shell PID — 用 `(setsid nohup … > log 2>&1 & echo $!)` 分组才拿到可用 PID,事后用 `pgrep -f one_vs_three.py` 写回真实 arena PID;(b) 不分组直接 `&` 还会让工具调用挂到超时(后台任务持有 stdout 管道),分组重定向即可避免;(c) 三池新增 `seed_start` 是纯配置行改动,`log_dir` 各池独立,`runs/1v3/*.json.gz` 全程 **2004** 不变量在每个池前后核对通过。
+- 产物: `runs/variance/{README.md,measure_sd.py,determinism_check.py,pooled_table.txt,crosscheck_stats.txt,exact_sd_output.txt,pool_disjointness.txt,determinism_pool1_vs_poolA.txt}` + `pool_<N>/{report.csv,nohup.log,report_stdout.txt,times.txt,eval.pid}`;`runs/` 被 gitignore → `git add -f` 小文本。
+
+---
+
+## [2026-09-17T16:55Z] T7 — holdout 修复:年份 globs 排除 2023 + holdout loss 可见(completed)
+
+- **数据切分现状**: `datasets/extracted/` 有 **16 个年份** 2009–2026(不止 2009–2023!2024=184,424、2025=178,888、2026=12,188 个文件也存在,共 18 GB)。按 plan 只把 2009–2022 放进 `[dataset].globs`(1,968,147 文件),`val_globs=[".../2023/**"]`(168,777)作 holdout;2024–2026 暂未纳入任何集合(后续 todo 若要扩训练集需显式加 glob)。
+- **file_index 重建实测**: 删除 236,173,439 B(Aug 10)旧索引后,新索引 185,010,303 B;重建(glob 14 个 pattern + sort + torch.save)仅 **3.6 s**(16:39:19.389 "building file index..." → 16:39:23.000 "file list size: 1,968,147")。新索引逐条断言:**0 条 2023 路径**,年份直方图与 `find` 计数完全一致(sum=1,968,147)。`holdout file list size: 168,777` 与 2023 目录文件数一致 → glob 非空。
+- **holdout loss 设计要点(仅 train.py,val 路径独立)**: 单独 `FileDatasetsIter`+`DataLoader(num_workers=val_num_workers)` 读 holdout;`eval()` 三个模型(防止 BN running stats 被 holdout 更新 = 隐性泄漏),`finally` 恢复;`torch.inference_mode()` + autocast;目标函数与训练一致 `dqn + 5*cql + 0.2*next_rank` 的 batch 均值,`val_batches=20`。每 `save_every` 打 `holdout_loss: X (dqn: …, cql: …, next_rank: …)` + 4 个 TB scalar(`loss/holdout_loss` 等)。`val_globs` 非空但 glob 为空 → `RuntimeError`(实测 exit 1、wall 4 s,在数据加载/任何写盘之前)。`val_globs` 缺省为空 = 向后兼容(不报错、不验证)。
+- **补丁卫生(T任务可复用)**: base 已含 0002,所以用 `diff -u --label a/mortal/train.py --label b/mortal/train.py base0002 edited` 而不是 `git diff`;新代码**刻意不用 `non_blocking` 字样**,`grep -cE "non_blocking|patch 0002"` = 0;往返:`cp base` → `git apply --check -p1` → `apply` → `cmp` 与 edited **逐字节相同**(sha256 d5869e9e…);`git -C vendor/mortal apply` 要在 patch 前加绝对路径。
+- **smoke 实测(enable_compile=false 合法用于 smoke)**: 2000 步 **7 分 41 秒**(16:39:23→16:47:04,≈4.4 steps/s,与旧 run 的 2000 步/7m36s 完全同量级);`holdout_loss = 4.201218 (dqn 0.556935, cql 0.692359, next_rank 0.912450)`;TB event 解析确认 `loss/holdout_loss -> [(2000, 4.201218128204346)]`;step-2000 存档 `runs/exp/T7/state_smoke.pth`(130,791,936 B)。**峰值系统 RAM 10.79 GB**(19 GB 机器,监控 10 s 采样),**GPU 峰值 11,559 MiB**(其中 ~6.1 GiB 是 `nvidia-smi` 进程表看不到的预存占用;本 run 增量 ≈5.4 GiB),与并发 todo-14 无 OOM/无减速。
+- **安全模式复用**: temp config 用脚本从 repo config 生成(逐字符串替换 + tomllib 读回断言 4 个 `[control]` 路径均在 `runs/exp/T7/` 且 != live),`[dataset].file_index` 故意留在 live 路径以完成重建——smoke 后核对 `checkpoints/mortal.pth`(02:03)、`best.pth`(Sep 16)mtime 未变、`runs/` 根目录无新文件。
+- 产物: `patches/0005-train-holdout-val-loss.patch`(124 行,sha256 1df6f5ff…);证据 `.omo/start-work/evidence/T7.txt`;smoke 日志 `runs/exp/T7/smoke.log`;`/tmp/opencode/{t7_smoke.toml,t7_fail.toml,t7_make_smoke.py,file_index.pth.bak,train.py.base0002,train.py.edited}`。
+
+---
+
+## [2026-09-17T09:00Z] T14 — A2b 校准审计(probe/GRP/DQN-Q,零训练)(completed)
+
+- **判定**: 三组主 ECE 全部 ≤0.05 → 预注册 `gate_three_default = block` **且** `gate_two_models = block`;校准不是瓶颈,belief 线(step 10)在 ECE 路线上无正当理由。与 A2 的 AUC 路线 block 独立一致(不同理由:不是"没信号",是"有的概率已经校准好了")。
+- **数字(全部在 `runs/exp/A2b/results.json → summary_ece`)**: (a) A2 probe `opp_any_tenpai`(val n=52,729)**ECE 0.0099 / Brier 0.0943**,cluster CI [0.0086,0.0180];与 `runs/exp/A2/results.json` **逐位复现**(delta_auc=delta_ece=delta_brier=0.0)。(b) GRP 24 排列,主样本 **8000 局/85,144 轮**(种子13 k=10000 reservoir 抽样的 files[2000:];前 2000 文件被预跑计时探针看过 → 排除出主样本并在 PREREG §8 披露,`probed_subset` 单独报告):**top-1 ECE 0.0242 / Brier 0.1467**(acc 0.2220 / mean conf 0.2009;CI [0.0214,0.0282]);pooled OvR ECE 0.0019、marginal 16 格 0.0066、uniform 参照 0.1804;真值 `rank_by_player` **精确对齐**(10,000/10,000 局,0 load errors / 0 zero-round / 0 bad-rank,无需 last-3 轮退化)。(c) DQN Q:**τ=1 softmax 动作置信度 ECE 0.0364 / Brier 0.1241**(match 0.7959,mean conf 0.7594);τ=0.05(部署温度 `boltzmann_temp=0.05`)ECE 0.1897 —— 仅信息、非门控。Q 值尺度(对训练目标 `γ^steps·kyoku_reward`,γ=1、pts=[6,4,2,0]):mean bias +0.053pt、MAE 0.608、RMSE 0.875、**Spearman 0.145**、分桶校准误差 0.337pt(=0.50σ,过度离散:最低桶 pred −1.81 / real −0.09,最高桶 pred +0.86 / real +0.42)。
+- **GRP 结构**: 低置信端几乎完美,高置信端**欠自信**(acc>conf;最大置信 0.688,>0.6 仅 248/85,144),按轮序号 ECE 0.0007(round 0)→0.0638(round 8+)、acc 0.044→0.393 ⇒ 晚局更锐利但自报不足;24 类 OvR ECE 0.0019 ⇒ GRP 概率整体校准良好,不是校准缺口来源。
+- **两个门不可混**: 本审计 triage 门 **ECE>0.05 ⇒ 放行**;todo 29 交付门 **ECE ≤ 0.15**。τ=0.05 臂(0.1897)连 0.15 都不过,但按预注册**不参与门控**(温度假设,不是模型概率)——README 明确列出哪些数字可/不可影响 gate。
+- **自检(强制)**: 合成完美校准 ECE=9.3e-18(<1e-6)、已知偏差 p≡0.7/50%→0.2 精确、top-1 路径 6e-17、Brier sanity 0、cluster-bootstrap 路径与点 ECE 一致;在 `--selftest` 与 `results.json → self_check`。
+- **实现要点(可复用)**: ①`libriichi.dataset.Grp.load_gz_log_files` 极快(1000 文件 0.11 s;10,000 文件→106,717 轮,10.67 轮/局,min 1/max 21),但 `take_feature()/rank` 是**消费式**(`mem::take`:二次调用得空 → 只能取一次);`take_rank_by_player` 返回 **bytes** → `np.frombuffer(np.uint8)`。②"探针看过"的文件可用 reservoir 抽取序(`files[:N]`)整体排除出主样本 → 透明+盲测,零成本。③值目标的 **pts/γ 必须取 checkpoint 自己的 saved config['env']=([6,4,2,0], γ=1)**,不是 `RewardCalculator` 默认 [3,1,−1,−3];`q_target=γ^steps·kyoku_rewards[at_kyoku]`(dataloader.py:91-122 / train.py:236);`reward_calc.calc_delta_pt` 返回 numpy(不是 tensor)。④指标必须自检:marginal (player,rank) 指示矩阵首版**循环覆盖**写错(频率 0.042 而非 0.25),加 `assert mean==0.25` 修正;错值未进任何报告,pre-fix json 留在 /tmp 审计。⑤集群 bootstrap 用 per-group-per-bin 充分统计量 (n, Σconf, Σy) 重采样组 → 1000 次 <1 s。⑥零训练全审计只要 ~4 min:400 文件 phi+Q+标签 112 s、5 个 probe 拟合 125 s、10k GRP 前向 6 s;峰值 RSS **6.58 GB**、MemAvailable 最低 14.3 GB(与 A2 的 6.49 GB 同量级)。
+- 产物: `runs/exp/A2b/{PREREG.md,results.json,README.md}` + `a2b_{probe_val,grp_rounds,q_records}.npz`(npz 是二进制,gitignore 未入库);脚本 `scripts/exp_a2b_calibration.py`;证据 `T14.txt`;PREREG sha256 `92cd0d37…`(运行前 16:43 写入,运行后未改;results.json 记录该 hash)。
+
+---
+
+## [2026-09-17T17:20Z] T10 — 文档修正与状态同步（completed）
+
+- **四处文档缺陷全部确认存在并修正**：FORK_ROADMAP.md:266（workaround 行号）、:123（reserve_ratio 措辞）、报告:407（§十一 item 3 状态）、动作编号表 34–36=杠选张（**3 个文件 3 处**：FORK_ROADMAP:421、报告:63、回答.md:31/66）。
+- **动作编号的传播范围比 plan 写的大**：错误/含糊表述在 `docs/` 下共 **3 个文件 4 行**（plan 只点名 roadmap）。修完后全树只剩 FORK_ROADMAP:422 的**显式否定句**（"34–36 **不是**杠选张"），是有意保留的澄清。核对源：`tile.rs:12-19`（aka 在 z 之后 → 34/35/36）、`consts.rs:7-15`（46 维注释）、`obs_repr.rs:423-427`+`:431-448`（`at_kan_select` 复用 0–33；赤 5 候选去赤映射）。
+- **workaround 行号实测**（当前 vendor 树 = base + patches 0002/0003/0005）：`train.py:476–481` 是 `test_play` 卡死处的 `if online: sys.exit(0)`（含 477-480 BUG 注释）；重启循环在 `main()` = `:533–562`，`Popen` 段 `:547–562`；`:389–394` 是周期存档（state dict 构建），`:467–475` 是 best-state 复制（`shutil.copy(state_file, best_state_file)`）。plan/提示里"`train.py:380-388` 是 best-state 保存块"是**旧版行号**：当前 380-388 是 holdout-loss 的 TensorBoard 写入（patch 0005 后），best-state 实际在 :467–475——已按指令保留 `:380-388` 的表述并在证据 [I] 记录口径。
+- **reserve_ratio 语义再确认**（`dataloader.py:64-78`）：`reserved_size` = 本批新增缓冲组的比例，先 `yield from self.buffer[reserved_size:]`、再 `del self.buffer[reserved_size:]`——是"留缓冲、先吐其余"的**节流/乱序**机制，绝不切出验证集；本轮 config 仍 `reserve_ratio = 0.0`。真正 holdout = `val_globs`（2023），见 patches/0005。
+- 提交：3 个 docs 文件（其中报告/回答为 git 未跟踪文件，按"stage only the docs/ files you edited"整体入库，内容是全新文件）。未触碰 RUNBOOK.md / configs/config.toml / scripts/parse_eval.py / vendor/README.md / patches/0002-*。
+
+
+---
+
+## [2026-09-17T19:55Z] T12 — A1:推理期打乱牌河顺序 / recency 置零(completed)
+
+- **判定(预注册规则:任一臂 Δavg-rank 95%CI 跨 0 ⇒ 无效应)**: `shuffle−original` Δavg_rank **+0.045833 CI[+0.024000,+0.068917] 排除 0 → 模型确实使用牌河(打牌)顺序**;`recency_zero−original` Δavg_rank **−0.014583 CI[−0.032002,+0.003671] 跨 0 → 12k 分辨率下无 rank 效应**。次要 Δpt:shuffle −4.095 CI[−5.910,−2.434](亦排除 0,与 rank 同向);recency_zero +1.444 CI[+0.064,+2.749](仅弱信号、方向对挑战者有利、低于 1.86 非配对 MDD,不参与判定,须如实标注 unresolved)。关键:shuffle 只打乱窗口内 item 槽、保持槽级多重集与全部 `kawa_overview_*` 不变 ⇒ 顺序信息在 tile-set 概览之外仍是承载的。
+- **协议**: challenger `runs/exp/PINNED/…at-175200` vs champion `at-148800`;key `0x5dfaa4cef265cd7`、seed `[30000,33000)`=3000 sets/12000 games/臂;三臂同 seed 窗口配对;墙钟 original 35m00s、shuffle 43m55s(+535s patch 开销,与 300µs/obs×1.79M obs 预测吻合)、recency_zero 37m03s(+123s)。`runs/exp/A1/games_*/report.csv` 全部 sets=3000/games=12000/incomplete=0。
+- **确定性交叉验证**: original 臂结果与 `runs/variance/pool_3`(同 seed 窗口)**逐项一致**(dist `[2975 2977 3058 2990]`、2.505250、−0.161250)⇒ 包装器 passthrough 忠实,且 original ≡ pool_3(不是独立复现)。
+- **自检数据(shuffle)**: 1,790,089 obs / 1,758,409 changed;**14,320,712 blocks checked / 13,622,890 changed / 697,822 uniform(全空窗口,断言 unchanged)**;binary 快速路径 14,320,712 / fallback 0。recency_zero:1,817,565 obs、1,786,102 obs 有非零 recency 被置零。`--selftest` 47 checks(含"故意污染多重集必须被抓"负向对照),在任何 arena 运行前通过。
+- **布局语义坑(值得记住)**: river 窗口的 item 是 `item_channels` 个**连续通道平面**(每个 34 宽),item i = `arr[off+i*c : off+(i+1)*c]`;它不是 4/8 个标量。第一版按 `arr.reshape(-1)[off:off+n*c]` 取块 + `reshape(n,c)` 是错的(切片按行/通道,reshape(-1) 后索引=通道*34+tile),selftest 立刻抓到(写到 channel 1 而非 35)。**自检必须断言差异区域 ⊂ 目标区域**(blast radius),否则这类错误会静默通过。
+- **性能坑**: 精确"槽多重集"校验若直接用 `np.unique(axis=0)`(n≥6,272 元素)≈264µs/block → 8 blocks/obs ≈ 4.6ms/obs,会把 shuffle 臂拖到 +1h。窗口块全为 0/1 二值 → 二值快速路径:`np.packbits(b!=0,axis=1)` + void view `np.sort`(字典序)≈9µs/block,另有 `np.unique` fallback 保正确;实测 300µs/obs。**核对真实 obs 走哪条路径**(stats `path_counts`)再定性能预算。
+- **Ops**: `--smoke N`(1 seed=4 局、临时目录、跑完删除)在正式跑前验证了 wrapper↔libriichi 委托协议、真实 obs、二值路径,成本 1 分钟;`setsid nohup … < /dev/null` 分离 + PID 轮询,arena 会把 12k 文件在最后一次性 dump(期间 games/ 恒为 0);config 逐臂整文件原子替换(临时文件 + `os.replace`)并 tomllib 读回断言"仅 [1v3].log_dir 变",跑完从 `.bak-12` 还原(`git diff` clean);`runs/1v3/*.json.gz` 全程 2004。
+- **并发诚实性说明**: 另一 worker 在 17:46–19:59 跑了多个 4 局 akochan 小评估(`/tmp/opencode/akochan_eval`),
+  与 A1 三臂有短暂 GPU 共享;该现象只可能影响墙钟,不影响语义——original 臂逐项复现 pool_3,
+  shuffle 臂 +535s 恰等于 patch 开销预测。
+- 产物: `runs/exp/A1/{PREREG.md,VERDICT.md,delta_report.json,{original,shuffle,recency_zero}_run.json,games_*/report.csv}`;脚本 `scripts/exp_a1_shuffle.py`、`scripts/exp_a1_delta.py`(复用 eval_report.py 的解析/自举,不改动);证据 `.omo/start-work/evidence/T12.txt`;`runs/`+`.omo/` gitignore → `git add -f` 小文本。
+
+## [2026-09-17T21:45Z] T16 — akochan 趋势尺 + eval_akochan.sh 同步 (completed)
+
+- **脚本(config-driven + 分块 + 并行)**: `scripts/eval_akochan.sh` 只读 `configs/config.toml`(games_per_iter/seed_key/seed_start/challenger.state_file),生成 `/tmp/opencode/akochan_eval/config.at-<tag>_seed<S>_<n>g.toml` 经 `MORTAL_CFG` 注入,tomllib 读回逐项断言(替换旧脚本的 `games_per_iter = 2000`/`seed_key = -1` 字面量断言)。`[1v3].log_dir` 必须改写(当时 = `runs/variance/pool_3/games/` = T6 池目录);不走 `run_eval.sh`(其 :12 硬编码 `LOG_DIR=runs/1v3`)⇒ `runs/1v3/*.json.gz` 全程 **2004**、`runs/variance/pool_3` **12000** 文件未动。
+- **arena 只在整批结束后落盘**(`one_vs_three.rs:195-220`,dump 在 `run_batch` 末尾)⇒ 单批 40 局是全有全无:三次单批尝试中两次毒崩后 **0 个牌谱落盘**(42/85% 计算作废)、一次在预算内被人工停止。分块(4 局)+ 4 并行 worker + 有界重试(换后续 seed 窗口,不重试同一窗口)后:18 次块尝试(10 OK / 8 毒),40 局 **69.2 min** 墙钟(≈1.73 min/局);成功块时长中位 **13.5 min**(9.8–18.6)。
+- **akochan 确定性毒局(重大发现)**: ~14% 的单局让 system.exe `boost::container::bad_alloc`(signal 6 / WSL CaptureCrash),已确认的触发点全部是**该席位自己的 `tsumo`**(摸牌后打牌搜索 `ai()`);同一 (seed,split,seat) 必崩(窗口内 4/4、2/2,单 seed 定向复现命中)。定位法:`dmesg | grep CaptureCrash` 的 PID → `AKOCHAN_PIPE_TRACE` 的 `pipe_<pid>.log` 文件 → trace PID 升序 = arena 生成顺序 = game index → `seed=start+idx//4`、`split=idx%4`、座位=split 序号。非 OOM(44 进程总 RSS 1.9GB、MemAvailable 8.7GB)。实测毒块率 8/18 = 44%(≈14%/局);历史 seed 10000 与 smoke 40100 属少数干净局。
+- **噪声/可分辨性**: 40 局 set 级 SD(ddof=1,n=10) 顺位 **0.5244** / 分 **41.35**,与 T6 的 mortal-vs-mortal 噪声地板(0.475/36.36)同量级;40 局 → 我方每席位 95%CI 半宽 **±8.1pt**(RUNBOOK 的 "±5~8pt" 得到证实;按 1/√n,100 局 ≈ ±5.1)。MDD(80% 功效、双侧 5%): 10pt ≈ 15 sets(60 局)、5pt ≈ 60 sets(240 局)。
+- **结果(40 局,seed 60000 起 10 个净 seed)**: akochan 均顺位 2.7000 / 均顺位分 -20.25;我方每席位 **+6.75pt**,set 级 bootstrap 95%CI **[-1.13, +15.00]**(跨 0)→ 尺子可用但只能当**粗粒度绝对锚**,读不出 1–2pt 级差异;100 局扩展未跑(毒局重试成本,预算不允许)。
+- **Ops 坑(复用)**: (a) `pkill -f "one_vs_three.py"` 会命中**自己的命令行**(工具调用里的同一串)→ 用 `[o]ne_vs_three` 括号法或显式 PID;`pgrep -f` 在写模式里同理自匹配。(b) `(setsid nohup ... & echo $!)` 的 PID 是 setsid/子壳,**真正跑的脚本**用 `ps -eo pid,args | grep "[e]val_akochan"` 找;杀 python 子进程**不会**停脚本的 while 循环(要靠杀脚本 PID)。(c) 并行 worker 各自子目录 + 主进程合并/校验是稳的;并发写同一目录会破坏 `ls | wc -l` 的落盘计数逻辑,必须分目录。
+- 产物: `runs/akochan_eval/{TREND.md,report_40g.csv,windows_at-175200_40g_seed60000_*.txt,parse_at-175200_40g_seed60000_*.txt,akochan_eval_at-175200_40g_seed60000_*.log,config.at-175200.toml}`(小文本 `git add -f`);证据 `.omo/start-work/evidence/T16.txt`;`games/` 40 个 json.gz 与快照 130MB 不入 git。
+
+---
+
+## [2026-09-17T21:45Z] T15 — Wave-2 门控判定 `docs/exp-gates.md` (completed)
+
+- **判定(预注册规则,非偏好)**: `gate_belief=block`。两条独立路线都不放行:(A2/AUC) 预注册规则 `allow iff |auc_random-0.5|<0.02 AND ctrl_auc>=0.90 AND auc>=0.65 AND CI_lo>0.5`,阳性对照 `ctrl_opp_any_meld_visible` AUC **0.7947 < 0.90** ⇒ 机器 `pipeline_valid=false`;实质负结果 24 特征公开基线 **0.9399 > 0.9334**、隐藏 aka 目标 0.6055 vs 公开 0.6158。(A2b/ECE) triage 门 `ECE > 0.05 ⇒ allow` **不触发**(0.00987 / 0.02422 / 0.03643 全 ≤ 0.05)⇒ 无校准缺口。todo 28/29 记为**门控跳过**("已按门控跳过"),不是静默丢弃;todo 29 的交付门(Δpt CI 不跨 0 且 ECE ≤ 0.15)从未适用。
+- **意外发现 1(阳性对照的规格问题)**: "可见事实从 phi 线性读出应 ≥0.90" 这个预注册预期把"编码器没有隐藏状态信号"和"线性 readout 不能完美恢复可见语义"混在一起。原始 meld 平面(精确判定量)⇒ AUC **1.0000**、置换标签 ≈0.5,说明测量路径没问题,是 0.90 先验对冻结编码器过于乐观。教训:管线自检应优先用**精确判定量**做正对照(或用随机标签做负对照);"用 embedding 探针复现可见语义"的阈值型正对照会把编码器压缩损失误判为管线失效。
+- **意外发现 2(triage 门的方向)**: A2b 的门写作 `ECE > 0.05 ⇒ allow`,方向刻意反直觉:它是"开工前体检"(缺口大才值得建 belief 头),不是交付质量门;交付门是 todo 29 的 `ECE ≤ 0.15`。两个阈值都在 `results.json → gate` 里显式区分。τ=0.05 部署温度臂 ECE 0.1897 只作透明度报告,不得当门输入(它不是模型概率,是决策规则产物)。
+- **A1 表述纪律**: 正确表述是"**顺序信息是承重的**"(shuffle−original Δavg_rank +0.045833,CI [+0.024000,+0.068917] 排除 0,≈1.9× 12k MDD;`kawa_overview_*` 未动)与"recency 置零在 12k 下**未检出** rank 效应"(−0.014583,CI [−0.032002,+0.003671] 跨 0;次要 Δpt +1.444 CI [+0.064,+2.749] 是弱非门控信号,低于 1.86 非配对 MDD)。计划**禁止**"顺序无用";null 必须配噪声地板读数(12k ⇒ 0.0239 avg_rank / 1.86 pt,80% 功效;`runs/variance/README.md`)。
+- 产物: `docs/exp-gates.md`(sha256 `ae528075…`);证据 `.omo/start-work/evidence/T15.txt`;提交 `docs: wave-2 gate decisions`(仅暂存该文档)。实读产物 sha256:A2 results.json `ebe54384…`、A2b `ce439b21…`、A1 delta_report.json `a15fc129…`。
+
+---
+
+## [2026-09-17T22:50Z] T18 — 事件流 tokenizer:dataset + arena/评估侧(patch 0006 + 0010)(completed)
+
+- **判定**:18-A/18-B/18-C 三段全通过,**19/21/22 不阻断**。18-C 投喂门 40 局(双方 `enable_quick_eval=False`,无旁路):**25,177/25,177(100%)** 引擎收到的样本与"写入牌谱的 PlayerState 重放"ground truth 对齐;①非空非零 ②长度==该决策点公开事件数(另加 token 字节 md5 逐样本比对)③同局内单调不减,`failure_count=0`。18-B:12 个完整半庄 18,267 决策 / 29,926 事件全部与**独立 Python 编码器**逐行字节相等;训练 smoke `train.py` EXIT=0、`event tokens: (64, 144, 5) nonzero=111874`。
+- **单一 token 规范**:新增 `libriichi/src/mjai/tokens.rs`(patch 0006)为唯一编码器,dataset 与 arena 共用;token=`(type_id≤19, tile≤34, actor≤4, turn, flags)`,(T≤384,5) int16;`turn`=**POV 本局自摸次数(含当前事件)**,只用事件流即可复现(arena 无逐事件历史 state),两路必然一致。实测 max T=154。
+- **dataset 侧要点**:buffer 按**局作用域**(`StartKyoku` 清空,`gameplay.rs:332-334`),在 `add_entry` 快照(`:470`);窗口迭代 `windows(4)` 的 `cur=wnd[0]` 保证事件按序只处理一次(末 3 个事件除外,不影响决策)。
+- **arena 侧要点(0010)**:`ctx.log` 就是"当前局公开事件至触发事件"(board.rs 的 haipai/step 追加),直接 `encode_event_log(log, player_ids[index])` 作为 `react_batch` **第 4 实参**;`SyncFields` 必须新增 `owners: Vec<(usize,bool)>` 与 `events` **与 states 同步 push**(不能用 `action_idxs` 反查位置——非行动玩家的 `action_idxs` 是上一轮的陈旧值);编码放在 quick-eval early-return **之后**,故 quick_eval 旁路的决策根本不进编码器(语义与投喂门一致)。`MORTAL_EVT_DEBUG=<path>` 时每次 `evaluate()` 追加一行 JSONL(agent/game slot/pov/kan/n/first/last),默认关闭、对生产零影响;投喂门的 Rust↔Python 逐 entry 对齐靠它。
+- **三个编码器 bug(全部由"独立 Python 重实现"抓出,值得复用的模式)**:①`start_kyoku` 的 aka dora marker 未置 bit0;②`chi/pon/daiminkan/kakan` 的 aka `pai` 未置 bit0;③`ankan` 的 `consumed[0]` 为赤 5 时未置 bit0(语料极罕见,最终由 40 局 arena 的 game slot 22 抓到,现已用**合成牌谱**在 dataset_smoke 里钉死:`synthetic.ankan_flags==[5]`)。教训:编码器验证必须有**独立第二实现 + 合成稀有事件**;只靠语料覆盖会漏。
+- **dataset 与 arena 的决策枚举差异(已量化,写进 SPIKE.md)**:dataset 只在能定 label 时记决策,被更快副露/他家荣和**抢先(pre-empted)**的 can_act 点会跳过(12 半庄:18,238 vs 18,298,跳过 60 例 = pon 34 + hora 26);arena 会评估这些点。⇒ todo 19 的事件分支在 eval/自对弈里见到的决策点**多于**离线数据集,但 token 形状/规范一致。
+- **collate 接口(patch 0006)**:`mortal/event_data.py` → `{'tokens':(B,T,5) i16, 'lengths':(B,), 'mask':(B,T) bool, 'causal':(T,T) 下三角}`;**不物化 (B,1,T,T)**(B=1024/T=384 时 ~151MB/batch);训练/评估共用同一 `collate_events`(engine.py 直接调用),避免 train/eval 偏斜。`train.py` 两个 DataLoader 都要 `collate_fn=collate_batch`,holdout 循环也要解包 events。
+- **pyo3 构建大坑(必须记住)**:`cargo build` 前**必须先 `source scripts/activate_env.sh`**(或至少让 venv 的 python3 在 PATH),否则 pyo3 链接系统 python(3.13),产物 import 时报 `undefined symbol: PyImport_AddModuleRef`;重建后 `python3 -c "import libriichi"` 必须验证。`scripts/build_libriichi.sh` 本身不激活环境。
+- **训练 smoke 安全**:临时 config(`runs/exp/EVT/train_smoke.toml`)把 `state_file/best_state_file/tensorboard_dir` 与 test_play/train_play/1v3 日志目录全部指到 `runs/exp/EVT/train_smoke/`;`dataset.file_index` 用 /tmp 的 3 文件小索引,`val_globs=[]`;`checkpoints/mortal.pth` mtime 全程未变(02:03)。注意 `TestPlayer` 构造时仍会**只读**加载 `checkpoints/baseline.pth`。
+- **patch 卫生**:`gameplay.rs` 是脏文件(0003),用 `/tmp/opencode/gameplay.rs.base0003` + `diff -U2` 生成,使 `grep -c apply_gamma`=1(仅 dataloader.py 上下文)、`^[+-].*apply_gamma`=0、`label <= 36`=0(0003 hunk 未复现);`train.py` 用 `train.py.base0002_0005` 快照。`git diff --no-index /dev/null <new>` 可给新文件生成合法 git 头。**`diff` 有差异时退出码=1,会截断 `&&` 链**(用 `;` 或先 `|| true`)。
+- **apply 验证**:`git archive HEAD | tar -x` 到 /tmp,先打 0002/0003/0004/0005/0012 复现"当前树",再 0006→0010,**9 个文件全部与工作树逐字节一致**。
+- 数字/产物:40 局 59.8s、rankings [10,8,16,6];`runs/exp/EVT/{SPIKE.md,EVAL_FEED.json,dataset_smoke.json,train_smoke*.log}`;patch sha256 `fd5f5546…`(0006)/`e2b2a4b1…`(0010);证据 `.omo/start-work/evidence/T18.txt`;`runs/1v3` 全程 2004。

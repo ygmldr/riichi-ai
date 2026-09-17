@@ -1,0 +1,157 @@
+===== T18 evidence - event-stream tokenizer: dataset + arena/eval path (todo 18, patches 0006 + 0010) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 18 (lines 187-192)
+Submodule pin: 0cff2b5 + patches 0002/0003/0004/0005/0012 (unchanged; nothing committed inside the submodule)
+
+Artifacts:
+  patches/0006-event-stream-tokens.patch   (new; dataset side)
+  patches/0010-arena-event-tokens.patch    (new; arena/eval side)
+  runs/exp/EVT/SPIKE.md                    (18-A)
+  runs/exp/EVT/{dataset_smoke.py,dataset_smoke.json}   (18-B)
+  runs/exp/EVT/{eval_feed_smoke.py,event_verify.py,EVAL_FEED.json,eval_meta_smoke40.json,eval_calls_*.pt}  (18-C)
+  runs/exp/EVT/{train_smoke.toml,train_smoke.log,train_smoke2.log,train_smoke.exit}   (18-B training smoke)
+  runs/exp/EVT/smoke_games/*.json.gz       (40 game logs of the feed-gate run; NOT staged, .json.gz)
+
+### [1] Patch hygiene (gameplay.rs snapshot recipe; 0003 not re-introduced)
+$ ls -la patches/0006-event-stream-tokens.patch patches/0010-arena-event-tokens.patch
+-rw-r--r-- 1 ygsldr ygsldr 20748 Sep 17 22:43 patches/0006-event-stream-tokens.patch
+-rw-r--r-- 1 ygsldr ygsldr  9930 Sep 17 22:43 patches/0010-arena-event-tokens.patch
+$ sha256sum patches/0006-event-stream-tokens.patch patches/0010-arena-event-tokens.patch
+fd5f554679e10b08855ff1b75f06bc89b0522bd91c722e47af3d97c3b3c29ef3  patches/0006-event-stream-tokens.patch
+e2b2a4b12a5d17e56c4932a6eccc68b684a2618734e97a184ba9dca380211327  patches/0010-arena-event-tokens.patch
+$ grep -c apply_gamma patches/0006-event-stream-tokens.patch
+1        # single context line in mortal/dataloader.py (my own added line next to it)
+$ grep -cE '^[+-].*apply_gamma' patches/0006-event-stream-tokens.patch
+0        # no changed line touches apply_gamma
+$ grep -c 'label <= 36' patches/0006-event-stream-tokens.patch
+0        # the patch 0003 hunk is NOT re-introduced (gameplay.rs diff is vs /tmp/opencode/gameplay.rs.base0003, -U2)
+Files in 0006 (6): libriichi/src/mjai/tokens.rs (new), libriichi/src/mjai/mod.rs,
+  libriichi/src/dataset/gameplay.rs, mortal/event_data.py (new), mortal/dataloader.py, mortal/train.py
+Files in 0010 (3): libriichi/src/agent/mortal.rs, mortal/engine.py, mortal/model.py
+  (all three pristine before the edit -> plain `git -C vendor/mortal diff -- <paths>`)
+
+### [2] Both patches apply in order onto the current submodule tree
+Method: git archive HEAD (pin 0cff2b5) -> /tmp/opencode/applytest, apply the pre-existing
+0002/0003/0004/0005/0012, then 0006, then 0010; compare every touched file to the live tree.
+$ patch -p1 --batch --forward < patches/0006-event-stream-tokens.patch ; echo exit=$?
+patching file libriichi/src/mjai/tokens.rs
+patching file libriichi/src/mjai/mod.rs
+patching file libriichi/src/dataset/gameplay.rs
+patching file mortal/event_data.py
+patching file mortal/dataloader.py
+patching file mortal/train.py
+exit=0
+$ patch -p1 --batch --forward < patches/0010-arena-event-tokens.patch ; echo exit=$?
+patching file libriichi/src/agent/mortal.rs
+patching file mortal/engine.py
+patching file mortal/model.py
+exit=0
+$ diff -q <each of the 9 touched files>  (live tree)
+IDENTICAL libriichi/src/mjai/tokens.rs
+IDENTICAL libriichi/src/mjai/mod.rs
+IDENTICAL libriichi/src/dataset/gameplay.rs
+IDENTICAL mortal/event_data.py
+IDENTICAL mortal/dataloader.py
+IDENTICAL mortal/train.py
+IDENTICAL libriichi/src/agent/mortal.rs
+IDENTICAL mortal/engine.py
+IDENTICAL mortal/model.py
+
+### [3] 18-A SPIKE.md
+runs/exp/EVT/SPIKE.md sha256 1864668bbeada510ae09dc1c7edbdc13bf88dc23eb3b893369deceac95094adc
+Verdict: yes - the dataset walks the log in order (gameplay.rs:287 windows(4), cur=wnd[0]),
+  snapshots per decision in add_entry (gameplay.rs:459-470, same pattern as `shantens`), and
+  the buffer is kyoku-scoped (reset at StartKyoku). Token spec = (type_id<=19, tile<=34,
+  actor<=4, turn, flags), shape (T<=384,5) i16, single source of truth libriichi/src/mjai/tokens.rs.
+  Public-info argument: StartKyoku emits only the public dora marker (tehais never read);
+  hora/ryukyoku deltas and ura markers never read.
+  Documented enumeration difference: the dataset skips pre-empted can_act points (can_chi but a
+  faster call arrives; can_ron but someone else rons) - measured 18,238 dataset points vs 18,298
+  arena points over 12 hanchan, 60 skipped (pon 34 / hora 26).
+
+### [4] 18-B dataset smoke (12 full hanchan, all 4 POVs)
+$ source scripts/activate_env.sh && python3 runs/exp/EVT/dataset_smoke.py
+totals: {"decisions": 18267, "kan_select_duplicates": 40, "max_T": 154,
+  "dataset_decision_points": 18238, "arena_ground_truth_points": 18298,
+  "skipped_preempted_points": 60, "skipped_by_next_event_type": {"pon": 34, "hora": 26},
+  "total_events": 29926, "aka_representative_tokens": 14645, "consumed_aka_tokens": 981,
+  "failures": []}
+assertions (all true): len(events)==len(obs)==len(actions); len(at_kyoku)==len(obs);
+  no per-decision failures; max T <= 384;
+  synthetic ankan-aka tokens match independent encoder; synthetic ankan-aka flags == aka|consumed_aka;
+  collate pad shape; collate dtype int16; collate lengths; collate padding zero; collate mask;
+  collate causal tril; collate causal strict upper false; collate tokens roundtrip.
+Checks behind "no per-decision failures" (independent Python encoder + PlayerState replay):
+  every stream byte-equals encode_log(raw_kyoku_events[:T]); first token is start_kyoku with the
+  kyoku dora; last token is a decision trigger; T strictly increasing within a kyoku.
+dataset_smoke.json sha256 dc7ba31c5a169e37a776c9e868332c400284ad6215dd8f2f386da1bed8ca14ba
+Acceptance mapping: "token count == decision-point count" = len(take_events()) == len(take_obs())
+  (one stream per dataset decision point, 18,267/18,267) plus the independent per-decision count
+  match above; "first token == start_kyoku" asserted for all 18,267 streams.
+
+### [5] 18-B training smoke (real train.py, temp config, live checkpoint untouched)
+Config runs/exp/EVT/train_smoke.toml points state_file/best_state_file/tensorboard_dir and the
+test_play/train_play/1v3 log dirs inside runs/exp/EVT/train_smoke/; dataset.file_index is a
+3-file temp index in /tmp/opencode. checkpoints/mortal.pth mtime stayed 2026-09-17 02:03.
+$ MORTAL_CFG=runs/exp/EVT/train_smoke.toml python3 train.py   (in vendor/mortal/mortal)
+TRAIN ... 2026-09-17 22:02:53,851 INFO train.py:312 event tokens: (64, 144, 5) nonzero=111874
+$ cat runs/exp/EVT/train_smoke.exit
+EXIT=0
+$ grep -ac "total steps" runs/exp/EVT/train_smoke2.log
+10        # 80 optimizer steps, no traceback/error lines
+train.py train_batch now asserts events['tokens'].numel()>0 and int(sum)!=0 before H2D, and
+logs the first batch's shape/nonzero (line above). train_smoke.toml sha256
+8d2063d83c6869f6bc5228cb8fb3a54111e0fa2b66bca424c869cd0948a9851a
+
+### [6] 18-C feed gate - 40-game 1v3 run (both engines enable_quick_eval=False)
+$ MORTAL_CFG=/tmp/opencode/evt_eval.toml MORTAL_EVT_DEBUG=/tmp/opencode/evt_debug_smoke40.jsonl \
+  python3 runs/exp/EVT/eval_feed_smoke.py --tag smoke40 --sets 10 --seed-start 50000
+meta: games=40 rankings=[10, 8, 16, 6] elapsed=59.8s chal_calls=845 champ_calls=926
+EVAL_FEED.json (sha256 490b9e52cb28856d44a265291f0a0a6229add10236ff6fc2919ef72410e13803):
+  engine_samples = 25177
+  decisions_matched_to_ground_truth = 25177      # 100.0%
+  assertion_1_nonempty_nonzero = true            # every engine-received tensor rows>=1, sum!=0, nz>0
+  assertion_2_length_equals_public_events = true # rows == ground-truth public-event count, md5 of tokens equal
+  assertion_3_monotonic_within_kyoku = true      # no decrease inside a kyoku (no future events)
+  all_assertions_pass = true, failure_count = 0
+Counting method (verbatim in EVAL_FEED.json -> method): only decisions that reach the Python engine
+are counted (quick_eval disabled for both engines, so none are bypassed); ground truth per (game, pov)
+is a PlayerState replay of the arena-written game log, can_act points whose trigger is not
+hora/ryukyoku/end_kyoku; alignment uses the env-gated MORTAL_EVT_DEBUG record written per evaluate()
+call (game slot, seat, kan flag, n, first/last type) plus an md5 content check per sample.
+MORTAL_EVT_DEBUG is off by default: no effect on production runs.
+Quick-eval sanity (default path, enable_quick_eval=True, 4 games): run completes; of the decisions
+that did reach Python, 563 (chal) + 1671 (champ) samples, 0 empty/zero. Bypassed decisions never
+reach the encoder (encode_event_log sits after the quick-eval early return in set_scene).
+EVAL_FEED method string length 596 chars.
+
+### [7] Release rebuild + import path
+$ bash scripts/build_libriichi.sh
+>>> cargo build -p libriichi --lib --release
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.08s
+libriichi OK: /home/ygsldr/riichi-ai/vendor/mortal/target/release/libriichi.so
+ACTION_SPACE = 46 | obs_shape(4) = (1012, 34)
+$ ls -la vendor/mortal/target/release/libriichi.so
+-rwxr-xr-x 2 ygsldr ygsldr 23432688 2026-09-17 22:23:55 vendor/mortal/target/release/libriichi.so
+$ python3 -c "import libriichi; print(libriichi.__file__)"
+/home/ygsldr/riichi-ai/vendor/mortal/target/release/libriichi.so
+Backup taken before the 0010 rebuild: /tmp/opencode/libriichi.so.pre-0010 (not needed; build succeeded).
+
+### [8] Encoder bugs found and fixed by the harness (3, all in tokens.rs, all before final evidence)
+  a) start_kyoku did not set the aka flag of an aka dora marker (caught by dataset smoke)
+  b) chi/pon/daiminkan/kakan did not set the aka flag of an aka `pai` (caught by dataset smoke)
+  c) ankan did not set the aka flag of consumed[0] when consumed[0] is aka (caught by the 40-game
+     feed gate, game slot 22; now pinned by the synthetic log in dataset_smoke.py: flags==[5])
+
+### [9] Frozen corpus invariant (before and after all runs)
+$ ls runs/1v3/*.json.gz | wc -l
+2004      # before the task (2004) and after the 40-game run (2004); logs went to runs/exp/EVT/smoke_games/
+
+### [10] Files touched / not touched
+Touched (source): vendor/mortal/{libriichi/src/mjai/{tokens.rs,mod.rs},libriichi/src/dataset/gameplay.rs,
+  libriichi/src/agent/mortal.rs, mortal/{event_data.py,dataloader.py,train.py,engine.py,model.py}}
+New repo files: patches/0006-*, patches/0010-*, runs/exp/EVT/**
+NOT touched: configs/config.toml (temp configs in /tmp/opencode + runs/exp/EVT/train_smoke.toml),
+  checkpoints/**, datasets/**, runs/1v3/**, runs/variance/**, runs/exp/{A1,A2,A2b,EVAL_A_175200,PINNED,T7}/**,
+  runs/akochan_eval/**, state/obs_repr.rs (observation encoding unchanged), no new deps.
+No stray processes left; training/arena runs finished (EXIT=0 / batch complete).
