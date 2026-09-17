@@ -19,7 +19,12 @@ games = 3000
 log_dir = "/home/ygsldr/riichi-ai/runs/test_play"
 
 [dataset]
-globs = [ "/home/ygsldr/riichi-ai/datasets/extracted/**/*.mjson",]
+globs = [ "/home/ygsldr/riichi-ai/datasets/extracted/2009/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2010/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2011/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2012/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2013/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2014/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2015/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2016/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2017/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2018/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2019/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2020/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2021/**/*.mjson", "/home/ygsldr/riichi-ai/datasets/extracted/2022/**/*.mjson",]
+# [patch 0005] year-based holdout: 2023 is never trained on; train.py globs it
+# and reports `holdout_loss` on the validation side.
+val_globs = [ "/home/ygsldr/riichi-ai/datasets/extracted/2023/**/*.mjson",]
+val_batches = 20
+val_num_workers = 1
 file_index = "/home/ygsldr/riichi-ai/checkpoints/file_index.pth"
 file_batch_size = 5
 reserve_ratio = 0.0
