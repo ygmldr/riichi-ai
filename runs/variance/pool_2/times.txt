@@ -1,0 +1,2 @@
+start=2026-09-17T15:17:16+08:00 end=2026-09-17T15:50:08+08:00 wall=32m52s
+arena_pid=35492 launcher_subshell_pid=35455 eval_log=runs/1v3/eval_20260917_1517.log

@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/variance/pool_1/games,-,423244137402621143,10000,3000,12000,0,3010,3149,2950,2891,[3010 3149 2950 2891],2.476833,2.4599124999999997,2.4937541666666667,1.860000,0.56625,3.2025937499999997,0

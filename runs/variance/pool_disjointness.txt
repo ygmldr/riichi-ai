@@ -1,0 +1,10 @@
+pool_1: files=12000 unique_seeds=3000 range=[10000,13000) key=423244137402621143 splits=abcd
+pool_2: files=12000 unique_seeds=3000 range=[20000,23000) key=423244137402621143 splits=abcd
+pool_3: files=12000 unique_seeds=3000 range=[30000,33000) key=423244137402621143 splits=abcd
+pool_1 ∩ pool_2 = 0 seeds (disjoint=True)
+pool_1 ∩ pool_3 = 0 seeds (disjoint=True)
+pool_2 ∩ pool_3 = 0 seeds (disjoint=True)
+pool_2 ∩ pool_3 = 0 seeds (disjoint=True)
+pool_1 sample 10000_423244137402621143_a.json.gz: start_game seed=[10000, 423244137402621143] names=['mortal', 'old148800', 'old148800', 'old148800']
+pool_2 sample 20000_423244137402621143_a.json.gz: start_game seed=[20000, 423244137402621143] names=['mortal', 'old148800', 'old148800', 'old148800']
+pool_3 sample 30000_423244137402621143_a.json.gz: start_game seed=[30000, 423244137402621143] names=['mortal', 'old148800', 'old148800', 'old148800']

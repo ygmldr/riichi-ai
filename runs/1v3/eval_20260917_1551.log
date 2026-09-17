@@ -1,0 +1,5 @@
+2026-09-17 15:51:09,296     INFO one_vs_three.rs:131  seed: [30000, 33000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans
+2026-09-17 16:21:34,334     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [2975 2977 3058 2990] (2.50525, -0.16125pt)
