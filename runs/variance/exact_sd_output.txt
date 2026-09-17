@@ -1,0 +1,51 @@
+runs/variance/pool_1/games: sets=3000 games=12000 ignored=0 non_game=0 seed_key=0x5dfaa4cef265cd7 seed_range=10000-13000
+avg_rank: mean=2.476833 sd_set=0.477185 se_mean=0.008712
+
+[games avg_rank] sigma_set=0.477185
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.01222 | ±0.02395 | 0.03423 |
+| 12000 | 0.00871 | ±0.01708 | 0.02441 |
+| 24000 | 0.00616 | ±0.01207 | 0.01726 |
+pt: mean=1.860000 sd_set=36.509978 se_mean=0.666578
+
+[games pt] sigma_set=36.509978
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.93492 | ±1.83242 | 2.61927 |
+| 12000 | 0.66658 | ±1.30647 | 1.86747 |
+| 24000 | 0.47134 | ±0.92381 | 1.32050 |
+runs/variance/pool_2/games: sets=3000 games=12000 ignored=0 non_game=0 seed_key=0x5dfaa4cef265cd7 seed_range=20000-23000
+avg_rank: mean=2.496583 sd_set=0.468818 se_mean=0.008559
+
+[games avg_rank] sigma_set=0.468818
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.01201 | ±0.02353 | 0.03363 |
+| 12000 | 0.00856 | ±0.01678 | 0.02398 |
+| 24000 | 0.00605 | ±0.01186 | 0.01696 |
+pt: mean=0.581250 sd_set=35.949106 se_mean=0.656338
+
+[games pt] sigma_set=35.949106
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.92056 | ±1.80427 | 2.57903 |
+| 12000 | 0.65634 | ±1.28640 | 1.83879 |
+| 24000 | 0.46410 | ±0.90962 | 1.30022 |
+runs/variance/pool_3/games: sets=3000 games=12000 ignored=0 non_game=0 seed_key=0x5dfaa4cef265cd7 seed_range=30000-33000
+avg_rank: mean=2.505250 sd_set=0.479221 se_mean=0.008749
+
+[games avg_rank] sigma_set=0.479221
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.01227 | ±0.02405 | 0.03438 |
+| 12000 | 0.00875 | ±0.01715 | 0.02451 |
+| 24000 | 0.00619 | ±0.01213 | 0.01733 |
+pt: mean=-0.161250 sd_set=36.603709 se_mean=0.668289
+
+[games pt] sigma_set=36.603709
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.93732 | ±1.83712 | 2.62600 |
+| 12000 | 0.66829 | ±1.30982 | 1.87227 |
+| 24000 | 0.47255 | ±0.92618 | 1.32389 |

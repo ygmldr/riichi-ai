@@ -1,0 +1,24 @@
+  runs/variance/pool_1/report.csv: sets=3000 stat=avg_rank mean=2.476833 ci=[2.4599, 2.4938] sigma≈0.472862
+  runs/variance/pool_2/report.csv: sets=3000 stat=avg_rank mean=2.496583 ci=[2.4797, 2.5133] sigma≈0.468146
+  runs/variance/pool_3/report.csv: sets=3000 stat=avg_rank mean=2.505250 ci=[2.4879, 2.5210] sigma≈0.462295
+pooled sigma_set(avg_rank) = sqrt(mean(sigma_i^2)) = 0.467788
+
+[pooled 3 pools avg_rank] sigma_set=0.467788
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.01198 | ±0.02348 | 0.03356 |
+| 12000 | 0.00854 | ±0.01674 | 0.02393 |
+| 24000 | 0.00604 | ±0.01184 | 0.01692 |
+READ: n = (z95+z80)^2 * 4 * sigma^2 / Delta^2 = 6.8701 / Delta^2
+  runs/variance/pool_1/report.csv: sets=3000 stat=pt mean=1.860000 ci=[0.5663, 3.2026] sigma≈36.837027
+  runs/variance/pool_2/report.csv: sets=3000 stat=pt mean=0.581250 ci=[-0.7013, 1.9013] sigma≈36.365446
+  runs/variance/pool_3/report.csv: sets=3000 stat=pt mean=-0.161250 ci=[-1.4364, 1.1326] sigma≈35.896485
+pooled sigma_set(pt) = sqrt(mean(sigma_i^2)) = 36.368346
+
+[pooled 3 pools pt] sigma_set=36.368346
+| n games | SE(n) | ±95% CI | MDD(80% power) |
+|---|---|---|---|
+| 6100 | 0.93130 | ±1.82531 | 2.60911 |
+| 12000 | 0.66399 | ±1.30140 | 1.86023 |
+| 24000 | 0.46951 | ±0.92023 | 1.31538 |
+READ: n = (z95+z80)^2 * 4 * sigma^2 / Delta^2 = 41525.4847 / Delta^2

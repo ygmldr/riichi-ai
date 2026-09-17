@@ -58,10 +58,10 @@ enable_compile = false
 
 [1v3]
 seed_key = 0x5dfaa4cef265cd7
-seed_start = 10000
+seed_start = 30000
 games_per_iter = 12000
 iters = 1
-log_dir = "/home/ygsldr/riichi-ai/runs/exp/EVAL_A_175200/games/"
+log_dir = "/home/ygsldr/riichi-ai/runs/variance/pool_3/games/"
 
 [grp]
 state_file = "/home/ygsldr/riichi-ai/checkpoints/grp.pth"
