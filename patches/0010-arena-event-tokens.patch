@@ -1,0 +1,253 @@
+diff --git a/libriichi/src/agent/mortal.rs b/libriichi/src/agent/mortal.rs
+index e1b14ee..818ceb8 100644
+--- a/libriichi/src/agent/mortal.rs
++++ b/libriichi/src/agent/mortal.rs
+@@ -1,10 +1,13 @@
+ use super::{BatchAgent, InvisibleState};
+ use crate::consts::ACTION_SPACE;
+-use crate::mjai::{Event, EventExt, Metadata};
++use crate::mjai::{Event, EventExt, Metadata, encode_event_log};
+ use crate::state::PlayerState;
+ use crate::{must_tile, tu8};
++use std::fmt::Write as _;
++use std::io::Write as _;
+ use std::mem;
+-use std::sync::Arc;
++use std::path::PathBuf;
++use std::sync::{Arc, OnceLock};
+ use std::time::{Duration, Instant};
+ 
+ use anyhow::{Context, Result, ensure};
+@@ -34,6 +37,8 @@ pub struct MortalBatchAgent {
+     evaluated: bool,
+     quick_eval_reactions: Vec<Option<Event>>,
+ 
++    evt_debug_call: usize,
++
+     wg: WaitGroup,
+     sync_fields: Arc<Mutex<SyncFields>>,
+ }
+@@ -44,6 +49,17 @@ struct SyncFields {
+     masks: Vec<Array1<bool>>,
+     action_idxs: Vec<usize>,
+     kan_action_idxs: Vec<Option<usize>>,
++    // [patch 0010] public event tokens per queued state, aligned 1:1 with
++    // `states`; `owners` records (game slot index, is_kan_select) for the same
++    // positions so the feed-gate debug record can attribute them.
++    events: Vec<Array2<i16>>,
++    owners: Vec<(usize, bool)>,
++}
++
++fn evt_debug_path() -> Option<&'static PathBuf> {
++    static PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
++    PATH.get_or_init(|| std::env::var_os("MORTAL_EVT_DEBUG").map(PathBuf::from))
++        .as_ref()
+ }
+ 
+ impl MortalBatchAgent {
+@@ -85,6 +101,8 @@ impl MortalBatchAgent {
+             masks: vec![],
+             action_idxs: vec![0; size],
+             kan_action_idxs: vec![None; size],
++            events: vec![],
++            owners: vec![],
+         }));
+ 
+         Ok(Self {
+@@ -106,6 +124,8 @@ impl MortalBatchAgent {
+             evaluated: false,
+             quick_eval_reactions,
+ 
++            evt_debug_call: 0,
++
+             wg: WaitGroup::new(),
+             sync_fields,
+         })
+@@ -123,6 +143,24 @@ impl MortalBatchAgent {
+         let start = Instant::now();
+         self.last_batch_size = sync_fields.states.len();
+ 
++        let owners: Vec<(usize, bool)> = sync_fields.owners.drain(..).collect();
++        let evt_debug_entries: Vec<(usize, bool, usize, i16, i16)> = if evt_debug_path().is_some() {
++            sync_fields
++                .events
++                .iter()
++                .enumerate()
++                .map(|(i, ev)| {
++                    let n = ev.nrows();
++                    let first = if n > 0 { ev[[0, 0]] } else { -1 };
++                    let last = if n > 0 { ev[[n - 1, 0]] } else { -1 };
++                    let (g, kan) = owners.get(i).copied().unwrap_or((usize::MAX, false));
++                    (g, kan, n, first, last)
++                })
++                .collect()
++        } else {
++            vec![]
++        };
++
+         (self.actions, self.q_values, self.masks_recv, self.is_greedy) = Python::with_gil(|py| {
+             let states: Vec<_> = sync_fields
+                 .states
+@@ -141,8 +179,13 @@ impl MortalBatchAgent {
+                     .map(|v| PyArray2::from_owned_array(py, v))
+                     .collect()
+             });
++            let events: Vec<_> = sync_fields
++                .events
++                .drain(..)
++                .map(|v| PyArray2::from_owned_array(py, v))
++                .collect();
+ 
+-            let args = (states, masks, invisible_states);
++            let args = (states, masks, invisible_states, events);
+             self.engine
+                 .bind_borrowed(py)
+                 .call_method1(intern!(py, "react_batch"), args)
+@@ -151,6 +194,32 @@ impl MortalBatchAgent {
+                 .context("failed to extract to Rust type")
+         })?;
+ 
++        if let Some(path) = evt_debug_path() {
++            let mut line = format!(
++                "{{\"agent\":{:?},\"call\":{},\"entries\":[",
++                self.player_ids, self.evt_debug_call
++            );
++            for (i, (g, kan, n, first, last)) in evt_debug_entries.iter().enumerate() {
++                if i > 0 {
++                    line.push(',');
++                }
++                let pov = self.player_ids.get(*g).copied().unwrap_or(u8::MAX);
++                let _ = write!(
++                    line,
++                    "{{\"g\":{g},\"pov\":{pov},\"kan\":{kan},\"n\":{n},\"first\":{first},\"last\":{last}}}"
++                );
++            }
++            line.push_str("]}\n");
++            if let Ok(mut f) = std::fs::OpenOptions::new()
++                .create(true)
++                .append(true)
++                .open(path)
++            {
++                drop(f.write_all(line.as_bytes()));
++            }
++        }
++        self.evt_debug_call += 1;
++
+         self.last_eval_elapsed = Instant::now()
+             .checked_duration_since(start)
+             .unwrap_or(Duration::ZERO);
+@@ -200,7 +269,7 @@ impl BatchAgent for MortalBatchAgent {
+     fn set_scene(
+         &mut self,
+         index: usize,
+-        _: &[EventExt],
++        log: &[EventExt],
+         state: &PlayerState,
+         invisible_state: Option<InvisibleState>,
+     ) -> Result<()> {
+@@ -251,6 +320,10 @@ impl BatchAgent for MortalBatchAgent {
+ 
+         let version = self.version;
+         let state = state.clone();
++        // [patch 0010] encode the public kyoku log with the shared token spec;
++        // `log` is the board's log up to and including the event that made the
++        // POV able to act, so the stream carries no future events.
++        let event_tokens = encode_event_log(log, self.player_ids[index]);
+         let sync_fields = Arc::clone(&self.sync_fields);
+         let wg = self.wg.clone();
+         rayon::spawn(move || {
+@@ -268,11 +341,15 @@ impl BatchAgent for MortalBatchAgent {
+                 masks,
+                 action_idxs,
+                 kan_action_idxs,
++                events,
++                owners,
+             } = &mut *sync_fields.lock();
+             if let Some((kan_feature, kan_mask)) = kan {
+                 kan_action_idxs[index] = Some(states.len());
+                 states.push(kan_feature);
+                 masks.push(kan_mask);
++                events.push(event_tokens.clone());
++                owners.push((index, true));
+                 if let Some(invisible_state) = invisible_state.clone() {
+                     invisible_states.push(invisible_state);
+                 }
+@@ -281,6 +358,8 @@ impl BatchAgent for MortalBatchAgent {
+             action_idxs[index] = states.len();
+             states.push(feature);
+             masks.push(mask);
++            events.push(event_tokens);
++            owners.push((index, false));
+             if let Some(invisible_state) = invisible_state {
+                 invisible_states.push(invisible_state);
+             }
+diff --git a/mortal/engine.py b/mortal/engine.py
+index 2196c98..4d8bccd 100644
+--- a/mortal/engine.py
++++ b/mortal/engine.py
+@@ -4,6 +4,7 @@ import torch
+ import numpy as np
+ from torch.distributions import Normal, Categorical
+ from typing import *
++from event_data import collate_events
+ 
+ class MortalEngine:
+     def __init__(
+@@ -40,33 +41,35 @@ class MortalEngine:
+         self.boltzmann_temp = boltzmann_temp
+         self.top_p = top_p
+ 
+-    def react_batch(self, obs, masks, invisible_obs):
++    def react_batch(self, obs, masks, invisible_obs, events=None):
+         try:
+             with (
+                 torch.autocast(self.device.type, enabled=self.enable_amp),
+                 torch.inference_mode(),
+             ):
+-                return self._react_batch(obs, masks, invisible_obs)
++                return self._react_batch(obs, masks, invisible_obs, events)
+         except Exception as ex:
+             raise Exception(f'{ex}\n{traceback.format_exc()}')
+ 
+-    def _react_batch(self, obs, masks, invisible_obs):
++    def _react_batch(self, obs, masks, invisible_obs, events=None):
+         obs = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
+         masks = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
+         if invisible_obs is not None:
+             invisible_obs = torch.as_tensor(np.stack(invisible_obs, axis=0), device=self.device)
++        if events is not None:
++            events = {k: v.to(self.device) for k, v in collate_events(events).items()}
+         batch_size = obs.shape[0]
+ 
+         match self.version:
+             case 1:
+-                mu, logsig = self.brain(obs, invisible_obs)
++                mu, logsig = self.brain(obs, invisible_obs, events=events)
+                 if self.stochastic_latent:
+                     latent = Normal(mu, logsig.exp() + 1e-6).sample()
+                 else:
+                     latent = mu
+                 q_out = self.dqn(latent, masks)
+             case 2 | 3 | 4:
+-                phi = self.brain(obs)
++                phi = self.brain(obs, events=events)
+                 q_out = self.dqn(phi, masks)
+ 
+         if self.boltzmann_epsilon > 0:
+diff --git a/mortal/model.py b/mortal/model.py
+index 0fce8aa..2bc9931 100644
+--- a/mortal/model.py
++++ b/mortal/model.py
+@@ -149,7 +149,11 @@ class Brain(nn.Module):
+         # always use EMA or CMA when True
+         self._freeze_bn = False
+ 
+-    def forward(self, obs: Tensor, invisible_obs: Optional[Tensor] = None) -> Union[Tuple[Tensor, Tensor], Tensor]:
++    def forward(self, obs: Tensor, invisible_obs: Optional[Tensor] = None, events=None) -> Union[Tuple[Tensor, Tensor], Tensor]:
++        # [patch 0010] `events` is accepted for the arena/eval feed gate but is
++        # inert here: the event branch (patch 0007) is what consumes it, and
++        # without that branch `events=None` and a real batch produce the same
++        # output bit-for-bit.
+         if self.is_oracle:
+             assert invisible_obs is not None
+             obs = torch.cat((obs, invisible_obs), dim=1)

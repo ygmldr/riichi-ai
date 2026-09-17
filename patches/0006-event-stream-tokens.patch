@@ -1,0 +1,551 @@
+diff --git a/libriichi/src/mjai/tokens.rs b/libriichi/src/mjai/tokens.rs
+new file mode 100644
+index 0000000..a3bab09
+--- /dev/null
++++ b/libriichi/src/mjai/tokens.rs
+@@ -0,0 +1,250 @@
++//! [patch 0006] Public event-stream tokenizer.
++//!
++//! This module is the single source of truth for the event-token spec used by
++//! BOTH the dataset path (`dataset/gameplay.rs`) and the arena/eval path
++//! (`agent/mortal.rs`, patch 0010). Keeping one encoder here guarantees that a
++//! sequence produced from a raw mjai log and a sequence produced from the live
++//! arena board are byte-identical for the same decision point.
++//!
++//! Token spec: shape `(T, 5)`, dtype `i16`, columns
++//! `(type_id, tile, actor, turn, flags)`.
++//! - `type_id`: mjai event variant id, 0..=16 (all <= 19).
++//! - `tile`: `deaka()` tile id 0..=33, or 34 when the event has no tile.
++//! - `actor`: absolute seat 0..=3, or 4 when the event has no actor.
++//! - `turn` (POV-relative): number of `Tsumo` events drawn by the POV player so
++//!   far in the current kyoku, *including* the current event when it is a POV
++//!   tsumo. This is exactly `PlayerState::at_turn()` after the event, but it is
++//!   derived from the event stream alone so the arena (which only has the
++//!   shared kyoku log, not per-event historical states) can reproduce it.
++//! - `flags`: bit 0 = the event's representative tile is aka dora;
++//!   bit 1 = `dahai` was tsumogiri; bit 2 = a `consumed` tile is aka.
++//!
++//! `T <= MAX_EVENT_TOKENS` (384). One kyoku contains at most ~200 public
++//! events (70 live-wall draws plus calls/dora/riichi), so the cap is a hard
++//! safety bound, not a truncation that occurs in practice.
++//!
++//! No hidden information ever enters the stream: `StartKyoku` only emits the
++//! public dora marker (never `tehais`), and no event carries another player's
++//! hand, wall, or ura markers.
++
++use crate::mjai::{Event, EventExt};
++use crate::tile::Tile;
++
++use ndarray::prelude::*;
++
++pub const EVENT_TOKEN_DIM: usize = 5;
++pub const MAX_EVENT_TOKENS: usize = 384;
++
++pub const TILE_NONE: i16 = 34;
++pub const ACTOR_NONE: i16 = 4;
++
++pub const TYPE_NONE: i16 = 0;
++pub const TYPE_START_GAME: i16 = 1;
++pub const TYPE_START_KYOKU: i16 = 2;
++pub const TYPE_TSUMO: i16 = 3;
++pub const TYPE_DAHAI: i16 = 4;
++pub const TYPE_CHI: i16 = 5;
++pub const TYPE_PON: i16 = 6;
++pub const TYPE_DAIMINKAN: i16 = 7;
++pub const TYPE_KAKAN: i16 = 8;
++pub const TYPE_ANKAN: i16 = 9;
++pub const TYPE_DORA: i16 = 10;
++pub const TYPE_REACH: i16 = 11;
++pub const TYPE_REACH_ACCEPTED: i16 = 12;
++pub const TYPE_HORA: i16 = 13;
++pub const TYPE_RYUKYOKU: i16 = 14;
++pub const TYPE_END_KYOKU: i16 = 15;
++pub const TYPE_END_GAME: i16 = 16;
++
++pub const FLAG_AKA: i16 = 1 << 0;
++pub const FLAG_TSUMOGIRI: i16 = 1 << 1;
++pub const FLAG_CONSUMED_AKA: i16 = 1 << 2;
++
++#[inline]
++fn tile_id(tile: Tile) -> i16 {
++    let id = tile.deaka().as_u8();
++    if id < TILE_NONE as u8 {
++        id as i16
++    } else {
++        TILE_NONE
++    }
++}
++
++#[inline]
++fn tile_flags(tile: Tile) -> i16 {
++    if tile.is_aka() { FLAG_AKA } else { 0 }
++}
++
++#[inline]
++fn consumed_flags(consumed: &[Tile]) -> i16 {
++    if consumed.iter().copied().any(Tile::is_aka) {
++        FLAG_CONSUMED_AKA
++    } else {
++        0
++    }
++}
++
++#[inline]
++#[must_use]
++pub const fn event_type_id(ev: &Event) -> i16 {
++    match ev {
++        Event::None => TYPE_NONE,
++        Event::StartGame { .. } => TYPE_START_GAME,
++        Event::StartKyoku { .. } => TYPE_START_KYOKU,
++        Event::Tsumo { .. } => TYPE_TSUMO,
++        Event::Dahai { .. } => TYPE_DAHAI,
++        Event::Chi { .. } => TYPE_CHI,
++        Event::Pon { .. } => TYPE_PON,
++        Event::Daiminkan { .. } => TYPE_DAIMINKAN,
++        Event::Kakan { .. } => TYPE_KAKAN,
++        Event::Ankan { .. } => TYPE_ANKAN,
++        Event::Dora { .. } => TYPE_DORA,
++        Event::Reach { .. } => TYPE_REACH,
++        Event::ReachAccepted { .. } => TYPE_REACH_ACCEPTED,
++        Event::Hora { .. } => TYPE_HORA,
++        Event::Ryukyoku { .. } => TYPE_RYUKYOKU,
++        Event::EndKyoku => TYPE_END_KYOKU,
++        Event::EndGame => TYPE_END_GAME,
++    }
++}
++
++/// Encode one public event into a `(type_id, tile, actor, turn, flags)` token.
++#[must_use]
++pub fn encode_event_token(ev: &Event, turn: i16) -> [i16; EVENT_TOKEN_DIM] {
++    match ev {
++        Event::None => [TYPE_NONE, TILE_NONE, ACTOR_NONE, turn, 0],
++
++        Event::StartGame { .. } => [TYPE_START_GAME, TILE_NONE, ACTOR_NONE, turn, 0],
++
++        // Only the public dora marker is emitted; `tehais` stays private.
++        Event::StartKyoku { dora_marker, .. } => [
++            TYPE_START_KYOKU,
++            tile_id(*dora_marker),
++            ACTOR_NONE,
++            turn,
++            tile_flags(*dora_marker),
++        ],
++
++        Event::Tsumo { actor, pai } => [
++            TYPE_TSUMO,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai),
++        ],
++
++        Event::Dahai {
++            actor,
++            pai,
++            tsumogiri,
++        } => [
++            TYPE_DAHAI,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai) | if *tsumogiri { FLAG_TSUMOGIRI } else { 0 },
++        ],
++
++        Event::Chi {
++            actor,
++            pai,
++            consumed,
++            ..
++        } => [
++            TYPE_CHI,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai) | consumed_flags(consumed),
++        ],
++
++        Event::Pon {
++            actor,
++            pai,
++            consumed,
++            ..
++        } => [
++            TYPE_PON,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai) | consumed_flags(consumed),
++        ],
++
++        Event::Daiminkan {
++            actor,
++            pai,
++            consumed,
++            ..
++        } => [
++            TYPE_DAIMINKAN,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai) | consumed_flags(consumed),
++        ],
++
++        Event::Kakan {
++            actor,
++            pai,
++            consumed,
++        } => [
++            TYPE_KAKAN,
++            tile_id(*pai),
++            *actor as i16,
++            turn,
++            tile_flags(*pai) | consumed_flags(consumed),
++        ],
++
++        Event::Ankan { actor, consumed } => [
++            TYPE_ANKAN,
++            tile_id(consumed[0]),
++            *actor as i16,
++            turn,
++            tile_flags(consumed[0]) | consumed_flags(consumed),
++        ],
++
++        Event::Dora { dora_marker } => [
++            TYPE_DORA,
++            tile_id(*dora_marker),
++            ACTOR_NONE,
++            turn,
++            tile_flags(*dora_marker),
++        ],
++
++        Event::Reach { actor } => [TYPE_REACH, TILE_NONE, *actor as i16, turn, 0],
++
++        Event::ReachAccepted { actor } => {
++            [TYPE_REACH_ACCEPTED, TILE_NONE, *actor as i16, turn, 0]
++        }
++
++        Event::Hora { actor, .. } => [TYPE_HORA, TILE_NONE, *actor as i16, turn, 0],
++
++        Event::Ryukyoku { .. } => [TYPE_RYUKYOKU, TILE_NONE, ACTOR_NONE, turn, 0],
++
++        Event::EndKyoku => [TYPE_END_KYOKU, TILE_NONE, ACTOR_NONE, turn, 0],
++
++        Event::EndGame => [TYPE_END_GAME, TILE_NONE, ACTOR_NONE, turn, 0],
++    }
++}
++
++/// Encode a whole public event log (as seen by the arena board / a dataset
++/// kyoku) into a `(T, 5) i16` array. `pov` only affects the `turn` column.
++#[must_use]
++pub fn encode_event_log(log: &[EventExt], pov: u8) -> Array2<i16> {
++    let len = log.len().min(MAX_EVENT_TOKENS);
++    let mut flat = Vec::with_capacity(len * EVENT_TOKEN_DIM);
++    let mut turn = 0_i16;
++
++    for ev in log.iter().take(len) {
++        if let Event::Tsumo { actor, .. } = ev.event {
++            if actor == pov {
++                turn += 1;
++            }
++        }
++        flat.extend_from_slice(&encode_event_token(&ev.event, turn));
++    }
++
++    Array2::from_shape_vec((len, EVENT_TOKEN_DIM), flat)
++        .expect("event token buffer length is a multiple of EVENT_TOKEN_DIM")
++}
+diff --git a/libriichi/src/mjai/mod.rs b/libriichi/src/mjai/mod.rs
+index ba5074e..e76aa68 100644
+--- a/libriichi/src/mjai/mod.rs
++++ b/libriichi/src/mjai/mod.rs
+@@ -1,7 +1,12 @@
+ mod bot;
+ mod event;
++mod tokens;
+ 
+ pub use event::{Event, EventExt, EventWithCanAct, Metadata, OutOfBoundError};
++pub use tokens::{
++    ACTOR_NONE, EVENT_TOKEN_DIM, FLAG_AKA, FLAG_CONSUMED_AKA, FLAG_TSUMOGIRI, MAX_EVENT_TOKENS,
++    TILE_NONE, encode_event_log, encode_event_token, event_type_id,
++};
+ 
+ use crate::py_helper::add_submodule;
+ use bot::Bot;
+--- a/libriichi/src/dataset/gameplay.rs
++++ b/libriichi/src/dataset/gameplay.rs
+@@ -1,5 +1,5 @@
+ use super::{Grp, Invisible};
+ use crate::chi_type::ChiType;
+-use crate::mjai::Event;
++use crate::mjai::{EVENT_TOKEN_DIM, Event, MAX_EVENT_TOKENS, encode_event_token};
+ use crate::state::PlayerState;
+ use std::array;
+@@ -58,4 +58,10 @@
+     pub shantens: Vec<i8>,
+ 
++    // [patch 0006] public event stream per decision point, flat row-major
++    // (T <= 384) x 5 i16 tokens; `take_events` reshapes to (T, 5).
++    pub events: Vec<Vec<i16>>,
++    events_buf: Vec<i16>,
++    events_turn: i16,
++
+     // per game
+     pub grp: Grp, // actually per kyoku though
+@@ -227,4 +233,17 @@
+         mem::take(&mut self.shantens)
+     }
++    fn take_events<'py>(&mut self, py: Python<'py>) -> Vec<Bound<'py, PyArray2<i16>>> {
++        mem::take(&mut self.events)
++            .into_iter()
++            .map(|flat| {
++                let len = flat.len() / EVENT_TOKEN_DIM;
++                PyArray2::from_owned_array(
++                    py,
++                    Array2::from_shape_vec((len, EVENT_TOKEN_DIM), flat)
++                        .expect("event token buffer is a multiple of EVENT_TOKEN_DIM"),
++                )
++            })
++            .collect()
++    }
+ 
+     fn take_grp(&mut self) -> Grp {
+@@ -307,4 +326,22 @@
+         }
+ 
++        // [patch 0006] Append the public token for `cur` before any snapshot in
++        // `add_entry` below. The buffer is scoped to the current kyoku: a
++        // `StartKyoku` resets it, so the first token of every decision's stream
++        // is that kyoku's `start_kyoku` (public dora marker only, never tehais).
++        if matches!(cur, Event::StartKyoku { .. }) {
++            self.events_buf.clear();
++            self.events_turn = 0;
++        }
++        if let Event::Tsumo { actor, .. } = cur {
++            if *actor == self.player_id {
++                self.events_turn += 1;
++            }
++        }
++        if self.events_buf.len() < MAX_EVENT_TOKENS * EVENT_TOKEN_DIM {
++            self.events_buf
++                .extend_from_slice(&encode_event_token(cur, self.events_turn));
++        }
++
+         if invisibles.is_some() {
+             match cur {
+@@ -430,4 +467,6 @@
+         self.at_turns.push(ctx.state.at_turn());
+         self.shantens.push(ctx.state.shanten());
++        // [patch 0006] snapshot the public event stream at this decision point
++        self.events.push(self.events_buf.clone());
+ 
+         if let Some(invisibles) = ctx.invisibles {
+diff --git a/mortal/event_data.py b/mortal/event_data.py
+new file mode 100644
+index 0000000..ffa24e8
+--- /dev/null
++++ b/mortal/event_data.py
+@@ -0,0 +1,33 @@
++import torch
++
++EVENT_TOKEN_DIM = 5
++MAX_EVENT_TOKENS = 384
++
++# Batch layout produced by `collate_events`:
++#   tokens: (B, T, 5) int16, zero padded (type id 0 == none/padding)
++#   lengths: (B,) int64, number of public events per decision point
++#   mask: (B, T) bool, valid (non-padding) positions
++#   causal: (T, T) bool lower-triangular, the causal attention mask
++def collate_events(events):
++    batch_size = len(events)
++    lengths = torch.tensor([len(e) for e in events], dtype=torch.int64)
++    seq_len = int(lengths.max().item()) if batch_size > 0 else 0
++    seq_len = max(seq_len, 1)
++    tokens = torch.zeros((batch_size, seq_len, EVENT_TOKEN_DIM), dtype=torch.int16)
++    mask = torch.zeros((batch_size, seq_len), dtype=torch.bool)
++    for i, e in enumerate(events):
++        t = len(e)
++        if t > 0:
++            tokens[i, :t] = torch.as_tensor(e, dtype=torch.int16)
++            mask[i, :t] = True
++    causal = torch.ones((seq_len, seq_len), dtype=torch.bool).tril()
++    return {'tokens': tokens, 'lengths': lengths, 'mask': mask, 'causal': causal}
++
++
++def cat_event_batches(batches):
++    keys = batches[0].keys()
++    return {k: torch.cat([b[k] for b in batches], dim=0) for k in keys}
++
++
++def slice_event_batch(batch, start, end):
++    return {k: v[start:end] for k, v in batch.items()}
+diff --git a/mortal/dataloader.py b/mortal/dataloader.py
+index 17b79ef..9bc605f 100644
+--- a/mortal/dataloader.py
++++ b/mortal/dataloader.py
+@@ -1,12 +1,19 @@
+ import random
+ import torch
+ import numpy as np
+-from torch.utils.data import IterableDataset
++from torch.utils.data import IterableDataset, default_collate
+ from model import GRP
+ from reward_calculator import RewardCalculator
+ from libriichi.dataset import GameplayLoader
++from event_data import collate_events
+ from config import config
+ 
++# [patch 0006] variable-length event streams need padding, so the default
++# collate cannot be used. Every buffer entry ends with its `events` array.
++def collate_batch(batch):
++    core = default_collate([entry[:-1] for entry in batch])
++    return (*core, collate_events([entry[-1] for entry in batch]))
++
+ class FileDatasetsIter(IterableDataset):
+     def __init__(
+         self,
+@@ -90,6 +97,7 @@ class FileDatasetsIter(IterableDataset):
+                 at_kyoku = game.take_at_kyoku()
+                 dones = game.take_dones()
+                 apply_gamma = game.take_apply_gamma()
++                events = game.take_events()
+ 
+                 # per game
+                 grp = game.take_grp()
+@@ -123,6 +131,7 @@ class FileDatasetsIter(IterableDataset):
+                     ]
+                     if self.oracle:
+                         entry.insert(1, invisible_obs[i])
++                    entry.append(events[i])
+                     self.buffer.append(entry)
+ 
+     def __iter__(self):
+--- a/mortal/train.py
++++ b/mortal/train.py
+@@ -21,7 +21,8 @@
+     from torch.utils.tensorboard import SummaryWriter
+     from common import submit_param, parameter_count, drain, filtered_trimmed_lines, tqdm
+     from player import TestPlayer
+-    from dataloader import FileDatasetsIter, worker_init_fn
++    from dataloader import FileDatasetsIter, collate_batch, worker_init_fn
++    from event_data import cat_event_batches, slice_event_batch
+     from lr_scheduler import LinearWarmUpCosineAnnealingLR
+     from model import Brain, DQN, AuxNet
+     from libriichi.consts import obs_shape
+@@ -215,6 +216,7 @@
+             num_workers = num_workers,
+             pin_memory = True,
+             worker_init_fn = worker_init_fn,
++            collate_fn = collate_batch,
+         ))
+ 
+         def holdout_loss_calc():
+@@ -236,6 +238,7 @@
+                 num_workers = val_num_workers,
+                 pin_memory = True,
+                 worker_init_fn = worker_init_fn,
++                collate_fn = collate_batch,
+             )
+             # holdout batches must not update BN running stats, hence eval()
+             modes = [m.training for m in all_models]
+@@ -245,16 +248,17 @@
+             n = 0
+             try:
+                 with torch.inference_mode():
+-                    for obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks in loader:
++                    for obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks, events in loader:
+                         obs = obs.to(dtype=torch.float32, device=device)
+                         actions = actions.to(dtype=torch.int64, device=device)
+                         masks = masks.to(dtype=torch.bool, device=device)
+                         steps_to_done = steps_to_done.to(dtype=torch.int64, device=device)
+                         kyoku_rewards = kyoku_rewards.to(dtype=torch.float64, device=device)
+                         player_ranks = player_ranks.to(dtype=torch.int64, device=device)
++                        events = {k: v.to(device) for k, v in events.items()}
+                         q_target_mc = (gamma ** steps_to_done * kyoku_rewards).to(torch.float32)
+                         with torch.autocast(device.type, enabled=enable_amp):
+-                            phi = mortal(obs)
++                            phi = mortal(obs, events=events)
+                             q_out = dqn(phi, masks)
+                             q = q_out[range(obs.shape[0]), actions]
+                             dqn_loss = 0.5 * mse(q, q_target_mc)
+@@ -285,10 +289,11 @@
+         remaining_steps_to_done = []
+         remaining_kyoku_rewards = []
+         remaining_player_ranks = []
++        remaining_events = []
+         remaining_bs = 0
+         pb = tqdm(total=save_every, desc='TRAIN', initial=steps % save_every)
+ 
+-        def train_batch(obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks):
++        def train_batch(obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks, events):
+             nonlocal steps
+             nonlocal idx
+             nonlocal pb
+@@ -299,6 +304,16 @@
+             # CPU/GPU pipeline. Checking the CPU copies keeps the guard for ~µs.
+             assert masks[range(batch_size), actions].all()
+ 
++            # [patch 0006] event tokens must never silently train all-zero: the
++            # first token of every stream is a start_kyoku (type id 2), so a
++            # zero sum means the loader/collate dropped the stream.
++            assert events['tokens'].numel() > 0 and int(events['tokens'].sum().item()) != 0
++            if steps == 0:
++                logging.info(
++                    f'event tokens: {tuple(events["tokens"].shape)} '
++                    f'nonzero={int(events["tokens"].sum().item())}'
++                )
++
+             # [patch 0002] non_blocking H2D copies: the DataLoader pins batches
+             # (pin_memory=True), so the copies may overlap with GPU execution
+             # instead of blocking the host thread.
+@@ -308,12 +323,13 @@
+             steps_to_done = steps_to_done.to(dtype=torch.int64, device=device, non_blocking=True)
+             kyoku_rewards = kyoku_rewards.to(dtype=torch.float64, device=device, non_blocking=True)
+             player_ranks = player_ranks.to(dtype=torch.int64, device=device, non_blocking=True)
++            events = {k: v.to(device, non_blocking=True) for k, v in events.items()}
+ 
+             q_target_mc = gamma ** steps_to_done * kyoku_rewards
+             q_target_mc = q_target_mc.to(torch.float32)
+ 
+             with torch.autocast(device.type, enabled=enable_amp):
+-                phi = mortal(obs)
++                phi = mortal(obs, events=events)
+                 q_out = dqn(phi, masks)
+                 q = q_out[range(batch_size), actions]
+                 dqn_loss = 0.5 * mse(q, q_target_mc)
+@@ -481,7 +497,7 @@
+                         sys.exit(0)
+                 pb = tqdm(total=save_every, desc='TRAIN')
+ 
+-        for obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks in data_loader:
++        for obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks, events in data_loader:
+             bs = obs.shape[0]
+             if bs != batch_size:
+                 remaining_obs.append(obs)
+@@ -490,9 +506,10 @@
+                 remaining_steps_to_done.append(steps_to_done)
+                 remaining_kyoku_rewards.append(kyoku_rewards)
+                 remaining_player_ranks.append(player_ranks)
++                remaining_events.append(events)
+                 remaining_bs += bs
+                 continue
+-            train_batch(obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks)
++            train_batch(obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks, events)
+ 
+         remaining_batches = remaining_bs // batch_size
+         if remaining_batches > 0:
+@@ -502,6 +519,7 @@
+             steps_to_done = torch.cat(remaining_steps_to_done, dim=0)
+             kyoku_rewards = torch.cat(remaining_kyoku_rewards, dim=0)
+             player_ranks = torch.cat(remaining_player_ranks, dim=0)
++            events = cat_event_batches(remaining_events)
+             start = 0
+             end = batch_size
+             while end <= remaining_bs:
+@@ -512,6 +530,7 @@
+                     steps_to_done[start:end],
+                     kyoku_rewards[start:end],
+                     player_ranks[start:end],
++                    slice_event_batch(events, start, end),
+                 )
+                 start = end
+                 end += batch_size
