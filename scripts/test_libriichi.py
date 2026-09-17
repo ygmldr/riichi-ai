@@ -4,9 +4,13 @@ import sys
 import zipfile
 import gzip
 
-# 将构建产物加入 path(与 build_libriichi.sh 一致)
+# 将构建产物加入 path(优先 release,回退 debug,与 activate_env.sh 一致)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO_ROOT, "vendor", "mortal", "target", "debug"))
+for _lib in ("release", "debug"):
+    _lib_path = os.path.join(REPO_ROOT, "vendor", "mortal", "target", _lib)
+    if os.path.isfile(os.path.join(_lib_path, "libriichi.so")):
+        sys.path.insert(0, _lib_path)
+        break
 
 import libriichi  # noqa: E402
 from libriichi.consts import ACTION_SPACE, GRP_SIZE, obs_shape  # noqa: E402

@@ -1,0 +1,15 @@
+diff --git a/libriichi/src/dataset/gameplay.rs b/libriichi/src/dataset/gameplay.rs
+index 32558e3..c209dd0 100644
+--- a/libriichi/src/dataset/gameplay.rs
++++ b/libriichi/src/dataset/gameplay.rs
+@@ -425,8 +425,8 @@ impl Gameplay {
+         self.actions.push(label as i64);
+         self.masks.push(mask);
+         self.at_kyoku.push(ctx.kyoku_idx as u8);
+-        // only discard and kan will discount
+-        self.apply_gamma.push(label <= 37);
++        // only discard (incl. aka 34-36) and kan declaration (42) will discount
++        self.apply_gamma.push(label <= 36 || label == 42);
+         self.at_turns.push(ctx.state.at_turn());
+         self.shantens.push(ctx.state.shanten());
+ 
