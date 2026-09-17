@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/akochan_eval/games,at-175200,423244137402621143,60000,10,40,0,8,11,6,15,[8 11 6 15],2.700000,2.4,3.0,-20.250000,-45.0,3.375,0
