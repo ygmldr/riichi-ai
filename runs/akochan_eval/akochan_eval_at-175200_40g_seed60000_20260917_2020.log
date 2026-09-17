@@ -1,0 +1,146 @@
+2026-09-17 20:20:43,742     INFO one_vs_three.rs:131  seed: [60000, 60001) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:36:05,504     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [1 2 0 1] (2.25, 11.25pt)
+2026-09-17 20:36:07,333     INFO one_vs_three.rs:131  seed: [60001, 60002) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 20:38:33,356     INFO one_vs_three.rs:131  seed: [60002, 60003) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 20:44:57,129     INFO one_vs_three.rs:131  seed: [60003, 60004) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:58:24,041     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [0 1 0 3] (3.5, -90.0pt)
+2026-09-17 20:58:25,823     INFO one_vs_three.rs:131  seed: [60004, 60005) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 21:13:07,159     INFO one_vs_three.rs:131  seed: [60005, 60006) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 21:20:01,616     INFO one_vs_three.rs:131  seed: [60006, 60007) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 21:29:51,817     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [2 1 0 1] (2.0, 22.5pt)
+2026-09-17 20:20:43,739     INFO one_vs_three.rs:131  seed: [61000, 61001) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:36:35,955     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [0 1 1 2] (3.25, -56.25pt)
+2026-09-17 20:36:37,822     INFO one_vs_three.rs:131  seed: [61001, 61002) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 20:43:50,083     INFO one_vs_three.rs:131  seed: [61002, 61003) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:56:21,518     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [0 2 0 2] (3.0, -45.0pt)
+2026-09-17 20:56:23,397     INFO one_vs_three.rs:131  seed: [61003, 61004) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 21:07:11,023     INFO one_vs_three.rs:131  seed: [61004, 61005) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 21:08:32,921     INFO one_vs_three.rs:131  seed: [61005, 61006) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 21:18:21,589     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [2 0 1 1] (2.25, 11.25pt)
+2026-09-17 20:20:43,745     INFO one_vs_three.rs:131  seed: [62000, 62001) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+terminate called after throwing an instance of 'boost::container::bad_alloc'
+  what():  boost::container::bad_alloc thrown
+--------------------------------------------------
+# 0
+Traceback (most recent call last):
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 106, in <module>
+    main()
+  File "/home/ygsldr/riichi-ai/vendor/mortal/mortal/one_vs_three.py", line 87, in main
+    rankings = env.ako_vs_py(
+               ^^^^^^^^^^^^^^
+RuntimeError: failed to read from akochan: unexpected EOF
+2026-09-17 20:32:08,487     INFO one_vs_three.rs:131  seed: [62001, 62002) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:41:59,361     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [1 1 0 2] (2.75, -33.75pt)
+2026-09-17 20:42:01,200     INFO one_vs_three.rs:131  seed: [62002, 62003) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 21:00:34,261     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [1 1 2 0] (2.25, 33.75pt)
+2026-09-17 20:20:43,751     INFO one_vs_three.rs:131  seed: [63000, 63001) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:33:06,126     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [1 1 1 1] (2.5, 0.0pt)
+2026-09-17 20:33:08,161     INFO one_vs_three.rs:131  seed: [63001, 63002) w/ 0x5dfaa4cef265cd7, start 1 sets, 4 hanchans
+2026-09-17 20:48:59,432     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [0 1 1 2] (3.25, -56.25pt)
