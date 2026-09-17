@@ -1,0 +1,181 @@
+{
+  "schema": "a2-linear-probe/v1",
+  "generated_at": "2026-09-17T07:10:48.566270+00:00",
+  "label": "opp_any_tenpai",
+  "n_samples": 262339,
+  "auc": 0.9334087675680629,
+  "ece": 0.009871001787941872,
+  "auc_random": 0.5006945747120765,
+  "checkpoint": {
+    "path": "runs/exp/PINNED/mortal.pth.at-175200",
+    "size_bytes": 130780507,
+    "sha256": "f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9",
+    "steps": 175200
+  },
+  "embedding": {
+    "definition": "phi = brain.encoder(obs) (vendor/mortal/mortal/model.py:156)",
+    "dim": 1024,
+    "is_oracle": false,
+    "encoder_input_channels": 1012,
+    "dtype": "float32",
+    "batchnorm": "eval"
+  },
+  "data": {
+    "loader": "libriichi.dataset.GameplayLoader(version=4, oracle=True)",
+    "glob": "datasets/extracted/**/*.mjson",
+    "sampling": "reservoir sample k=400, seed=13; fallback k=100",
+    "n_files_used": 400,
+    "n_samples": 262339,
+    "n_opponent_observations": 787017,
+    "points_per_file_mean": 655.8475
+  },
+  "split": {
+    "strategy": "by source file (80/20)",
+    "seed": 13,
+    "n_train": 209610,
+    "n_val": 52729,
+    "n_val_files": 80
+  },
+  "probe": {
+    "model": "logistic regression (nn.Linear(1024,1))",
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "batch_size": 4096,
+    "epochs": 100,
+    "seed": 0,
+    "features": "standardized with train mean/std"
+  },
+  "labels": {
+    "opp_any_tenpai": {
+      "auc": 0.9334087675680629,
+      "ece": 0.009871001787941872,
+      "brier": 0.09427791940688557,
+      "prevalence_train": 0.347516804933548,
+      "prevalence_val": 0.347929984331131,
+      "n_train": 209610,
+      "n_val": 52729,
+      "n_pos_val": 18346,
+      "auc_random_per_seed": [
+        0.49942404501201093,
+        0.5001516785971071,
+        0.5025080005271114
+      ],
+      "auc_random": 0.5006945747120765,
+      "auc_random_seeds": [
+        100,
+        101,
+        102
+      ]
+    },
+    "opp_any_shanten_le1": {
+      "auc": 0.8982214360592471,
+      "ece": 0.015346185940114145,
+      "brier": 0.11800577192939483,
+      "prevalence_train": 0.6865321397781372,
+      "prevalence_val": 0.6868516206741333,
+      "n_train": 209610,
+      "n_val": 52729,
+      "n_pos_val": 36217,
+      "auc_random_per_seed": [
+        0.4995422961262879
+      ],
+      "auc_random": 0.4995422961262879,
+      "auc_random_seeds": [
+        100
+      ]
+    },
+    "opp_any_shanten_le2": {
+      "auc": 0.9101011583204737,
+      "ece": 0.022226223774769648,
+      "brier": 0.0604004436981366,
+      "prevalence_train": 0.9113830327987671,
+      "prevalence_val": 0.9035634994506836,
+      "n_train": 209610,
+      "n_val": 52729,
+      "n_pos_val": 47644,
+      "auc_random_per_seed": [
+        0.505838238668246
+      ],
+      "auc_random": 0.505838238668246,
+      "auc_random_seeds": [
+        100
+      ]
+    },
+    "opp_any_aka_in_hand": {
+      "auc": 0.6055147667212784,
+      "ece": 0.013766877661930762,
+      "brier": 0.16989296238906249,
+      "prevalence_train": 0.7651591300964355,
+      "prevalence_val": 0.7755504846572876,
+      "n_train": 209610,
+      "n_val": 52729,
+      "n_pos_val": 40894,
+      "auc_random_per_seed": [
+        0.5006366805880159
+      ],
+      "auc_random": 0.5006366805880159,
+      "auc_random_seeds": [
+        100
+      ]
+    },
+    "ctrl_opp_any_meld_visible": {
+      "auc": 0.7946827570816996,
+      "ece": 0.018780059121448103,
+      "brier": 0.18213120112407744,
+      "prevalence_train": 0.4429798126220703,
+      "prevalence_val": 0.4251171052455902,
+      "n_train": 209610,
+      "n_val": 52729,
+      "n_pos_val": 22416,
+      "auc_random_per_seed": [
+        0.4972557325752467
+      ],
+      "auc_random": 0.4972557325752467,
+      "auc_random_seeds": [
+        100
+      ]
+    }
+  },
+  "label_source": "opponents (oracle decode verified)",
+  "degraded": false,
+  "primary_ci95": [
+    0.9312366354468009,
+    0.9353720148978499
+  ],
+  "verification": {
+    "shanten_onehot_rows": 0,
+    "shanten_norm_mismatch": 0,
+    "hand_count_range": 0,
+    "hand_count_nonint": 0,
+    "aka_nonbinary": 0,
+    "waits_nonbinary": 0,
+    "furiten_nonbinary": 0,
+    "waits_vs_shanten": 225,
+    "n_opp_obs": 787017,
+    "handsize_vs_melds": 0,
+    "own_shanten_onehot_rows": 0,
+    "own_shanten_mismatch": 0
+  },
+  "verdict": {
+    "pipeline_valid": false,
+    "control_gate_pass": true,
+    "positive_control_pass": false,
+    "control_gate": "|auc_random - 0.5| < 0.02",
+    "gate_belief": "block",
+    "evidence_tier": "strong",
+    "rule": "allow iff |auc_random-0.5|<0.02 AND ctrl_auc>=0.90 AND auc>=0.65 AND CI_lo>0.5"
+  },
+  "runtime": {
+    "seconds": 786.3,
+    "peak_rss_mb": 6486.765625,
+    "device": "cuda"
+  },
+  "supplementary": {
+    "path": "supplementary.json",
+    "post_hoc": true,
+    "public_features_primary_auc": 0.93993038668346,
+    "mish_phi_primary_auc": 0.9221437179244346,
+    "exact_meld_features_control_auc": 1.0
+  }
+}

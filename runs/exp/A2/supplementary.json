@@ -1,0 +1,149 @@
+{
+  "schema": "a2-supplementary/v1",
+  "post_hoc": true,
+  "note": "Written AFTER the pre-registered run; not part of PREREG.md decision gates.",
+  "generated_at": "2026-09-17T07:27:49.871214+00:00",
+  "sample": {
+    "n_files": 400,
+    "n_points": 262339,
+    "sample_seed": 13,
+    "split_seed": 13,
+    "n_train": 209610,
+    "n_val": 52729
+  },
+  "phi_primary_reproduction": {
+    "auc": 0.9334087675680629,
+    "ece": 0.009871001787941872
+  },
+  "mish_phi_primary": {
+    "auc": 0.9221437179244346,
+    "ece": 0.013890077554035743
+  },
+  "public_features_primary": {
+    "auc": 0.93993038668346,
+    "ece": 0.01806392507946518,
+    "n_features": 24,
+    "feature_names": [
+      "tiles_left",
+      "own_at_turns/17",
+      "riichi_declared_opp{1,2,3}",
+      "riichi_accepted_opp{1,2,3}",
+      "own_at_furiten",
+      "own_shanten_onehot_0..6",
+      "round_index",
+      "honba",
+      "tiles_seen",
+      "n_dora_indicators",
+      "kyoku_onehot_0..3"
+    ]
+  },
+  "phi_aka_reproduction": {
+    "auc": 0.6055147667212784,
+    "ece": 0.013766877661930762
+  },
+  "public_features_aka": {
+    "auc": 0.6158128853499859,
+    "ece": 0.017729865205053034,
+    "n_features": 24,
+    "feature_names": [
+      "tiles_left",
+      "own_at_turns/17",
+      "riichi_declared_opp{1,2,3}",
+      "riichi_accepted_opp{1,2,3}",
+      "own_at_furiten",
+      "own_shanten_onehot_0..6",
+      "round_index",
+      "honba",
+      "tiles_seen",
+      "n_dora_indicators",
+      "kyoku_onehot_0..3"
+    ]
+  },
+  "exact_meld_features_control": {
+    "auc": 1.0,
+    "ece": 0.025757267823476638,
+    "n_features": 6,
+    "note": "6 raw meld-presence planes; exactly determine the label"
+  },
+  "phi_control_meld_reproduction": {
+    "auc": 0.7946827570816996,
+    "ece": 0.018780059121448103
+  },
+  "mish_phi_control_meld": {
+    "auc": 0.7725090564449478,
+    "ece": 0.023612896826105352
+  },
+  "primary_prevalence_by_year": {
+    "2010": {
+      "n": 8765,
+      "pos_rate": 0.35208214489446665
+    },
+    "2011": {
+      "n": 11041,
+      "pos_rate": 0.3346617154243275
+    },
+    "2012": {
+      "n": 10897,
+      "pos_rate": 0.342112508029733
+    },
+    "2013": {
+      "n": 16055,
+      "pos_rate": 0.36941762690750546
+    },
+    "2014": {
+      "n": 14105,
+      "pos_rate": 0.34937965260545906
+    },
+    "2015": {
+      "n": 19870,
+      "pos_rate": 0.33960744841469553
+    },
+    "2016": {
+      "n": 18631,
+      "pos_rate": 0.3302023509205088
+    },
+    "2017": {
+      "n": 15958,
+      "pos_rate": 0.33506705100889833
+    },
+    "2018": {
+      "n": 15073,
+      "pos_rate": 0.36157367478272406
+    },
+    "2019": {
+      "n": 17521,
+      "pos_rate": 0.34689800810456023
+    },
+    "2020": {
+      "n": 16747,
+      "pos_rate": 0.34650982265480385
+    },
+    "2021": {
+      "n": 22014,
+      "pos_rate": 0.35041337330789496
+    },
+    "2022": {
+      "n": 19160,
+      "pos_rate": 0.3553757828810021
+    },
+    "2023": {
+      "n": 14454,
+      "pos_rate": 0.3464784834647848
+    },
+    "2024": {
+      "n": 25345,
+      "pos_rate": 0.3446439139869797
+    },
+    "2025": {
+      "n": 14758,
+      "pos_rate": 0.3514026290825315
+    },
+    "2026": {
+      "n": 1945,
+      "pos_rate": 0.40668380462724935
+    }
+  },
+  "runtime": {
+    "seconds": 568.8
+  }
+}
