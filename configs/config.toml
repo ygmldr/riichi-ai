@@ -42,6 +42,17 @@ pts = [ 6.0, 4.0, 2.0, 0.0,]
 conv_channels = 192
 num_blocks = 40
 
+# [patch 0007] E3a event branch (residual, zero-initialised fusion). The value
+# here only decides how *training* builds the Brain; evaluation/loading always
+# reads the toggle from the checkpoint's own saved config. Every non-event arm
+# (E2/baseline) must override `use_event_branch = false` explicitly.
+[model]
+use_event_branch = true
+event_dim = 128
+event_heads = 4
+event_layers = 4
+event_ffn = 512
+
 [cql]
 min_q_weight = 5
 

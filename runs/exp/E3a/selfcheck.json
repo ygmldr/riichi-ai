@@ -1,0 +1,67 @@
+{
+  "numel": {
+    "baseline_cnn_total": 10787456,
+    "e3a_added": 1031296,
+    "e3a_total": 11818752
+  },
+  "timing_cuda_b1024_t153": {
+    "baseline": 0.0370583126998099,
+    "e3a": 0.05099284809984965,
+    "ratio_e3a_over_baseline": 1.3760164558196744
+  },
+  "checks": {
+    "zero_init_identity": {
+      "ok": true,
+      "detail": "max|phi_out - phi_base| zero_tokens=0.000e+00 real_tokens=0.000e+00 cnn_vs_direct=0.000e+00 (threshold 1e-5)"
+    },
+    "proj_zero_init": {
+      "ok": true,
+      "detail": "max|W_zero|=0.0"
+    },
+    "residual_wired": {
+      "ok": true,
+      "detail": "max|phi_out - phi_base| after perturb = 6.381e-01"
+    },
+    "causal_mask": {
+      "ok": true,
+      "detail": "changing pos>=4 leaves pos<4 unchanged (0.000e+00); changing pos 3 moves pos>=4 (2.017e+00)"
+    },
+    "padding_ignored": {
+      "ok": true,
+      "detail": "max|h - h(junk padding)| = 0.000e+00"
+    },
+    "toggle_off_no_branch": {
+      "ok": true,
+      "detail": "use_event_branch=false -> event_branch is None"
+    },
+    "toggle_on_branch": {
+      "ok": true,
+      "detail": "use_event_branch=true -> branch instantiated"
+    },
+    "branch_needs_events": {
+      "ok": true,
+      "detail": "event branch is enabled but `events` is None; refusing to run the branch-less path (would silently degrade E3a to E2)"
+    },
+    "guard_branch_weights_into_cnn": {
+      "ok": true,
+      "detail": "unit:e3a->cnn: checkpoint contains event-branch weights but the constructed Brain has use_event_branch=false; refusing to drop them silently (strict=False would degrade E3a into E2)"
+    },
+    "e3a_load_clean": {
+      "ok": true,
+      "detail": "missing=[] unexpected=[]"
+    },
+    "cnn_load_clean": {
+      "ok": true,
+      "detail": "missing=[] unexpected=[]"
+    },
+    "cnn_into_e3a_missing_branch": {
+      "ok": true,
+      "detail": "missing=55 keys (all event_branch), unexpected=[]"
+    },
+    "numel_consistency": {
+      "ok": true,
+      "detail": "baseline=10,787,456 e3a=11,818,752 added=1,031,296 (ratio 9.560% of baseline)"
+    }
+  },
+  "all_pass": true
+}
