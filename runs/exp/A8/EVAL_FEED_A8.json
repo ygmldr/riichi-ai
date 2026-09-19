@@ -1,0 +1,25 @@
+{
+  "debug_file": "/tmp/opencode/a8_evt_debug.jsonl",
+  "debug_size_bytes": 631398397,
+  "evaluate_calls": 2757,
+  "entries": 7489737,
+  "n_min": 2,
+  "n_max": 157,
+  "assertion_1_nonempty": true,
+  "assertion_2_first_is_start_kyoku": true,
+  "assertion_3_last_is_valid_event_type": true,
+  "failure_count": 0,
+  "failures": [],
+  "first_type_counts": {
+    "2": 7489737
+  },
+  "last_type_counts": {
+    "3": 5693472,
+    "4": 1566395,
+    "5": 65854,
+    "6": 130051,
+    "8": 14,
+    "11": 33951
+  },
+  "note": "entries == states queued for react_batch in the arena; every entry has n>=1, and the branch-enabled Brain raises on events=None, so all engine-evaluated decisions were fed non-empty event streams."
+}

@@ -1,0 +1,15 @@
+{
+  "pid": 21397,
+  "target_steps": 20000,
+  "marker": "total steps: 20,000",
+  "started_watch_at": "2026-09-19T15:32:13+08:00",
+  "marker_seen_at": "2026-09-19T16:49:27+08:00",
+  "state_file": "/home/ygsldr/riichi-ai/runs/exp/A8/state.pth",
+  "state_steps": 20000,
+  "state_mtime": "2026-09-19T16:49:24+08:00",
+  "killed_at": "2026-09-19T16:50:27+08:00",
+  "killed_pids": [
+    "pgid:21397"
+  ],
+  "exit": null
+}
