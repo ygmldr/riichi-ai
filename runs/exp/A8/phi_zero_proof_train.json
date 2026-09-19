@@ -1,0 +1,16 @@
+{
+  "arm": "A8",
+  "mode": "train",
+  "pid": 21397,
+  "installer": "scripts/exp_a8_phi_zero.py",
+  "mechanism": "Brain.encoder forward hook returns torch.zeros_like(enc_out); Brain.forward reads it as phi immediately before phi + W_zero(h_event)",
+  "installed": true,
+  "hooked_brains": 1,
+  "calls": 19968,
+  "assert_all_zero_after_zeroing": true,
+  "max_abs_phi_before_zero": 2.302734375,
+  "total_zeroed_elements": 20937965568,
+  "first_call_ts": "2026-09-19T15:31:26+08:00",
+  "last_call_ts": "2026-09-19T16:48:18+08:00",
+  "armed": true
+}

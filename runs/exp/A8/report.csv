@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/A8,state.pth,423244137402621143,10000,3000,12000,0,144,730,2820,8306,[144 730 2820 8306],3.607333,3.5956625,3.6191666666666666,-89.625000,-90.8851875,-88.38,0

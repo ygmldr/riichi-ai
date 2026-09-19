@@ -1,0 +1,27 @@
+2026-09-19 16:51:58,382     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans
+A8 CONFIG SAFETY OK: MORTAL_CFG=/home/ygsldr/riichi-ai/runs/exp/A8/eval.toml
+  state_file = /home/ygsldr/riichi-ai/runs/exp/A8/state.pth
+  best_state_file = /home/ygsldr/riichi-ai/runs/exp/A8/best.pth
+  tensorboard_dir = /home/ygsldr/riichi-ai/runs/exp/A8/tb
+  test_play.log_dir = /home/ygsldr/riichi-ai/runs/exp/A8/test_play
+  train_play.log_dir = /home/ygsldr/riichi-ai/runs/exp/A8/train_play
+  1v3.log_dir = /home/ygsldr/riichi-ai/runs/exp/A8/games (seed_start=10000)
+  model.use_event_branch = True (phi zeroed by launcher hook)
+A8 EVAL FEED GATE: MORTAL_EVT_DEBUG=/tmp/opencode/a8_evt_debug.jsonl
+--------------------------------------------------
+# 0
+A8_PHI_ZERO_ASSERT first_call: zeroed_shape=(3000, 1024) max|phi_before_zero|=0.838867 -> returned tensor all-zero
+A8_PHI_ZERO_ASSERT calls=512 hooked_brains=1 max|phi_before_zero|=2.26953 zeroed_elements=1479049216
+A8_PHI_ZERO_ASSERT calls=1024 hooked_brains=1 max|phi_before_zero|=2.26953 zeroed_elements=1941526528
+2026-09-19 17:31:44,492     INFO one_vs_three.rs:196  dumping game logs
+challenger rankings: [ 144  730 2820 8306] (3.6073333333333335, -89.625pt)
+A8 PHI-ZERO PROOF:
+  installed = True
+  hooked_brains = 1
+  calls = 1359
+  max_abs_phi_before_zero = 2.26953125
+  total_zeroed_elements = 1946531840
+  first_call_ts = 2026-09-19T16:52:05+08:00
+  last_call_ts = 2026-09-19T17:31:44+08:00
+  armed = True
+  proof_json = /home/ygsldr/riichi-ai/runs/exp/A8/phi_zero_proof_eval.json
