@@ -403,7 +403,7 @@ def extract_ac(args, brain, dqn, reward_calc, loader, files, device):
                 phi = embed(brain, arr, args.chunk, device)
                 with torch.inference_mode():
                     mish = torch.nn.functional.mish(torch.from_numpy(phi).to(device, non_blocking=True))
-                    q = dqn(mish, torch.from_numpy(masks).to(device))  # (n,46) masked -inf
+                    q, _ = dqn(mish, torch.from_numpy(masks).to(device))  # (n,46) masked -inf; v unused (patch 0008 returns (q, v))
                     qm = q.float().cpu().numpy()
                 q_taken = qm[np.arange(len(actions)), actions]
                 q_max = qm.max(axis=1)
