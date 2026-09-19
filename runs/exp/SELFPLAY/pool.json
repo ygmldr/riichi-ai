@@ -122,6 +122,16 @@
         "best-220000",
         "baseline"
       ]
+    ],
+    "cycle_1": [
+      [
+        "at-175200",
+        "best-220000"
+      ],
+      [
+        "at-148800",
+        "baseline"
+      ]
     ]
   },
   "promotion": {
@@ -144,5 +154,6 @@
     "assign ids are active members; members within a wave are pairwise distinct; across a cycle each active member appears exactly once",
     "pool members are local snapshots only; checkpoints/mortal.pth (live) is excluded by construction",
     "a smoke covering one full cycle has every active member appearing in >= 1 completed session"
-  ]
+  ],
+  "sampled_at": "2026-09-19T20:53:10+08:00"
 }
