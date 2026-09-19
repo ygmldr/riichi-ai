@@ -1,0 +1,67 @@
+{
+  "E2": {
+    "avg_pt": -2.7225,
+    "avg_rank": 2.5495
+  },
+  "E3a": {
+    "avg_pt": -5.2425,
+    "avg_rank": 2.567
+  },
+  "bootstrap": {
+    "B": 2000,
+    "rng_seed": 0
+  },
+  "comparison": "E3a - E2 (pool B, paired per-set)",
+  "delta_avg_pt": -2.52,
+  "delta_avg_pt_ci": [
+    -4.3426875,
+    -0.6446250000000021
+  ],
+  "delta_avg_rank": 0.0175,
+  "delta_avg_rank_ci": [
+    -0.0059187499999999995,
+    0.040916666666666664
+  ],
+  "mdd_80pct_12k_independent": {
+    "avg_rank": 0.0239,
+    "pt": 1.86
+  },
+  "prereg_decision": "NO CONFIRMATION: \u0394pt 95% CI lower bound <= 0 -> CLOSE the river-transformer line",
+  "protocol": {
+    "challenger_E2": "runs/exp/E2/state.pth",
+    "challenger_E3a": "runs/exp/E3a/state.pth",
+    "champion": "checkpoints/mortal.pth.at-148800",
+    "evals": {
+      "E2": {
+        "candidates": 12000,
+        "games": 12000,
+        "games_dir": "/home/ygsldr/riichi-ai/runs/exp/ARCH_B/E2/games",
+        "ignored_files": 0,
+        "non_game_files": 0,
+        "seed_max": 52999,
+        "seed_min": 50000,
+        "sets": 3000
+      },
+      "E3a": {
+        "candidates": 12000,
+        "games": 12000,
+        "games_dir": "/home/ygsldr/riichi-ai/runs/exp/ARCH_B/E3a/games",
+        "ignored_files": 0,
+        "non_game_files": 0,
+        "seed_max": 52999,
+        "seed_min": 50000,
+        "sets": 3000
+      }
+    },
+    "games": 12000,
+    "seed_key": 423244137402621143,
+    "seed_range": [
+      50000,
+      53000
+    ],
+    "seed_start": 50000,
+    "sets": 3000
+  },
+  "pt_ci_lower_gt_zero": false,
+  "rank_ci_crosses_0": true
+}
