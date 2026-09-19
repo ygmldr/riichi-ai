@@ -1,0 +1,170 @@
+# A7 Pre-Registration — equal-frame CNN reference arm (E3a's trunk, branch off)
+
+Plan: `.omo/plans/fork-roadmap-steps-1-10.md` todo 21 · Roadmap `docs/FORK_ROADMAP.md` step 8
+("A7 等算力：给两组相同的计算量（帧数）预算"). Status: **written before training and before this
+arm's evaluation.** This arm is a configuration-only run; it changes **no code** (vendor tree
+untouched by todo 21).
+
+Repo HEAD at pre-registration: `8c9158c` (todo 17's commit). Vendor tree = pin `0cff2b5` +
+patches 0002/0003/0004/0005/0006/0010/0012 + 0007 — identical to the tree E3a/E2 trained on.
+
+---
+
+## 1. Interpretation of "A7 等算力/等帧数" (documented explicitly, per the todo dispatch)
+
+The two sources define the arm only at the level of its *budget*:
+
+- `docs/FORK_ROADMAP.md` step 8: "A7 等算力：给两组相同的计算量（帧数）预算" ("give the two
+  groups the same compute (frames) budget"); its numbering note maps roadmap A8 to
+  "Transformer-only", which the plan redefines as E3a-with-`phi`-zeroed (our A8).
+- The cross-review report's table: A7 = "Mortal + River Transformer（**等算力/等帧数**）" against
+  the A5 baseline, to guard against the "参数量假象" (parameter-count illusion).
+- Plan todo 21: "A7 = 与 E3a 同帧数预算" (same frame/step budget as E3a).
+
+Because E2 and E3a **already share** the identical 20,000-step (20.48 M frame) budget, a literal
+"same frames as E3a" re-run of E2 would duplicate todo 17 and add no new information. The
+interpretation chosen here maximises what the arm can say about the architecture verdict:
+
+> **A7 = E3a's exact CNN trunk (`conv_channels=192`, `num_blocks=40`) with
+> `[model] use_event_branch=false`, trained from scratch for 20,000 optimizer steps
+> (batch 1024 = 20.48 M frames) under E3a's otherwise bit-identical conditions.**
+
+This is the *equal-frame CNN reference arm*: A7 sees exactly the frames E3a sees, with exactly
+E3a's CNN, differing from E3a by **only** the event branch. With the already-run arms it yields a
+clean decomposition of the E3a-vs-E2 contrast:
+
+| arm | CNN trunk | event branch | params |
+|---|---|---|---|
+| **A7** (this arm) | c=192 (E3a trunk) | no | 10,787,456 |
+| E2 (todo 17) | c=202 (param-matched) | no | 11,775,996 |
+| E3a (todo 19) | c=192 | yes (4L d=128) | 11,818,752 |
+
+- `E3a − A7` isolates **the event branch** at identical CNN and identical frames
+  (+1,031,296 params = +9.56 %).
+- `E2 − A7` isolates **CNN width** (c=202 vs c=192) with no branch (+988,540 params).
+- `E3a − E2` (todo 22's pool-B verdict) is then the *combined* effect, decomposable via A7.
+
+A7 is additionally the **short-trained baseline reference**: its architecture is exactly the
+pinned `checkpoints/mortal.pth.at-175200` baseline (c=192, 40 blocks, no branch), trained for
+20 k steps instead of ~175 k — it shows where a fresh CNN trunk lands at the matched budget.
+
+**Alternatives rejected** (recorded so this is not a silent invention):
+
+1. **Re-run of E2** (`conv_channels=202`, branchless, 20 k steps) — already exists as todo 17;
+   adding a duplicate consumes ~1.7 h of the single-GPU budget and yields no new contrast.
+2. **Equal wall-clock/compute by training longer** (≈1.65× steps, from the synthetic
+   forward+backward ratio) — violates this todo's hard 20,000-step mandate, and the 1.65× ratio
+   is a synthetic fwd+bwd measurement, not the real loop ratio (measured end-to-end: E2
+   306 ms/step vs E3a 313 ms/step, ≈1.02×). A longer run would confound architecture with
+   budget, which is exactly what the arm is supposed to rule out.
+3. **Widen the CNN to match E3a's per-step FLOPs** — E2 already covers parameter parity; FLOP
+   parity via width is not well-defined from the available measurements, and it would destroy
+   the single-variable "same CNN trunk" contrast with E3a that makes this arm informative.
+4. **Mirror of A8** (E3a with the CNN embedding zeroed) — that is an event-only arm, not a CNN
+   reference arm; A8 already plays that role.
+
+## 2. Arm definition and parameter counts
+
+`[resnet] conv_channels=192, num_blocks=40`; `[model] use_event_branch=false` (mirroring E2's
+config convention: the toggle only, no `event_*` keys — the branch is never instantiated, so
+those keys would be inert). Measured `sum(p.numel())` (todo 17's
+`runs/exp/E2/measure_params.py`, closed form `analytic_cnn(192, 1012)`):
+
+| object | numel |
+|---|---|
+| **A7 total** (pure CNN c=192) | **10,787,456** |
+| E3a total | 11,818,752 |
+| A7 − E3a | **−1,031,296 (−8.73 %)** — exactly the branch the A7/E3a pair differs by |
+| E2 total (c=202) | 11,775,996 |
+| E2 − A7 (width effect) | +988,540 |
+
+## 3. Training protocol (declared BEFORE launch)
+
+- **Step budget: 20,000 optimizer steps** — the exact budget of E2/E3a (`PREREG` §5), batch 1024,
+  `opt_step_every=1` ⇒ 20.48 M samples, **from scratch** (no resume/warm start; all arms start
+  from random init, `train.py`/`dataloader.py` are unseeded, so run-to-run initialisation and
+  file-order variance is part of the comparison — handled by todo 22's pool-B verdict).
+- Config `runs/exp/A7/train.toml`, generated by `scripts/exp_a7a8_make_configs.py` **from E3a's
+  own `train.toml`** by path rewrite only (provenance: exact condition matching), with
+  `[model] use_event_branch=false`. Condition-match diff vs E3a after the rewrite: paths +
+  exactly `model.use_event_branch` (and the removal of the inert `event_*` keys); every other
+  key is bit-identical, printed by the generator.
+- **Conditions matched to E3a**: `batch_size=1024`, `opt_step_every=1`, `save_every=2000`,
+  `test_every=100000`, `submit_every=400`, `enable_amp=true`, **`enable_compile=false`**,
+  `num_workers=3`, `file_batch_size=5`, `reserve_ratio=0.0`, `num_epochs=1`, no augmentation,
+  dataset globs 2009–2022 + 2023 holdout, `val_batches=20`, `file_index=checkpoints/file_index.pth`
+  (read-only shared index), `freeze_bn.mortal=false`, optimizer/scheduler unchanged
+  (`peak=final=1e-4`, `warm_up_steps=0`, `max_steps=0`), `gamma=1`, `pts=[6,4,2,0]`, `cql`/`aux`
+  unchanged. The event token stream is still built and fed by the loader; `Brain.forward`
+  ignores it (same data pipeline as E3a/E2 — only the branch's consumption differs).
+- **Safety**: all five writable paths (`state_file`, `best_state_file`, `tensorboard_dir`,
+  `test_play.log_dir`, `train_play.default.log_dir`) plus `1v3.log_dir` live under
+  `runs/exp/A7/` and are asserted non-live by the generator (immediately before launch) and
+  re-read before launch; `checkpoints/mortal.pth` (live ~328 k-step artifact) is never a
+  training target. `runs/1v3/*.json.gz` (frozen corpus) is never written.
+- Launch: `(setsid nohup env MORTAL_CFG=.../runs/exp/A7/train.toml python3 train.py ...)`, stock
+  `train.py` (no code changes), watchdog `scripts/exp_a7a8_watchdog.py` stops it after the
+  step-20,000 save (the framework loops epochs by design).
+- Log/checkpoints: `runs/exp/A7/train.log`, `runs/exp/A7/state.pth` (every 2,000 steps),
+  TB `runs/exp/A7/tb`.
+
+## 4. Arm evaluation protocol (pool A, declared BEFORE launch)
+
+- 12,000 games = 3,000 sets (one set = seed × splits a/b/c/d), `seed_key =
+  0x5dfaa4cef265cd7`, **`seed_start = 10000`** (pool A; pool B `50000` is reserved for todo 22
+  and MUST NOT be consumed here).
+- challenger = `runs/exp/A7/state.pth`; champion = `checkpoints/mortal.pth.at-148800` (identical
+  for every pool-A arm of this plan).
+- own `log_dir` = `runs/exp/A7/games/`; config `runs/exp/A7/eval.toml`; launch with
+  `MORTAL_CFG=... python3 train.py`-free path: `MORTAL_CFG=.../eval.toml python3 one_vs_three.py`
+  from `vendor/mortal/mortal`.
+- Report: `scripts/eval_report.py --games-dir runs/exp/A7/games --seed-key
+  0x5dfaa4cef265cd7 --seed-range 10000-13000 --checkpoint state.pth --source-dir runs/exp/A7
+  --out runs/exp/A7/report.csv`.
+- No event-feed gate needed (A7 has no event branch; `use_event_branch=false` resolves from the
+  checkpoint's own config, and `event_branch.*` keys = 0).
+- **Resolution context**: at 12 k games the minimum detectable difference at 80 % power is
+  ≈ **0.0239 avg_rank / 1.86 pt** (`runs/variance/README.md`; σ_set = 0.4678 / 36.37). Effects
+  below that are *not* evidence of no effect.
+- **Interpretation**: pool A feeds the five-arm ranking (todo 22) only; the architecture verdict
+  is E3a vs E2 measured once on pool B. A null/negative outcome here is a valid result.
+
+## 5. Frozen-corpus / live-artifact invariants
+
+`ls runs/1v3/*.json.gz | wc -l` == **2004** before and after this arm's training and eval;
+`checkpoints/mortal.pth` mtime stays `2026-09-17 02:03:09`, `checkpoints/best.pth` stays
+`2026-09-16 02:59:45`.
+
+## 6. Artefacts
+
+`runs/exp/A7/{PREREG.md,train.log,state.pth,report.csv,train.toml,eval.toml,watchdog.json}`;
+generator `scripts/exp_a7a8_make_configs.py`; watchdog `scripts/exp_a7a8_watchdog.py`; evidence
+`.omo/start-work/evidence/T21.txt`.
+
+---
+
+## 7. Addendum — host reboot and resume (2026-09-19)
+
+The arm's training process (pid 30171, launched 2026-09-18 23:19:35) was killed by a **host
+reboot at ~00:37** after the step-16,000 save (2026-09-19 00:28:24, holdout_loss 3.474910); the
+step-18,000 boundary was not reached. The run was resumed at **10:51:06** from its own
+`runs/exp/A7/state.pth` with the *same* `runs/exp/A7/train.toml`: optimizer / scheduler / scaler
+state all come from the checkpoint (steps=16000, `conv_channels=192`,
+`use_event_branch=false`, 0 `event_branch.*` keys), and the **declared 20,000-step budget is
+unchanged** (4,000 steps to go). The resumed segment is logged to
+`runs/exp/A7/train.log.resume` (the original `train.log` is kept intact); both together are the
+arm's training log. The watchdog stopped the process group at 11:13:37, after the
+`total steps: 20,000` marker (11:12:33, holdout_loss 3.450485) and the `state.pth` write
+(steps=20000, mtime 11:12:33).
+
+This is a resume of the arm's *own* interrupted run, not a warm start from a foreign or
+pretrained checkpoint: §3's from-scratch rule forbids starting any arm from an existing trained
+model, and no such checkpoint enters this training. The same honest caveat as
+`runs/exp/E3a/PREREG.md` §8 / `runs/exp/E2/PREREG.md` §6 applies: `train.py` shuffles the file
+list and slices it across DataLoader workers per process, so the **sample order after resume
+does not continue the pre-reboot order** (the same number of steps is run, over a fresh random
+pass of the corpus). All three CNN arms of this plan carry the same caveat; the step counts
+remain comparable element-wise (16,000 + 4,000 = 20,000 optimizer steps at batch 1024).
+
+Full holdout curve (10 points, steps 2k..20k):
+4.106447 3.895275 3.763070 3.621482 3.612935 3.556684 3.458721 3.474910 3.442542 3.450485.
