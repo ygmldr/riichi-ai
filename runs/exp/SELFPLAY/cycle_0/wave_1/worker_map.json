@@ -1,0 +1,86 @@
+{
+  "experiment": "SELFPLAY",
+  "todo": 25,
+  "created_at": "2026-09-19T20:37:30+08:00",
+  "cycle": 0,
+  "wave": 1,
+  "pool_source": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/pool.json",
+  "pool_source_sha256": "8166c45c468c4d417f7232cdd3ef59947678e34ffbe075f21ebcc610e7f28884",
+  "k": 2,
+  "games_per_session": 4,
+  "trainee": {
+    "seat_count": 1,
+    "engine_name": "trainee",
+    "player_names": [
+      "trainee"
+    ]
+  },
+  "opponent_seats_per_game": 3,
+  "logs_dir": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/logs",
+  "configs": {
+    "server": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/server.toml",
+    "trainer": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/trainer.toml"
+  },
+  "assign": [
+    "best-220000",
+    "baseline"
+  ],
+  "pool": [
+    {
+      "id": "best-220000",
+      "state_file": "/home/ygsldr/riichi-ai/checkpoints/best.pth",
+      "bytes": 130780507,
+      "sha256": "7fe084d98f8475967ea0602b9d74980b3d5fc439ca78b8b9701110fc0dd5be77",
+      "steps": 220000,
+      "status": "active",
+      "weight": 0.533333
+    },
+    {
+      "id": "at-175200",
+      "state_file": "/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200",
+      "bytes": 130780507,
+      "sha256": "f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9",
+      "steps": 175200,
+      "status": "active",
+      "weight": 0.266667
+    },
+    {
+      "id": "at-148800",
+      "state_file": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+      "bytes": 130780507,
+      "sha256": "73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e",
+      "steps": 148800,
+      "status": "active",
+      "weight": 0.133333
+    },
+    {
+      "id": "baseline",
+      "state_file": "/home/ygsldr/riichi-ai/checkpoints/baseline.pth",
+      "bytes": 43691001,
+      "sha256": "83fd3929035d4aa0d4df3423a16dd028267e40bb54f7dc3f831e18f6bbccc6c9",
+      "steps": null,
+      "status": "active",
+      "weight": 0.066667
+    }
+  ],
+  "workers": [
+    {
+      "worker": 0,
+      "config": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/worker_0.toml",
+      "pool_member_id": "best-220000",
+      "opponent_state_file": "/home/ygsldr/riichi-ai/checkpoints/best.pth",
+      "opponent_sha256": "7fe084d98f8475967ea0602b9d74980b3d5fc439ca78b8b9701110fc0dd5be77",
+      "log_dir": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/worker_0",
+      "games_per_session": 4
+    },
+    {
+      "worker": 1,
+      "config": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/worker_1.toml",
+      "pool_member_id": "baseline",
+      "opponent_state_file": "/home/ygsldr/riichi-ai/checkpoints/baseline.pth",
+      "opponent_sha256": "83fd3929035d4aa0d4df3423a16dd028267e40bb54f7dc3f831e18f6bbccc6c9",
+      "log_dir": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/cycle_0/wave_1/worker_1",
+      "games_per_session": 4
+    }
+  ]
+}

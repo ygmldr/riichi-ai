@@ -1,0 +1,45 @@
+{
+  "experiment": "SELFPLAY",
+  "todo": 24,
+  "created_at": "2026-09-19T19:51:57+08:00",
+  "k": 2,
+  "games_per_session": 100,
+  "trainee": {
+    "seat_count": 1,
+    "engine_name": "trainee",
+    "player_names": [
+      "trainee"
+    ]
+  },
+  "opponent_seats_per_game": 3,
+  "pool": [
+    {
+      "id": "at-175200",
+      "state_file": "/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200",
+      "bytes": 130780507
+    },
+    {
+      "id": "at-148800",
+      "state_file": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+      "bytes": 130780507
+    }
+  ],
+  "workers": [
+    {
+      "worker": 0,
+      "config": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_0.toml",
+      "pool_member_id": "at-175200",
+      "opponent_state_file": "/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200",
+      "log_dir": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_0",
+      "games_per_session": 100
+    },
+    {
+      "worker": 1,
+      "config": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_1.toml",
+      "pool_member_id": "at-148800",
+      "opponent_state_file": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+      "log_dir": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_1",
+      "games_per_session": 100
+    }
+  ]
+}
