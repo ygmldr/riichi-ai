@@ -303,3 +303,15 @@ _Auto-scaffolded by /start-work. Append new entries below - never overwrite._
 - **patch 0009**：`patches/0009-online-selfplay-config.patch`（23 行，单文件 `configs/config.toml`，sha256 `caff02d7…`），`+` 行零命中前序 marker；`git archive HEAD` 纯净树上 `git apply --check` OK、apply 后与工作区 **byte-identical**。改动仅 `[control].online=true` + `[freeze_bn].mortal=true`（备份 `configs/config.toml.sp-bak`）。
 - **Ops**：`toml` 只在 prepare 用（延迟 import），launch/status/stop 不依赖它（避免无 toml 环境启动失败）；`stop` 对每个 pgid 发 SIGTERM、20s 后 SIGKILL 并校验 pgrep 空；释放锁必须先 `rm -f owner.txt` 再 `rmdir`（T22 教训）。全程 `runs/1v3`=2004、live mtime（mortal 02:03:09 / best 02:59:45）未变，无 live checkpoint 写入。
 - 产物：`runs/exp/SELFPLAY/{orchestration.md,worker_map.json,worker_0.toml,worker_1.toml,server.toml,trainer.toml,pids.json,logs/,worker_0/,worker_1/,run1/}`；脚本 `scripts/selfplay_launch.py`；证据 `.omo/start-work/evidence/T24.txt`；提交 `feat(exp): online self-play orchestration (K workers, distinct dirs)`。
+
+---
+
+## [2026-09-19T20:45Z] T26-prereq — 在线尾部 event 批 padding（崩溃修复，patch 0013）（completed）
+
+- **根因（与 T24 [G] 诊断一致，已实证）**：`train.py:583-605` 把每个 bs != batch_size 的 DataLoader 批收进 `remaining_events`，epoch 末 `cat_event_batches` 沿 dim0 拼接；而 `collate_events` 按**每批自身**最大事件长度 T 定尺寸。在线 `[dataset].num_workers=3` 时每个 loader worker 的 shard 在不同点结束 ⇒ 每个 drain 尾部最多 3 个短批；**T 不同即 `train.py:591 → event_data.py:29` RuntimeError**。真实 run2 drain 集实测：12 个整批（1024 行）+ 3 个短批 T=[150,151,149]。
+- **修复（patch 0013，仅 event_data.py，45+/3-）**：`cat_event_batches` 取公共 `seq_len=max T`，短批 tokens/mask 按 `collate_events` 语义零填充（0 token / False mask）后 cat；`causal` 是 (T,T) **不是 batch-stacked**（旧代码沿 dim0 cat 本就是错的）⇒ 返回按公共 T 重建的 tril(T)。`slice_event_batch` 保留 causal 不切（否则尾部切片把 (T,T) 变 (chunk,T)）。`collate_events` 契约与 train.py 均未动（train.py 与快照 byte-identical）。
+- **验证三层**：①合成 repro（batch T=149/150）pre-fix 精确复现 “Expected size 149 but got size 150”；post-fix 4/4 key 与单批 `collate_events` **bit-equal**。②真实 run2 drain 100 局经 exact online loader（num_workers=3、bs=1024）重放：pre-fix “Expected size 150 but got size 151”；post-fix 尾部 rows=1563/T=151，4/4 key bit-equal，mask/零 token/causal 无 padding 边，尾部切片形状正确（539 行按上游语义丢弃）。③`EventBranch` pooled 输出：真实 padded 尾 vs 单批 **bit-equal（max|d|=0）**；合成 T149（自然）vs T150（填充）max|d|=1.3e-08 < 1e-6 ⇒ padding 无模型可见影响（读出在 `lengths-1`、因果注意力遮蔽后续 key）。
+- **回归**：patch-0008 损失等价复跑 delta=0.0（bit-identical，21.516216278076172）；py_compile OK；`runs/1v3`=2004、live mtime（mortal 02:03:09 / best 02:59:45）未变。
+- **0013 编号理由**：0003-0012 已用尽、0011 被 todo-15 gate 跳过；本项是 todo 26（A14）的**前置发现工作**。F-wave 累积应用顺序：0002,0003,0004,0005,0012,0006,0007,0010,0008,0009,0013（0013 基于 0006 基线）。
+- **GPU smoke 未跑（如实记录）**：`/tmp/opencode/train.lock` 全程被兄弟任务 T25（pool smoke，owner 20:24:02，server 61498 + train 61513/61514）持有 ⇒ 遵守单 GPU 作业；以真实 drain 集重放作为“最小可复现等价物”，并在证据 [H] 明确说明未跑 live smoke，不夸大。
+- 产物：`patches/0013-online-tail-event-pad.patch`（sha256 `467dd03f…`）、证据 `.omo/start-work/evidence/T26prereq.txt`（含 pre/post 日志逐字）、repro 脚本与日志 `/tmp/opencode/t26/{repro_synth,replay_real_tail}.py`、run2 drain 保留副本 `/tmp/opencode/t26/real_drain_run2/`；提交 `fix(vendor): pad online tail event batches before cat (patch 0013)`。

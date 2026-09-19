@@ -1,0 +1,144 @@
+===== T26-prereq evidence — online tail event-batch padding (patch 0013) =====
+Repo: /home/ygsldr/riichi-ai            (vendor/mortal = pinned Mortal submodule; no commit inside it)
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 26 (A14) — DISCOVERED PREREQUISITE
+Date: 2026-09-19 20:20-20:45 +0800 (WSL restarted earlier; env re-activated: .venv py3.12.3, torch 2.11.0+cu128)
+Host: WSL, ~15 GB RAM, RTX 5070 Ti 16 GB. GPU lock held by sibling task T25 throughout -> no GPU smoke ([H]).
+
+Artifact: patches/0013-online-tail-event-pad.patch
+  sha256  467dd03f6708208f292122d8d0b489be1f15554c7e254cd5ac770b18587ba454
+  stat    mortal/event_data.py | 45 +++++ 3 ---  (git apply --numstat: 45 3)
+  scope   only `cat_event_batches` + `slice_event_batch`; `collate_events` and its
+          {'tokens','lengths','mask','causal'} contract untouched; `train.py` NOT
+          touched (byte-identical to the pre-task snapshot, cmp OK).
+
+Why 0013: the plan's patch range 0003-0012 is exhausted and 0011 is gate-skipped (the
+todo-15 gate closed the belief line). This is discovered prerequisite work for todo 26:
+the long A14 online run must survive every drain tail, and T24's run 2 died there.
+F-wave cumulative-application order for this patch: 0002,0003,0004,0005,0012,0006,
+0007,0010,0008,0009, then 0013 (0013 is a diff against the patch-0006 event_data.py).
+
+[A] Diagnosis (confirmed — same root cause as T24's evidence [G], not a new one)
+  train.py:583-605 collects DataLoader batches whose row count != batch_size into
+  `remaining_*`; at the end of the epoch it calls `cat_event_batches(remaining_events)`.
+  `collate_events` sizes every batch to THAT batch's own max event length T, so a plain
+  torch.cat(dim=0) of tokens/mask needs identical T across leftovers. With the online
+  config's `[dataset].num_workers = 3`, each loader worker's shard ends at a different
+  point, so every drain tail contains up to 3 short batches; if their T differ the cat
+  raises at train.py:591 -> event_data.py:29. Verified on the real run-2 drain set:
+  12 full batches (1024 rows) + 3 short batches with T=[150,151,149] (attempt 1 below).
+
+[B] Reproduction 1 — synthetic, deterministic (the exact reported sizes)
+  cmd: python3 /tmp/opencode/t26/repro_synth.py
+  pre-fix (snapshot execution, log /tmp/opencode/t26/synth_pre_fix.log):
+    batch1 (3, 149, 5) batch2 (2, 150, 5)
+    Traceback (most recent call last):
+      File "/tmp/opencode/t26/synth_pre_capture.py", line 21, in <module>
+        ed.cat_event_batches([b1, b2])
+      File "/tmp/opencode/t26/event_data.py.pre0013", line 29, in cat_event_batches
+        return {k: torch.cat([b[k] for b in batches], dim=0) for k in keys}
+    RuntimeError: Sizes of tensors must match except in dimension 0.
+    Expected size 149 but got size 150 for tensor number 1 in the list.
+  (the same script run before the edit, against the live file, produced the identical
+   error with Path vendor/mortal/mortal/event_data.py line 29 — the T24 traceback)
+  post-fix:
+    SYNTH: padded cat == collate_events(one batch, same rows) [4/4 keys bit-equal]
+    SYNTH: padding rows zero+masked; causal has no allowed edge into padding
+    EventBranch: padded-vs-single bit_equal=True max|d|=0.000e+00;
+                 T149-vs-T150(rows) max|d|=1.304e-08
+    SYNTH_REPRO: PASS
+
+[C] Reproduction 2 — the REAL run-2 drain files through the exact online loader (CPU)
+  Input: runs/exp/SELFPLAY/server/drain (100 game logs = trainer run 2's 3rd drain,
+  the one whose tail crashed; preserved copy /tmp/opencode/t26/real_drain_run2/).
+  Loader: exact `FileDatasetsIter` + `DataLoader(batch_size=1024, num_workers=3,
+  pin_memory=False, worker_init_fn=worker_init_fn, collate_fn=collate_batch)`; the
+  remainder logic copied from train.py:583-605. Deterministic shuffle:
+  random.seed(1) + torch.manual_seed(1) before the pass.
+  cmd: python3 /tmp/opencode/t26/replay_real_tail.py 4
+  attempt 1: full batches=12 short batches=3 T=[150, 151, 149]
+  [PRE-FIX] (log /tmp/opencode/t26/replay_pre.log; executed against the live pre-fix module
+             before the edit; the same script was re-run after the edit for [POST-FIX])
+    [PRE-FIX] cat_event_batches(3 real leftover batches) ->
+    RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 150
+    but got size 151 for tensor number 1 in the list.
+  [POST-FIX] (log /tmp/opencode/t26/replay_post.log)
+    [POST-FIX] padded tail: rows=1563 T=151 (pre-fix T per batch: [150, 151, 149])
+    [POST-FIX] padded tail == collate_events(same streams) [4/4 keys bit-equal]
+    [POST-FIX] padding rows zero+masked; no causal edge into padding
+    [POST-FIX] train.py tail slice loop: 1 chunk(s) of 1024 rows, 539 row(s) dropped
+               as upstream does
+    [POST-FIX] EventBranch(real padded tail) vs EventBranch(real single batch):
+               bit_equal=True max|d|=0.000e+00
+    REPLAY: PASS
+
+[D] Fix
+  `cat_event_batches`: compute the common `seq_len = max T`; zero-pad each shorter
+  batch's tokens/mask exactly the way `collate_events` pads (zero tokens, False mask);
+  torch.cat the batch-stacked keys; return ONE shared `causal` rebuilt as tril(seq_len)
+  (the old code also cat'ed causal along dim 0 whenever it ran, which was already wrong:
+  causal is (T,T), not batch-stacked).
+  `slice_event_batch`: keep `causal` (T,T) intact and slice only the batch-stacked keys
+  (the tail loop at train.py:594-605 slices the concatenated dict into batch_size chunks).
+  Patch hygiene:
+    - `grep '^+' patch | grep -E 'non_blocking|holdout_loss|take_events|event_branch|
+       enable_rule_based_agari_guard|seed_start|label <= 36|use_pg|lam_kl'` -> 0 hits
+    - `git -C vendor/mortal apply --check -R .../0013-online-tail-event-pad.patch` -> OK
+    - forward apply onto the patch-0006 baseline state (/tmp/opencode/t26/applytest,
+      snapshot + git init + commit): `git apply -p1` OK, result BYTE-IDENTICAL to live.
+
+[E] Padding semantics (mandatory check — padding must not influence the model)
+  - The padded tail dict is BIT-IDENTICAL to `collate_events` over the same streams, all
+    four keys, both synthetic and real (4/4 keys bit-equal in [B] and [C]).
+  - mask == (arange(T) < lengths); tokens are zero at every masked position; for every
+    unique length l, causal[:l, l:] has no True => no real query can attend a padding key.
+  - EventBranch pooled output: real padded tail vs the single unpadded batch is BIT-EQUAL
+    (max|d| = 0.0). Synthetic natural-T=149 batch vs the same rows padded to T=150 differs
+    only at float-noise level (max|d| = 1.304e-08 < 1e-6). Padding adds no model-visible
+    content; the pooled readout still happens at `lengths - 1` (model.py:184).
+  - The tail slice loop still yields shape-correct chunks: tokens (1024, T, 5),
+    causal (T, T); 539 leftover rows are dropped exactly as the upstream
+    `while end <= remaining_bs` loop does (pre-existing behavior, not changed).
+
+[F] Regressions
+  python3 -m py_compile vendor/mortal/mortal/event_data.py vendor/mortal/mortal/train.py
+    -> PY_COMPILE_OK
+  Patch-0008 loss-parity re-run (python3 /tmp/opencode/t23/selfcheck.py; the T23 selfcheck
+  is untouched), log /tmp/opencode/t26/selfcheck_t23_rerun.log:
+    "parity_use_pg_false_lam_kl_0": old = new = 21.516216278076172
+      (hex 0x1.58426c0000000p+4), delta = 0.0, bit_identical = true,
+      rl_terms_exactly_zero = true, below_1e-6 = true
+    SELFCHECK_PASS (exit 0)
+  train.py is byte-identical to the pre-task snapshot (cmp OK) => the parity invariant is
+  untouched by construction, and the re-run confirms it.
+
+[G] Invariants
+  ls runs/1v3/*.json.gz | wc -l                   -> 2004
+  checkpoints/mortal.pth -> 2026-09-17 02:03:09.718844843 +0800  (unchanged)
+  checkpoints/best.pth   -> 2026-09-16 02:59:45.582238799 +0800  (unchanged)
+  Submodule delta vs pre-task state: only the content of the untracked
+  `mortal/event_data.py` changed (it is still untracked, created by patch 0006); no
+  submodule commit, no push. `runs/1v3`, `runs/variance`, `runs/akochan_eval`,
+  `runs/exp/<arm>` untouched. T24 run-2 artifacts left in place.
+
+[H] Online smoke status (honest statement)
+  NOT run on GPU. /tmp/opencode/train.lock was held continuously by the sibling task
+  T25-selfplay-pool-smoke: owner.txt = "61463 2026-09-19T20:24:02+08:00 T25-selfplay-pool-smoke"
+  with live processes server.py (pid 61498) + train.py (61513/61514) using
+  runs/exp/SELFPLAY/cycle_0/wave_0/server.toml. Per the one-GPU-job-at-a-time rule the lock
+  was not touched or taken over.
+  In its place, [C] is the "smallest reproducible equivalent": the exact drain file set
+  whose tail crashed run 2, driven through the exact online loader and the exact tail logic
+  (cat + slice), deterministically crashing pre-fix and passing post-fix, including the
+  model-visible EventBranch output on the real padded tail. A GPU server+worker smoke would
+  only exercise the fix probabilistically (it crashes only when >= 2 tail batches differ
+  in T) and could not run within budget while T25 owns the GPU/lock.
+
+[I] Deviations / risks
+  1. Patch 0013 is authored against the patch-0006 baseline; cumulative F-wave replay must
+     apply 0006 before 0013 (order in the header).
+  2. `slice_event_batch` was fixed in the same patch: without it, the fixed (T,T) causal
+     would be sliced along dim 0 into (chunk, T) by the tail loop (train.py:602). This is
+     the same logical change (keeping the documented batch contract), not an interface
+     change.
+  3. No real online run reached a 3rd drain after the fix in this session; the coverage
+     argument is the deterministic real-drain replay [C], not a live GPU run.
