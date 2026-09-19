@@ -1,0 +1,348 @@
+===== T23 evidence — RL loss: REINFORCE + Huber + forward-KL, all DQN callers (patch 0008) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 23 (lines 224-229)
+Date: 2026-09-19 ~19:40 +0800 (WSL restarted earlier; env re-activated: .venv py3.12.3, torch 2.11.0+cu128)
+Host: WSL, ~15 GB RAM, RTX 5070 Ti 16 GB. Only one GPU job at a time under /tmp/opencode/train.lock.
+
+Artifact: patches/0008-rl-policy-kl.patch
+  sha256   f05e96d6b55e4278fa1d2ab939d175b1552b871d017546edc91edb7835d7cb4c
+  stat     mortal/model.py | 5 +++-     mortal/rl_loss.py | 71 +++++++++++ (NEW)
+           mortal/engine.py | 5 ++--    mortal/train.py   | 73 +++++++++++--
+           4 files changed, 148 insertions(+), 6 deletions(-)
+  Rust:    grep -c '^--- a/libriichi' == 0  => no libriichi change, no release rebuild
+  Recipe:  snapshot each dirty file to /tmp/opencode/t23/<name>.py.base BEFORE editing, then
+           `diff -u --label a/mortal/<f> --label b/mortal/<f> <base> <edited>` (new file against
+           /dev/null). diff exits 1 on differences; assembled with `{ ...; } > patch`.
+  Hygiene: `grep '^+' patch | grep -E 'non_blocking|holdout_loss|take_events|event_branch|
+           enable_rule_based_agari_guard|seed_start|label <= 36'` -> NONE.
+  Apply test (pristine tree): `git -C vendor/mortal archive HEAD | tar -x -C /tmp/opencode/t23/
+           applytest`, then 0002,0003,0004,0005,0012,0006,0007,0010 (T18-verified order), then 0008:
+             pre-0008 cmp vs base snapshots: model OK / engine OK / train OK / rl_loss absent
+             git apply --check -p1 0008: OK;  git apply -p1: applied
+             cmp post-0008: model BYTE-IDENTICAL, engine BYTE-IDENTICAL, train BYTE-IDENTICAL,
+                            rl_loss BYTE-IDENTICAL
+             full-tree diff vs working tree: only `__pycache__` (excluded: target/, .git)
+  Design:  `use_pg` is the master switch. While false, rl_loss_terms() returns three exact zeros and
+           train.py takes the literal pre-0008 `sum((dqn_loss, cql*min_q_weight, next_rank*w))`
+           expression (+ nothing) => bit-identical loss regardless of lam_kl. While true:
+           loss += pg_loss + lam_v*huber(v, G) + lam_kl*KL(pi_anchor||pi), G = q_target_mc.
+           config.toml ships the plan default lam_kl = 0.05 with use_pg = false (live loss stays
+           pre-0008); lam_v = 1.0. A14 (todo 26) sets use_pg = true.
+
+[A] Single-step self-check — the plan's acceptance criterion (< 1e-6)
+---------------------------------------------------------------------
+Command: source scripts/activate_env.sh && python3 /tmp/opencode/t23/selfcheck.py
+Old path = pre-edit model.py snapshot (/tmp/opencode/t23/model.py.base) + the exact old loss
+expression copied from train.py; new path = patched model.py + rl_loss.rl_loss_terms.
+Same batch through both paths (B=16, ACTION_SPACE=46, deterministic seeds):
+
+  forward contract : q bitwise equal (torch.equal == True; max|delta| on legal entries = 0.0);
+                     v bitwise equal to the old v_head/net split; q (16,46), v (16,1)
+  old loss scalar  : 21.516216278076172   hex 0x1.58426c0000000p+4
+  new loss scalar  : 21.516216278076172   hex 0x1.58426c0000000p+4
+  delta            : 0.0   (bit-identical — meets < 1e-6 with the strongest possible margin)
+  control run      : use_pg=False, lam_kl=0.05 (master switch on the shipped config) -> delta 0.0
+  rl terms at parity: pg=0.0, huber_v=0.0, kl=0.0 exactly
+  RL active        : use_pg=True, lam_kl=0.05 -> pg=2.788829, huber=0.479753, kl=0.033573, all
+                     finite; backward: phi grad finite L1=102.07, DQN grad norm 55.29
+  KL NaN branch    : anchor_q with one NaN -> logging.error
+                     "KL(pi_anchor || pi) is not finite: pi_anchor (16, 46), pi (16, 46),
+                      anchor SELFTEST_NAN_ANCHOR"
+                     then SystemExit(1) (asserted) — no silent clamp.
+  Real anchor load : checkpoints/mortal.pth.at-148800, version=4, steps=148800,
+                     no [model] section (branch-less Brain), q (2,46), v (2,1), all finite;
+                     forward-KL against that anchor finite.
+
+Full JSON (also /tmp/opencode/t23/selfcheck.json):
+{
+  "python": "3.12.3",
+  "torch": "2.11.0+cu128",
+  "action_space": 46,
+  "obs_shape_v4": [1012, 34],
+  "forward_contract": {
+    "q_bitwise_equal": true,
+    "q_max_abs_diff_on_legal": 0.0,
+    "v_bitwise_equal_to_old_head": true,
+    "q_shape": [16, 46],
+    "v_shape": [16, 1]
+  },
+  "parity_use_pg_false_lam_kl_0": {
+    "old": 21.516216278076172,
+    "new": 21.516216278076172,
+    "delta": 0.0,
+    "old_hex": "0x1.58426c0000000p+4",
+    "new_hex": "0x1.58426c0000000p+4",
+    "bit_identical": true,
+    "rl_terms_exactly_zero": true,
+    "below_1e-6": true
+  },
+  "parity_use_pg_false_lam_kl_005_master_switch": { "delta": 0.0, "bit_identical": true },
+  "rl_active": {
+    "pg": 2.7888290882110596,
+    "huber_v": 0.47975268959999084,
+    "kl_scaled": 0.03357282653450966,
+    "all_finite": true,
+    "nonzero": true,
+    "phi_grad_finite": true,
+    "phi_grad_l1": 102.07243347167969,
+    "dqn_a_head_grad_norm": 55.29387664794922
+  },
+  "kl_nan_branch": { "exit_code": 1, "raised": true },
+  "real_anchor_load": {
+    "path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+    "version": 4, "steps": 148800, "config_has_model_section": false,
+    "q_shape": [2, 46], "v_shape": [2, 1], "all_finite": true, "kl_vs_live_finite": true
+  }
+}
+SELFCHECK_PASS (exit 0)
+
+[B] Call-site completeness — the two required greps (full output)
+------------------------------------------------------------------
+$ grep -rn "\.dqn(" vendor/mortal/mortal
+vendor/mortal/mortal/engine.py:71:                q_out, _ = self.dqn(latent, masks)
+vendor/mortal/mortal/engine.py:74:                q_out, _ = self.dqn(phi, masks)
+
+$ grep -rn "= dqn(" vendor/mortal/mortal
+vendor/mortal/mortal/train.py:303:                            q_out, _ = dqn(phi, masks)
+vendor/mortal/mortal/train.py:374:                q_out, v_out = dqn(phi, masks)
+
+Broader grep for any other forward form (`dqn(` excluding DQN( / .dqn( / = dqn():
+vendor/mortal/mortal/train.py:395:                            anchor_q, _ = anchor_dqn(anchor_phi, masks)
+=> all 5 sites unpack the (q, v) contract. player.py only constructs DQN and hands it to
+   MortalEngine (no direct call): `stable_dqn = DQN(version=version)` + load_state_dict + compile.
+   one_vs_three.py / mortal.py / client.py likewise pass DQN into MortalEngine (engine unpacks).
+   Plan's stale line refs (engine.py:67/70, train.py:241) map to the hits above.
+
+[C] GPU smokes — scratch state_file only, lock protocol, one job at a time
+--------------------------------------------------------------------------
+Runner: /tmp/opencode/t23/run_smoke.sh (atomic mkdir /tmp/opencode/train.lock + owner.txt;
+        poll scratch state.pth, wait for size stabilization, SIGTERM process group, release lock).
+Data:   /tmp/opencode/t23/smoke_file_index.pth (24 real 2009 gzip logs, absolute paths).
+Config: /tmp/opencode/t23/smoke_{off,on}.toml — derive from runs/exp/EVT/train_smoke.toml, all
+        writable paths redirected to /tmp/opencode/t23/<name>/ (state, best, tb, test_play,
+        train_play, 1v3) so live checkpoints/runs are never touched.
+smoke_off (use_pg=false, lam_kl=0.05):
+  log  "[rl] use_pg=False lam_v=1.0 lam_kl=0.05 anchor=(not loaded)"
+  8 steps, state.pth loads (steps=8, 650 mortal keys, 410 optim states)
+  TB scalars: hparam/lr, loss/cql_loss, loss/dqn_loss, loss/next_rank_loss  (no rl keys)
+smoke_on (use_pg=true, lam_kl=0.05):
+  log  "[rl] anchor loaded: /home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800 (version=4, steps=148800)"
+  ran to step 56, state.pth 130,731,706 B loads (steps=56), 8.75 batch/s steady state
+  TB scalars: + loss/pg_loss, loss/value_huber, loss/kl_anchor — all finite (n=7):
+     pg_loss      first=0.003506  last=0.618706
+     value_huber  first=0.128707  last=0.293313
+     kl_anchor    first=0.060373  last=0.053836
+  anchor forward + KL added ~0.4 s/step at batch 64 (8.75 vs ~9.3 batch/s smoke_off) — smoke-scale.
+Both locks released (rm owner.txt && rmdir); `pgrep -f '[t]rain.py'` empty at end.
+Live checkpoints after smokes: mortal.pth 2026-09-17 02:03:09, best.pth 2026-09-16 02:59:45 (unchanged).
+
+[D] Invariants
+--------------
+python3 -m py_compile vendor/mortal/mortal/{model,rl_loss,engine,train}.py  -> PY_COMPILE_OK
+python3 -c "import libriichi; print(libriichi.__file__)"
+  -> /home/ygsldr/riichi-ai/vendor/mortal/target/release/libriichi.so
+ls runs/1v3/*.json.gz | wc -l  -> 2004   (before and after smokes)
+Submodule delta vs pre-task state: only `?? mortal/rl_loss.py` added; the pre-existing M-list
+(libriichi/src/agent/mortal.rs, dataset/gameplay.rs, mjai/mod.rs, mortal/{client,dataloader,engine,
+model,mortal,one_vs_three,player,train}.py) is untouched by this task. No commit in the submodule;
+no push.
+
+[E] Deviations / risks
+----------------------
+1. scripts/exp_a2b_calibration.py:406 does `q = dqn(mish, masks)` (single-return use). It is on the
+   task's DO-NOT-MODIFY list (scripts/exp_a2*.py) and belongs to the closed/gate-skipped todo 15
+   A2b gate; left untouched by design. It must be adapted before being run again (tuple return).
+2. `[rl] lam_kl = 0.05` ships in configs/config.toml together with `use_pg = false`; lam_v/lam_kl
+   are only consulted while use_pg is true (comments in config.toml and train.py). This is why the
+   live default remains the pre-0008 loss even with lam_kl = 0.05 present.
+3. Todo 26's plan text says A14's confirm uses pool B, but pool B was consumed by todo 22 (see T22
+   evidence / ARCH_VERDICT.md). Conflict surfaced in T22 and carried in the notepad; not changed by
+   this task; todo 26 must resolve it explicitly.
+4. No full train() epoch was run beyond the 8–56 step smokes above; the plan's todo 23 acceptance
+   is the parity self-check + call-site greps, both delivered. No self-play / online path touched.
+
+Appendix — /tmp/opencode/t23/selfcheck.py (verbatim)
+----------------------------------------------------
+"""T23 self-check for patch 0008 (RL loss): loss parity, RL-active grads,
+KL-NaN failure branch, and the real anchor checkpoint load path.
+
+Run: python3 /tmp/opencode/t23/selfcheck.py
+"""
+import importlib.util
+import json
+import logging
+import os
+import sys
+
+import torch
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
+
+ROOT = '/home/ygsldr/riichi-ai'
+sys.path.insert(0, os.path.join(ROOT, 'vendor/mortal/mortal'))
+sys.path.insert(0, os.path.join(ROOT, 'vendor/mortal/target/release'))
+
+from libriichi.consts import ACTION_SPACE, obs_shape  # noqa: E402
+import rl_loss  # noqa: E402
+import model as model_new  # noqa: E402
+
+
+def load_module(name, path):
+    from importlib.machinery import SourceFileLoader
+    loader = SourceFileLoader(name, path)
+    spec = importlib.util.spec_from_file_location(name, path, loader=loader)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+model_base = load_module('model_base_t23', '/tmp/opencode/t23/model.py.base')
+
+res = {
+    'python': sys.version.split()[0],
+    'torch': torch.__version__,
+    'action_space': ACTION_SPACE,
+    'obs_shape_v4': list(obs_shape(4)),
+}
+B = 16
+torch.manual_seed(23)
+dqn_old = model_base.DQN(version=4)
+dqn_new = model_new.DQN(version=4)
+dqn_new.load_state_dict(dqn_old.state_dict())
+
+phi = torch.randn(B, 1024)
+masks = torch.rand(B, ACTION_SPACE) > 0.25
+masks[:, 0] = True
+actions = torch.multinomial(masks.float(), 1).squeeze(1)
+G = torch.randn(B).abs()
+ranks = torch.randint(0, 4, (B,))
+aux_logits = torch.randn(B, 4)
+
+q_old = dqn_old(phi, masks)
+q_new, v_new = dqn_new(phi, masks)
+q_bitwise_equal = torch.equal(q_old, q_new)
+v_expected_old = dqn_old.net(phi).split((1, ACTION_SPACE), dim=-1)[0]
+v_bitwise_equal = torch.equal(v_new, v_expected_old)
+res['forward_contract'] = {
+    'q_bitwise_equal': q_bitwise_equal,
+    'q_max_abs_diff_on_legal': float((q_old - q_new).masked_fill(~masks, 0.).detach().abs().max()),
+    'v_bitwise_equal_to_old_head': v_bitwise_equal,
+    'q_shape': list(q_new.shape),
+    'v_shape': list(v_new.shape),
+}
+assert q_bitwise_equal and v_bitwise_equal
+
+mse = torch.nn.MSELoss()
+ce = torch.nn.CrossEntropyLoss()
+min_q_weight, next_rank_weight = 5, 0.2
+
+
+def old_loss(q_out):
+    q = q_out[range(B), actions]
+    dqn_loss = 0.5 * mse(q, G)
+    cql_loss = q_out.logsumexp(-1).mean() - q.mean()
+    next_rank_loss = ce(aux_logits, ranks)
+    total = sum((dqn_loss, cql_loss * min_q_weight, next_rank_loss * next_rank_weight))
+    return total
+
+
+def new_loss(q_out, v, *, use_pg, lam_v, lam_kl, anchor_q=None):
+    q = q_out[range(B), actions]
+    dqn_loss = 0.5 * mse(q, G)
+    cql_loss = q_out.logsumexp(-1).mean() - q.mean()
+    next_rank_loss = ce(aux_logits, ranks)
+    loss = sum((dqn_loss, cql_loss * min_q_weight, next_rank_loss * next_rank_weight))
+    pg, vl, kl = rl_loss.rl_loss_terms(
+        q_out = q_out, v = v, actions = actions, returns = G, masks = masks,
+        use_pg = use_pg, lam_v = lam_v, lam_kl = lam_kl,
+        anchor_q = anchor_q, anchor_desc = 'SELFTEST',
+    )
+    return loss + pg + vl + kl, pg, vl, kl
+
+
+loss_old = old_loss(q_old)
+loss_new0, pg0, vl0, kl0 = new_loss(q_new, v_new, use_pg=False, lam_v=1.0, lam_kl=0.0)
+res['parity_use_pg_false_lam_kl_0'] = {
+    'old': float(loss_old),
+    'new': float(loss_new0),
+    'delta': float(loss_new0 - loss_old),
+    'old_hex': float(loss_old).hex(),
+    'new_hex': float(loss_new0).hex(),
+    'bit_identical': float(loss_new0) == float(loss_old),
+    'rl_terms_exactly_zero': float(pg0) == 0.0 and float(vl0) == 0.0 and float(kl0) == 0.0,
+    'below_1e-6': abs(float(loss_new0 - loss_old)) < 1e-6,
+}
+assert float(loss_new0 - loss_old) == 0.0
+assert res['parity_use_pg_false_lam_kl_0']['rl_terms_exactly_zero']
+
+loss_new1, *_ = new_loss(q_new, v_new, use_pg=False, lam_v=1.0, lam_kl=0.05)
+res['parity_use_pg_false_lam_kl_005_master_switch'] = {
+    'delta': float(loss_new1 - loss_old),
+    'bit_identical': float(loss_new1) == float(loss_old),
+}
+assert float(loss_new1 - loss_old) == 0.0
+
+phi_g = torch.randn(B, 1024, requires_grad=True)
+q_g, v_g = dqn_new(phi_g, masks)
+anchor_q = torch.randn(B, ACTION_SPACE)
+anchor_q = anchor_q.masked_fill(~masks, -torch.inf)
+loss_g, pg_g, vl_g, kl_g = new_loss(q_g, v_g, use_pg=True, lam_v=1.0, lam_kl=0.05, anchor_q=anchor_q)
+res['rl_active'] = {
+    'pg': float(pg_g),
+    'huber_v': float(vl_g),
+    'kl_scaled': float(kl_g),
+    'all_finite': all(bool(torch.isfinite(t)) for t in (pg_g, vl_g, kl_g)),
+    'nonzero': float(pg_g) != 0.0 and float(vl_g) != 0.0 and float(kl_g) != 0.0,
+}
+assert res['rl_active']['all_finite'] and res['rl_active']['nonzero']
+loss_g.backward()
+res['rl_active']['phi_grad_finite'] = bool(torch.isfinite(phi_g.grad).all())
+res['rl_active']['phi_grad_l1'] = float(phi_g.grad.abs().sum())
+res['rl_active']['dqn_a_head_grad_norm'] = float(dqn_new.a_head.weight.grad.norm()) if hasattr(dqn_new, 'a_head') else float(dqn_new.net.weight.grad.norm())
+assert res['rl_active']['phi_grad_finite'] and res['rl_active']['phi_grad_l1'] > 0
+
+bad_anchor = anchor_q.clone()
+bad_anchor[0, actions[0]] = float('nan')
+try:
+    rl_loss.rl_loss_terms(
+        q_out=q_g, v=v_g, actions=actions, returns=G, masks=masks,
+        use_pg=True, lam_v=1.0, lam_kl=0.05,
+        anchor_q=bad_anchor, anchor_desc='SELFTEST_NAN_ANCHOR',
+    )
+    res['kl_nan_branch'] = {'exit_code': None, 'raised': False}
+except SystemExit as ex:
+    res['kl_nan_branch'] = {'exit_code': ex.code, 'raised': True}
+assert res['kl_nan_branch']['raised'] and res['kl_nan_branch']['exit_code'] == 1
+
+ckpt = os.path.join(ROOT, 'checkpoints/mortal.pth.at-148800')
+state = torch.load(ckpt, weights_only=True, map_location='cpu')
+cfg = state['config']
+anchor_version = cfg['control'].get('version', 1)
+anchor_mortal = model_new.brain_from_config(cfg).eval()
+anchor_dqn = model_new.DQN(version=anchor_version).eval()
+model_new.load_brain_state_dict(anchor_mortal, state['mortal'], source=ckpt)
+anchor_dqn.load_state_dict(state['current_dqn'])
+obs = torch.zeros(2, *obs_shape(anchor_version))
+legal = torch.ones(2, ACTION_SPACE, dtype=torch.bool)
+with torch.no_grad():
+    anchor_phi = anchor_mortal(obs, events=None)
+    anchor_q_real, anchor_v_real = anchor_dqn(anchor_phi, legal)
+res['real_anchor_load'] = {
+    'path': ckpt,
+    'version': anchor_version,
+    'steps': state.get('steps'),
+    'config_has_model_section': 'model' in cfg,
+    'q_shape': list(anchor_q_real.shape),
+    'v_shape': list(anchor_v_real.shape),
+    'all_finite': bool(torch.isfinite(anchor_q_real).all() and torch.isfinite(anchor_v_real).all()),
+    'kl_vs_live_finite': bool(torch.isfinite(rl_loss.forward_kl_loss(anchor_q_real, q_new[:2], masks[:2], anchor_desc='SELFTEST_REAL_ANCHOR'))),
+}
+assert res['real_anchor_load']['all_finite'] and res['real_anchor_load']['kl_vs_live_finite']
+
+out = '/tmp/opencode/t23/selfcheck.json'
+with open(out, 'w') as f:
+    json.dump(res, f, indent=2)
+print('SELFCHECK_JSON', out)
+print(json.dumps(res, indent=2))
+print('SELFCHECK_PASS')

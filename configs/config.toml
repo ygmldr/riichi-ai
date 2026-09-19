@@ -59,6 +59,17 @@ min_q_weight = 5
 [aux]
 next_rank_weight = 0.2
 
+# [patch 0008] RL objective (REINFORCE + Huber(v, G) + forward-KL to the anchor).
+# `use_pg` is the master switch: while it is false the training loss is
+# bit-for-bit the pre-0008 loss (lam_v/lam_kl are only consulted while it is
+# true), which keeps the earlier arm verdicts reproducible. A14 (todo 26) turns
+# it on; lam_kl = 0.05 is the plan default for it.
+[rl]
+use_pg = false
+lam_v = 1.0
+lam_kl = 0.05
+anchor_state_file = "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800"
+
 [freeze_bn]
 mortal = false
 
