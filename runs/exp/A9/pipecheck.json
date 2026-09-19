@@ -1,0 +1,83 @@
+{
+  "config": "/tmp/opencode/a9smoke/smoke.toml",
+  "index_path": "/tmp/opencode/a9smoke/file_index.pth",
+  "index_files": 40,
+  "check_files": 8,
+  "ab_check": {
+    "entries": 64,
+    "obs_changed": true,
+    "obs_diff_channels": 294,
+    "blast_radius_inside_windows": true,
+    "blocks_checked": 8,
+    "slot_multiset_preserved": true,
+    "per_element_counts_preserved": true,
+    "events_tokens_changed": true,
+    "events_lengths_mask_causal_unchanged": true,
+    "events_row_multiset_preserved": true,
+    "first_token_start_kyoku": true
+  },
+  "perm_fingerprint_sha256": "bf16f51cbea1b8a52f02351d29f3843814090ff97b2df72ee03caf60c5a88027",
+  "perm_seed": 10575597,
+  "dataloader": {
+    "workers_2": {
+      "batches": 2,
+      "batch_size": 256,
+      "wall_seconds": 2.48,
+      "seconds_per_batch": [
+        0.1218,
+        0.1029
+      ],
+      "shapes": [
+        [
+          256,
+          1012,
+          34
+        ],
+        "torch.float32",
+        [
+          256,
+          140,
+          5
+        ]
+      ],
+      "stats": "worker-process counters (see stdout)"
+    },
+    "workers_0": {
+      "batches": 4,
+      "batch_size": 64,
+      "wall_seconds": 0.5,
+      "seconds_per_batch": [
+        0.0003,
+        0.0002,
+        0.0002,
+        0.0004
+      ],
+      "shapes": [
+        [
+          64,
+          1012,
+          34
+        ],
+        "torch.float32",
+        [
+          64,
+          114,
+          5
+        ]
+      ],
+      "stats": {
+        "batches": 4,
+        "obs_samples": 256,
+        "blocks_checked": 32,
+        "blocks_changed": 32,
+        "blocks_uniform": 0,
+        "obs_changed": 251,
+        "events_samples": 256,
+        "events_checked": 256,
+        "events_changed": 256,
+        "events_uniform": 0
+      }
+    }
+  },
+  "done_at": "2026-09-18T23:43:49+0800"
+}

@@ -1,0 +1,4 @@
+2026-09-19 12:22:33 [A9 watchdog pid=3614] armed: pid=3582 target=20000 log=/home/ygsldr/riichi-ai/runs/exp/A9/train.log state=/home/ygsldr/riichi-ai/runs/exp/A9/state.pth
+2026-09-19 14:32:38 [A9 watchdog pid=3614] log reached 20000; state.pth steps=20000
+2026-09-19 14:32:38 [A9 watchdog pid=3614] target 20000 saved; sending SIGTERM to 3582
+2026-09-19 14:32:43 [A9 watchdog pid=3614] done: pid alive=False

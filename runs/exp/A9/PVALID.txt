@@ -1,0 +1,43 @@
+A9 pre-run validation (written before training launch) — 2026-09-18
+====================================================================
+
+Arm: training-time shuffled history (plan todo 20, PREREG.md §2).
+Permutation seed 0xA15EED (=A1's registered seed); fixed draw:
+  river blocks  = default_rng([0xA15EED, 0, 0]), one permutation per block in
+                  layout order (A1's call0/obs0 stream, reused for every sample);
+  event pi      = default_rng([0xA15EED, 1]), normalised pi[0] > pi[1].
+Fingerprint (sha256 of the 8 block perms + pi): bf16f51cbea1b8a52f02351d29f3843814090ff97b2df72ee03caf60c5a88027
+
+1) synthetic selftest (scripts/exp_a9_shuffle.py --selftest; runs/exp/A9/selftest.json)
+   SELFTEST OK: 8 checks.
+   - layout: 8 window blocks match A1 offsets/items/item_channels;
+   - 8 river perms + pi are fixed non-identity permutations;
+   - event order extension non-identity for L in {3,6,18,100,384};
+   - binary batch: 8/8 blocks checked, 7 changed + 1 all-empty block asserted unchanged,
+     slot multiset + per-element counts preserved, deterministic;
+   - non-binary values pass the same slot-multiset checks;
+   - negative controls: a bit flip and a value bump are both caught;
+   - events: row multiset preserved, padding kept, non-uniform streams changed, deterministic;
+   - collate wrapper permutes obs + events, keeps shapes/dtypes (int16 tokens).
+
+2) real-data A/B check (scripts/exp_a9_pipecheck.py; runs/exp/A9/pipecheck.json)
+   64 real gz-log entries, original collate vs patched collate on the SAME input:
+   - obs differs (294 channel planes differ), all differences inside the window region;
+   - every block: slot multiset + per-element counts preserved (all 8 blocks);
+   - event tokens differ; lengths/mask/causal unchanged;
+   - every length class: row multiset preserved; first real token still start_kyoku(2);
+   - DataLoader integration: num_workers=2 (2x256 batches, fork inherits the patch;
+     worker-side asserts would kill the loader) and num_workers=0 (4x64 batches;
+     stats: blocks checked 32/changed 32, obs changed 251/256, events changed 256/256).
+
+3) config safety (scripts/exp_a9_make_configs.py, re-asserted by scripts/exp_a9_train.py)
+   runs/exp/A9/train.toml and eval.toml are byte-identical to runs/exp/E3a/*.toml modulo
+   the arm path prefix (eval differs additionally only in challenger.name: a9);
+   state_file / best_state_file / tensorboard_dir / test_play / train_play are all under
+   runs/exp/A9/ and are asserted != the live paths; checkpoints/mortal.pth and best.pth are
+   never written (mtimes recorded before/after). use_event_branch=true (event arm).
+
+4) declared budget / eval (PREREG.md §4/§5): 20,000 optimizer steps from scratch, watchdog
+   stops after the steps=20000 save; pool A eval 12,000 games / seed_start=10000 /
+   key 0x5dfaa4cef265cd7, own log_dir runs/exp/A9/games/, EVAL_FEED_A9.json from
+   MORTAL_EVT_DEBUG. Pool B (50000) is not consumed.
