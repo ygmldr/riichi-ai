@@ -1,0 +1,67 @@
+{
+  "comparison": "trainee - anchor seats (paired per-set, 1v3 zero-sum)",
+  "protocol": {
+    "seed_key": "0x5dfaa4cef265cd7",
+    "seed_start": 70000,
+    "seed_range": [
+      70000,
+      73000
+    ],
+    "sets": 3000,
+    "games": 12000,
+    "bootstrap": {
+      "resamples": 2000,
+      "rng_seed": 0
+    },
+    "challenger": "runs/exp/A14/state_final.pth",
+    "champion": "checkpoints/mortal.pth.at-148800",
+    "eval_dir": {
+      "games_dir": "/home/ygsldr/riichi-ai/runs/exp/A14/eval_confirm/games",
+      "candidates": 12000,
+      "sets": 3000,
+      "games": 12000,
+      "ignored_files": 0,
+      "non_game_files": 0,
+      "seed_min": 70000,
+      "seed_max": 72999
+    },
+    "resolution_mdd_80pct_12k": {
+      "avg_rank": 0.0239,
+      "pt": 1.86
+    }
+  },
+  "trainee": {
+    "avg_rank": 2.70125,
+    "avg_rank_ci": [
+      2.6821645833333334,
+      2.7198333333333333
+    ],
+    "avg_pt": -18.05625,
+    "avg_pt_ci": [
+      -19.5001875,
+      -16.589906250000002
+    ]
+  },
+  "anchor_seats": {
+    "avg_rank": 2.432916666666667,
+    "avg_pt": 6.01875
+  },
+  "delta_avg_rank": 0.2683333333333333,
+  "delta_avg_rank_ci": [
+    0.24288611111111114,
+    0.2931111111111111
+  ],
+  "delta_avg_pt": -24.075,
+  "delta_avg_pt_ci": [
+    -26.00025,
+    -22.119875
+  ],
+  "criteria": {
+    "primary_raw_pt_ci_lo_gt_0": false,
+    "primary_raw_pt_ci_hi_lt_0": true,
+    "primary_raw_pt_ci_crosses_0": false,
+    "auxiliary_raw_avg_rank_ci_hi_lt_2.500": false,
+    "auxiliary_delta_rank_ci_hi_lt_0": false,
+    "a14_passes": false
+  }
+}

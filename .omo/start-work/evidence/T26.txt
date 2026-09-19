@@ -1,0 +1,167 @@
+================================================================================
+T26 evidence — A14 minimal online self-play run (plan todo 26; roadmap step 9)
+================================================================================
+Task: run A14 (>=1 full generation of online=true self-play with use_pg=true),
+trend on pool A, confirm on the fresh window 70000, write VERDICT with CIs.
+Repo: /home/ygsldr/riichi-ai  HEAD 6986196 (dirty: scripts/selfplay_launch.py, scripts/exp_a14_run.py,
+scripts/exp_a14_delta.py added/edited by this task; RUNBOOK/parse_eval/vendor/README pre-existing).
+Vendor tree: pin 0cff2b5 + patches 0002/0003/0004/0005/0012/0006/0007/0010/0008/0009/0013 (0013 = tail pad).
+
+[A] PRE-REGISTRATION AND POOL SUBSTITUTION (before any training)
+--------------------------------------------------------------------------------
+- runs/exp/A14/PREREG.md written 2026-09-19 20:54:08 +0800 (mtime verified) BEFORE the first
+  training launch (first worker session started 21:04:23).
+  sha256 (recorded in prepare_summary.json): 4f3032d731ea6b22954c105c1760ed8f156d1a7bae21d9b7712d1a16d44f3d01
+- Pool-B substitution declared prominently in PREREG §0: pool B [50000,53000) was consumed by
+  todo 22 (single confirm shot of the architecture verdict); 60000 was consumed by the akochan
+  ruler (T16). A14 therefore uses pool A [10000,13000) for the trend and the fresh never-used
+  window [70000,73000) for the confirm, same key 0x5dfaa4cef265cd7, same 12k protocol.
+- Declared generation = one full pool cycle (cycle 1, both waves) = 4 members x 2,000 games
+  = 8,000 games; exactly 1 generation; training hard cap 130 min, per-wave soft cap 75 min;
+  whole experiment <= ~4 h. Declared save_every=100, CNN-only, use_pg=true, lam_kl=0.05.
+- Declared decision rule (PREREG §6): primary = confirm pt 95% CI entirely > 0; auxiliary =
+  avg_rank CI upper bound < 2.500; A14 passes iff both; otherwise close the self-play line.
+
+[B] POOL CYCLE 1 (fresh sample; todo 25 note)
+--------------------------------------------------------------------------------
+$ python3 scripts/selfplay_launch.py sample --cycle 1 --k 2 --write   (2026-09-19T20:53:10)
+  wrote cycle_1 to runs/exp/SELFPLAY/pool.json (was: None)
+  cycle_1 = [["at-175200","best-220000"], ["at-148800","baseline"]]
+  pool.json sha256 after write: 96f54472028d9219268d6ecb91cb6e44bc64012d8f78ac6f15e4a900a7df943a
+  (pool_source_sha256 asserted equal by launch; 50000 NOT touched)
+
+[C] PREPARE (scripts/exp_a14_run.py prepare)
+--------------------------------------------------------------------------------
+- Root = runs/exp/A14/selfplay (worker log dirs + trainer scratch under runs/exp/A14/ only).
+- Post-processing applied to generated configs (repo config untouched; sha256 c12bc5f3...):
+    [rl].use_pg = true, lam_v = 1.0, lam_kl = 0.05, anchor = checkpoints/mortal.pth.at-148800
+    [model].use_event_branch = false   (plain CNN; the repo config has true for the owner's run)
+    [control].save_every = 100, enable_compile = false
+  wave-0 trainer state_file = .../wave_0/trainer/state.pth ; workers games=2000 ;
+  worker log_dirs = .../cycle_1/wave_{0,1}/worker_{0,1} (fresh; asserted).
+- Init state: copy of checkpoints/mortal.pth.at-148800 ->
+  runs/exp/A14/selfplay/cycle_1/wave_0/trainer/state.pth
+  src sha256 = dst sha256 = 73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e
+- prepare_summary.json written; invariants at prepare: runs/1v3 == 2004; live mtimes OK.
+
+[D] TRAINING (single server+trainer, K=2, wave rotation)
+--------------------------------------------------------------------------------
+Timeline (+0800):
+  21:02:16  /tmp/opencode/train.lock acquired (owner.txt "69180 ... a14-train (task todo 26)")
+  21:04:17  launch: server 69577 -> trainer 69592 (child 69593) -> workers 69622/69623
+  21:04:23  wave 0 sessions start: worker_0 vs at-175200, worker_1 vs best-220000 (2,000 games each)
+  21:14:18/21:14:42  wave-0 sessions submitted; workers killed (wave rotation; no SIGCONT)
+  21:15:28  wave 1 workers started: worker_0 vs at-148800, worker_1 vs baseline (2,000 games each)
+  21:27:17/21:29:54  wave-1 sessions submitted; workers killed
+  21:30:00-21:31:39  trainer catch-up (last 2,000-game drain trained; idle param submitted 21:31:39)
+  21:32:06  STOP OK; final state snapshot; invariants re-checked OK
+  elapsed_s = 1665.2 (27.8 min; cap was 130 min -> generation COMPLETE, no cap hits, warnings [])
+
+Games accounting (worker logs, submitted sessions only):
+  wave 0 worker_0 (at-175200): seed [10000,10500) key 0x45320e55b174a049, 2000 games,
+      trainee rankings [502 498 493 507] (avg 2.5025, -0.4275pt)
+  wave 0 worker_1 (best-220000): seed [10000,10500) key 0xf0328a50497f552e, 2000 games,
+      rankings [510 499 524 467] (2.474, +2.655pt)
+  wave 1 worker_0 (at-148800): seed [10000,10500) key 0x1e372df8ede40754, 2000 games,
+      rankings [493 477 468 562] (2.5495, -5.0175pt)
+  wave 1 worker_1 (baseline): seed [10000,10500) key 0x6356bc801a66fc4e, 2000 games,
+      rankings [1997 3 0 0] (1.0015, +89.9325pt)
+  TOTAL = 8,000 games = 4 members x 2,000 (one full generation). Runner echoes "no GPU job
+  crashed"; the tail-cat path (patch 0013) was exercised live: 4 drains of 2,000 games with
+  num_workers=3 and no torch.cat error.
+
+Trainer (runs/exp/A14/selfplay/cycle_1/wave_0/logs/trainer.log):
+  mortal params: 10,787,456      <- plain CNN (an event-branch model would print 11,818,752)
+  [rl] anchor loaded: checkpoints/mortal.pth.at-148800 (version=4, steps=148800)
+  [rl] use_pg=True lam_v=1.0 lam_kl=0.05 anchor=checkpoints/mortal.pth.at-148800
+  loaded: 2026-08-11 01:24:07    <- resume from the copied at-148800 state (upstream online
+                                    resume semantics: optimizer state NOT loaded because the
+                                    checkpoint's own config has online=false; declared in PREREG)
+  file list size: 2,000 x4 drains (21:14:21, 21:16:15, 21:27:19, 21:29:59) = 8,000 games
+  total steps: 150,100 (last printed; base 148,800 -> +1,300 local optimizer steps)
+
+use_pg=true PROOF (TensorBoard runs/exp/A14/selfplay/cycle_1/wave_0/trainer/tb):
+  loss/pg_loss        n=13 steps 148900..150100 all finite  first 0.239789 last 0.373900 min 0.239789 max 0.542425
+  loss/value_huber    n=13 all finite first 0.302404 last 0.073409 min 0.073409 max 0.302404
+  loss/kl_anchor      n=13 all finite first 0.053253 last 0.039985 min 0.036348 max 0.053253
+  loss/dqn_loss       n=13 all finite first 0.236021 last 0.072950
+  loss/next_rank_loss n=13 all finite first 0.786324 last 0.118600
+  hparam/lr           constant 1.0e-4
+  (no loss/cql_loss and no loss/holdout_loss by construction: online mode disables cql and the
+   online branch never builds val_file_list; both are expected, not omissions)
+
+Final checkpoint (evaluation input):
+  runs/exp/A14/state_final.pth = copy of .../wave_0/trainer/state.pth at the last periodic save
+  steps = 150,100 ; size 130,732,154 B ; sha256 ac95620f8f5d3d284e3741d7e2e48f053e9118ad9cba35172c5d734fc200bd87
+  state config: online=true, save_every=100, rl.use_pg=true, model.use_event_branch=false,
+  no event_branch.* keys -> evaluated as a plain CNN. The final epoch ended 21:31:39, 12 s after
+  the 21:31:27 save (<= ~20 further steps / <= ~160 games not in the checkpoint; declared
+  save-gap <= 100 steps in PREREG).
+
+[E] INVARIANTS (checked at prepare / train-start / train-end / each eval start+end)
+--------------------------------------------------------------------------------
+  runs/1v3/*.json.gz == 2004 at every checkpoint of this task.
+  checkpoints/mortal.pth mtime 2026-09-17 02:03:09 and checkpoints/best.pth mtime
+  2026-09-16 02:59:45 unchanged (asserted by the orchestrator at each phase boundary).
+  No writes outside runs/exp/A14/** and runs/exp/SELFPLAY/pool.json.
+
+[F] EVALUATIONS (trend pool A; confirm window 70000)
+--------------------------------------------------------------------------------
+Both evals: challenger = runs/exp/A14/state_final.pth (steps 150,100, sha256 ac95620f...),
+champion = checkpoints/mortal.pth.at-148800, seed_key 0x5dfaa4cef265cd7, games_per_iter=12000,
+iters=1, enable_rule_based_agari_guard=true, enable_amp=true, enable_compile=false.
+Configs: runs/exp/A14/eval_trend.toml (PREREG §8 name: eval_poolA.toml) and eval_confirm.toml.
+First confirm attempt 21:38:XX crashed before any game (TypeError: seed_start str vs int - my
+config-writer bug), fixed (integer seed_key) before the real runs; the failed run wrote 0 files.
+The first trend attempt's orchestrator also exposed a zombie-PID wait bug (fixed: /proc state Z).
+Neither incident touched data or the protocol.
+
+Trend (pool A, seed [10000,13000)), own log_dir runs/exp/A14/eval_poolA/games:
+  21:40:24 -> 22:17:23 (37.0 min) arena pid 71433
+  arena log: "seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans"
+             "challenger rankings: [2659 2498 2722 4121] (2.692083333333333, -17.05125pt)"
+Confirm (fresh window [70000,73000)), own log_dir runs/exp/A14/eval_confirm/games:
+  22:23:56 -> 23:00:33 (36.6 min) arena pid 71944
+  arena log: "challenger rankings: [2649 2487 2664 4200] (2.70125, -18.05625pt)"
+Invariants asserted at each eval start AND end (2004 corpus, live mtimes) - all OK.
+
+[G] REPORTS AND PAIRED DELTA
+--------------------------------------------------------------------------------
+scripts/eval_report.py (UNMODIFIED; B=2000 set bootstrap, rng seed 0) -> CSV rows:
+  report.csv (confirm):         sets=3000 games=12000 incomplete_sets=0 ignored_files=0
+    rank_dist [2649 2487 2664 4200]  avg_rank 2.701250 [2.682165,2.719833]
+    pt -18.056250 [-19.500188,-16.589906]   (pt CI width 2.9103; MDD 1.86)
+  report_poolA.csv (trend):     sets=3000 games=12000 incomplete_sets=0 ignored_files=0
+    rank_dist [2659 2498 2722 4121]  avg_rank 2.692083 [2.672667,2.711254]
+    pt -17.051250 [-18.528750,-15.573750]
+  Canonical top-level copies exist (report.csv, report_poolA.csv); originals live in the
+  per-eval dirs (eval_confirm/report.csv, eval_poolA/report_poolA.csv; eval_poolA/report.csv
+  is a duplicate written by the same tool call).
+
+scripts/exp_a14_delta.py (new; imports eval_report, never modifies it) - paired per-set
+differential vs the 3 anchor seats (zero-sum), bootstrapped identically:
+  delta_confirm.json: Delta_avg_rank +0.268333 [+0.242886,+0.293111]
+                      Delta_avg_pt   -24.075000 [-26.000250,-22.119875]
+  delta_trend.json:   Delta_avg_rank +0.256111 [+0.230222,+0.281672]
+                      Delta_avg_pt   -22.735000 [-24.705000,-20.765000]
+  criteria (both windows): primary_raw_pt_ci_lo_gt_0=false, primary_raw_pt_ci_hi_lt_0=true,
+  primary_raw_pt_ci_crosses_0=false, auxiliary_raw_avg_rank_ci_hi_lt_2.500=false,
+  a14_passes=false.
+  Interpretation note (pre-registered): the CI "does not cross 0" but lies entirely BELOW 0
+  => detectably WORSE than the anchor => fail (not a pass).
+
+[H] VERDICT, COMMIT, CLEANUP
+--------------------------------------------------------------------------------
+Verdict: runs/exp/A14/VERDICT.md - A14 does not pass; primary FAIL (worse), auxiliary FAIL
+(rank CI hi 2.7198 > 2.5). CLOSE the self-play line under the declared recipe/budget;
+A14b NOT started (conditional on A14 passing). Mechanisms (fresh AdamW because upstream
+online resume skips the optimizer state when the checkpoint config has online=false; online
+disables CQL; KL 0.05 too weak at lr 1e-4) recorded as recipe-level confounds, not as a claim
+about self-play RL in general.
+Operational findings: uncontended self-play ~3.2 games/s/worker; CNN trainer with compile off
+~1.6 steps/s (~0.16 steps/game); 8,000 games = 27.8 min; first live exercise of patch 0013
+(4 real drains, num_workers=3, batch 1024) with NO torch.cat error.
+Cleanup: all PIDs dead (pgrep empty), lock released (rm owner.txt && rmdir), /tmp scratch only.
+Final invariants: runs/1v3/*.json.gz = 2004; mortal.pth 2026-09-17 02:03:09; best.pth
+2026-09-16 02:59:45 (unchanged throughout).
+Commit: feat(exp): A14 self-play (confirm on fresh window 70000; pool B spent) - see git log.

@@ -1,0 +1,67 @@
+{
+  "comparison": "trainee - anchor seats (paired per-set, 1v3 zero-sum)",
+  "protocol": {
+    "seed_key": "0x5dfaa4cef265cd7",
+    "seed_start": 10000,
+    "seed_range": [
+      10000,
+      13000
+    ],
+    "sets": 3000,
+    "games": 12000,
+    "bootstrap": {
+      "resamples": 2000,
+      "rng_seed": 0
+    },
+    "challenger": "runs/exp/A14/state_final.pth",
+    "champion": "checkpoints/mortal.pth.at-148800",
+    "eval_dir": {
+      "games_dir": "runs/exp/A14/eval_poolA/games",
+      "candidates": 12000,
+      "sets": 3000,
+      "games": 12000,
+      "ignored_files": 0,
+      "non_game_files": 0,
+      "seed_min": 10000,
+      "seed_max": 12999
+    },
+    "resolution_mdd_80pct_12k": {
+      "avg_rank": 0.0239,
+      "pt": 1.86
+    }
+  },
+  "trainee": {
+    "avg_rank": 2.692083333333333,
+    "avg_rank_ci": [
+      2.6726666666666667,
+      2.711254166666667
+    ],
+    "avg_pt": -17.05125,
+    "avg_pt_ci": [
+      -18.52875,
+      -15.57375
+    ]
+  },
+  "anchor_seats": {
+    "avg_rank": 2.435972222222222,
+    "avg_pt": 5.68375
+  },
+  "delta_avg_rank": 0.2561111111111111,
+  "delta_avg_rank_ci": [
+    0.23022222222222224,
+    0.2816722222222222
+  ],
+  "delta_avg_pt": -22.735,
+  "delta_avg_pt_ci": [
+    -24.705,
+    -20.765
+  ],
+  "criteria": {
+    "primary_raw_pt_ci_lo_gt_0": false,
+    "primary_raw_pt_ci_hi_lt_0": true,
+    "primary_raw_pt_ci_crosses_0": false,
+    "auxiliary_raw_avg_rank_ci_hi_lt_2.500": false,
+    "auxiliary_delta_rank_ci_hi_lt_0": false,
+    "a14_passes": false
+  }
+}

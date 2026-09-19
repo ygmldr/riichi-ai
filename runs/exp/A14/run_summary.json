@@ -1,0 +1,67 @@
+{
+  "started_at": "2026-09-19T21:04:21+08:00",
+  "wave_pids": {
+    "started_at": "2026-09-19T21:04:17+08:00",
+    "run": {
+      "cycle": 1,
+      "wave": 0
+    },
+    "pool_source": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/pool.json",
+    "configs": {
+      "server": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/server.toml",
+      "trainer": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer.toml",
+      "workers": [
+        "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_0.toml",
+        "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_1.toml"
+      ]
+    },
+    "server": 69577,
+    "trainer": 69592,
+    "worker_0": 70061,
+    "worker_1": 70062
+  },
+  "sessions": {
+    "wave_0": {
+      "games": [
+        2000,
+        2000
+      ],
+      "cap_hit": false,
+      "local_logs": [
+        0,
+        0
+      ],
+      "ended_at": "2026-09-19T21:15:28+08:00"
+    },
+    "wave_1": {
+      "games": [
+        2000,
+        2000
+      ],
+      "cap_hit": false,
+      "local_logs": [
+        0,
+        0
+      ],
+      "ended_at": "2026-09-19T21:30:37+08:00"
+    }
+  },
+  "warnings": [],
+  "final_state": {
+    "path": "/home/ygsldr/riichi-ai/runs/exp/A14/state_final.pth",
+    "sha256": "ac95620f8f5d3d284e3741d7e2e48f053e9118ad9cba35172c5d734fc200bd87",
+    "source": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer/state.pth",
+    "source_sha256": "ac95620f8f5d3d284e3741d7e2e48f053e9118ad9cba35172c5d734fc200bd87"
+  },
+  "trainer": {
+    "drained_games": 8000,
+    "drains": 4,
+    "steps_seen": [
+      149900,
+      150000,
+      150100
+    ]
+  },
+  "finished_at": "2026-09-19T21:32:06+08:00",
+  "elapsed_s": 1665.2
+}

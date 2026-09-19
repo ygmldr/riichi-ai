@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/A14,a14_final,423244137402621143,10000,3000,12000,0,2659,2498,2722,4121,[2659 2498 2722 4121],2.692083,2.6726666666666667,2.711254166666667,-17.051250,-18.52875,-15.57375,0

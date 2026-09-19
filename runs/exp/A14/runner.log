@@ -1,0 +1,56 @@
+ROOT: /home/ygsldr/riichi-ai/runs/exp/A14/selfplay
+  lock held: 69180 2026-09-19T21:02:16+08:00 a14-train (task todo 26)
+[21:04:16] INVARIANT[train-start] runs/1v3/*.json.gz = 2004 (want 2004) OK
+[21:04:16] INVARIANT[train-start] mortal.pth mtime 2026-09-17 02:03:09 (want 2026-09-17 02:03:09) OK
+[21:04:16] INVARIANT[train-start] best.pth mtime 2026-09-16 02:59:45 (want 2026-09-16 02:59:45) OK
+  lock held: 69180 2026-09-19T21:02:16+08:00 a14-train (task todo 26)
+POOL VALIDATE: /home/ygsldr/riichi-ai/runs/exp/SELFPLAY/pool.json
+  [OK] best-220000   130780507 B  sha256 7fe084d98f84...  steps=220000  /home/ygsldr/riichi-ai/checkpoints/best.pth
+  [OK] at-175200     130780507 B  sha256 f0a611b97f31...  steps=175200  /home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200
+  [OK] at-148800     130780507 B  sha256 73ec8108f1b9...  steps=148800  /home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800
+  [OK] baseline       43691001 B  sha256 83fd3929035d...  steps=None  /home/ygsldr/riichi-ai/checkpoints/baseline.pth
+  active members: 4  weights sum=1.000000  POOL OK
+LAUNCH: cycle=1 wave=0 K=2
+  worker_0 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_0
+  worker_1 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_1
+  worker log_dirs pairwise distinct: ['/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_0', '/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_1']
+  worker opponent snapshots pairwise distinct: ['/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200', '/home/ygsldr/riichi-ai/checkpoints/best.pth']
+  started server: pid=69577 pgid=69577 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/server.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/logs/server.log
+  server listening on 127.0.0.1:5000
+  started trainer: pid=69592 pgid=69592 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/logs/trainer.log
+  trainer submitted the first param
+  started worker_0: pid=69622 pgid=69622 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_0.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/logs/worker_0.log
+  started worker_1: pid=69623 pgid=69623 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_1.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/logs/worker_1.log
+  wrote /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/pids.json
+  wrote /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/pids.json
+LAUNCH OK
+[21:04:21] wave 0: waiting for both worker sessions (members ['at-175200', 'best-220000'])
+[21:14:46]   wave 0 submitted games per worker: [2000, 2000] (cap_hit=False)
+[21:15:06]   killed wave0_worker_0 69622 (alive=True)
+[21:15:28]   killed wave0_worker_1 69623 (alive=True)
+  worker_0 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/worker_0
+  started worker_0: pid=70061 pgid=70061 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/worker_0.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/logs/worker_0.log
+  worker_1 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/worker_1
+  started worker_1: pid=70062 pgid=70062 cfg=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/worker_1.toml log=/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_1/logs/worker_1.log
+[21:15:28]   wave 1 workers started: {'worker_0': 70061, 'worker_1': 70062} (opponents ['at-148800', 'baseline'])
+[21:15:28] wave 1: waiting for both worker sessions (members ['at-148800', 'baseline'])
+[21:29:56]   wave 1 submitted games per worker: [2000, 2000] (cap_hit=False)
+[21:30:16]   killed wave1_worker_0 70061 (alive=True)
+[21:30:37]   killed wave1_worker_1 70062 (alive=True)
+[21:30:37] total submitted games: 8000 (target 8000)
+[21:30:37]   catch-up: drained=8000 submitted=8000 buffer=0; dwell 60s
+  server pid=69577: SIGTERM to pgid 69577
+  trainer pid=69592: SIGTERM to pgid 69592
+  worker_0 pid=70061: SIGTERM to pgid 70061
+  worker_1 pid=70062: SIGTERM to pgid 70062
+  server pid=69577: SIGKILL after timeout
+  trainer pid=69592: SIGKILL after timeout
+  worker_0 pid=70061: SIGKILL after timeout
+  worker_1 pid=70062: SIGKILL after timeout
+  pgrep leftovers: (none)
+STOP OK
+[21:32:06] TRAIN DONE: {"wave_0": {"games": [2000, 2000], "cap_hit": false, "local_logs": [0, 0], "ended_at": "2026-09-19T21:15:28+08:00"}, "wave_1": {"games": [2000, 2000], "cap_hit": false, "local_logs": [0, 0], "ended_at": "2026-09-19T21:30:37+08:00"}}
+[21:32:06] final state: {'path': '/home/ygsldr/riichi-ai/runs/exp/A14/state_final.pth', 'sha256': 'ac95620f8f5d3d284e3741d7e2e48f053e9118ad9cba35172c5d734fc200bd87', 'source': '/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer/state.pth', 'source_sha256': 'ac95620f8f5d3d284e3741d7e2e48f053e9118ad9cba35172c5d734fc200bd87'}
+[21:32:06] INVARIANT[train-end] runs/1v3/*.json.gz = 2004 (want 2004) OK
+[21:32:06] INVARIANT[train-end] mortal.pth mtime 2026-09-17 02:03:09 (want 2026-09-17 02:03:09) OK
+[21:32:06] INVARIANT[train-end] best.pth mtime 2026-09-16 02:59:45 (want 2026-09-16 02:59:45) OK

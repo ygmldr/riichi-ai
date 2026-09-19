@@ -3,10 +3,13 @@
 
     python3 scripts/selfplay_launch.py validate [--pool POOL]
     python3 scripts/selfplay_launch.py sample  --cycle 0 [--k 2] [--write]
-    python3 scripts/selfplay_launch.py prepare --cycle 0 --wave 0 [--k 2] [--games 4]
-    python3 scripts/selfplay_launch.py launch
-    python3 scripts/selfplay_launch.py status
-    python3 scripts/selfplay_launch.py stop
+    python3 scripts/selfplay_launch.py prepare --cycle 0 --wave 0 [--k 2] [--games 4] [--root DIR]
+    python3 scripts/selfplay_launch.py launch [--root DIR]
+    python3 scripts/selfplay_launch.py status [--root DIR]
+    python3 scripts/selfplay_launch.py stop [--root DIR]
+
+`--root DIR` (A14/todo 26) relocates the wave tree, worker log dirs, `worker_map.json`
+and `pids.json` under DIR while the opponent pool stays at `runs/exp/SELFPLAY/pool.json`.
 
 `runs/exp/SELFPLAY/pool.json` (todo 25) is the single source of truth for the
 frozen opponent pool: members (path + bytes + sha256), active/retired status,
@@ -49,7 +52,12 @@ MORTAL_DIR = REPO / 'vendor/mortal/mortal'
 LIBRIICHI = REPO / 'vendor/mortal/target/release'
 REPO_CFG = REPO / 'configs/config.toml'
 LOCK = pathlib.Path('/tmp/opencode/train.lock')
-PIDS = SELFPLAY / 'pids.json'
+# Mutable base for wave dirs / worker log dirs / worker_map.json / pids.json.
+# Default = SELFPLAY (todo 24/25 behaviour); `--root` (A14, todo 26) moves it so an
+# experiment's worker log_dirs live under its own runs/exp/<ID>/ tree. The opponent
+# pool file stays at runs/exp/SELFPLAY/pool.json: the pool is shared, only the run
+# artefacts move.
+ROOT = SELFPLAY
 LIVE = {
     'state_file': REPO / 'checkpoints/mortal.pth',
     'best_state_file': REPO / 'checkpoints/best.pth',
@@ -61,6 +69,16 @@ LIVE = {
 
 def now_iso():
     return datetime.datetime.now().astimezone().isoformat(timespec='seconds')
+
+
+def set_root(path):
+    global ROOT
+    ROOT = pathlib.Path(path).resolve()
+    print(f'ROOT: {ROOT}')
+
+
+def pids_path():
+    return ROOT / 'pids.json'
 
 
 def load_cfg(path):
@@ -214,8 +232,8 @@ def cmd_sample(args):
 
 def assert_fresh_log_dir(path, worker):
     p = pathlib.Path(path)
-    if not is_under(p, SELFPLAY) or p.resolve() == SELFPLAY.resolve():
-        raise SystemExit(f'REFUSING worker_{worker}: log_dir not under {SELFPLAY}: {p}')
+    if not is_under(p, ROOT) or p.resolve() == ROOT.resolve():
+        raise SystemExit(f'REFUSING worker_{worker}: log_dir not under {ROOT}: {p}')
     if p.exists() and any(p.iterdir()):
         raise SystemExit(
             f'REFUSING worker_{worker}: log_dir is not fresh (non-empty, '
@@ -265,7 +283,7 @@ def cmd_prepare(args):
     if unknown:
         raise SystemExit(f'REFUSING: assign names non-active members: {unknown}')
 
-    wave_dir = SELFPLAY / f'cycle_{args.cycle}' / f'wave_{args.wave}'
+    wave_dir = ROOT / f'cycle_{args.cycle}' / f'wave_{args.wave}'
     logs_dir = wave_dir / 'logs'
     print(f'PREPARE: {key} wave {args.wave} k={args.k} games/session={args.games} dir={wave_dir}')
 
@@ -312,7 +330,7 @@ def cmd_prepare(args):
             raise SystemExit(f'worker_{w["worker"]} games mismatch')
         for key in ('state_file', 'best_state_file', 'tensorboard_dir'):
             value = pathlib.Path(cfg_w['control'][key])
-            if value.resolve() == LIVE[key].resolve() or not is_under(value, SELFPLAY):
+            if value.resolve() == LIVE[key].resolve() or not is_under(value, ROOT):
                 raise SystemExit(f'worker_{w["worker"]} control.{key} is not scratch: {value}')
         if sha256_file(baseline) != w['opponent_sha256']:
             raise SystemExit(f'worker_{w["worker"]} opponent sha256 drifted after validation: {baseline}')
@@ -325,9 +343,9 @@ def cmd_prepare(args):
     tcfg['test_play']['log_dir'] = str(trainer_dir / 'test_play')
     for k in ('state_file', 'best_state_file', 'tensorboard_dir'):
         value = pathlib.Path(tcfg['control'][k])
-        if value.resolve() == LIVE[k].resolve() or not is_under(value, SELFPLAY):
-            raise SystemExit(f'REFUSING trainer {k}: {value} (must be a scratch path under {SELFPLAY})')
-    if not is_under(tcfg['test_play']['log_dir'], SELFPLAY):
+        if value.resolve() == LIVE[k].resolve() or not is_under(value, ROOT):
+            raise SystemExit(f'REFUSING trainer {k}: {value} (must be a scratch path under {ROOT})')
+    if not is_under(tcfg['test_play']['log_dir'], ROOT):
         raise SystemExit(f'REFUSING trainer test_play.log_dir: {tcfg["test_play"]["log_dir"]}')
     tcfg_path = wave_dir / 'trainer.toml'
     with open(tcfg_path, 'w', encoding='utf-8') as f:
@@ -340,11 +358,11 @@ def cmd_prepare(args):
     scfg['control']['best_state_file'] = str(wave_dir / 'unused-server-control-best.pth')
     scfg['control']['tensorboard_dir'] = str(wave_dir / 'unused-server-control-tb')
     for key in ('buffer_dir', 'drain_dir'):
-        if not is_under(scfg['online']['server'][key], SELFPLAY):
+        if not is_under(scfg['online']['server'][key], ROOT):
             raise SystemExit(f'REFUSING server {key}: {scfg["online"]["server"][key]}')
     for key in ('state_file', 'best_state_file', 'tensorboard_dir'):
         value = pathlib.Path(scfg['control'][key])
-        if value.resolve() == LIVE[key].resolve() or not is_under(value, SELFPLAY):
+        if value.resolve() == LIVE[key].resolve() or not is_under(value, ROOT):
             raise SystemExit(f'REFUSING server control.{key}: {value}')
     scfg_path = wave_dir / 'server.toml'
     with open(scfg_path, 'w', encoding='utf-8') as f:
@@ -375,8 +393,8 @@ def cmd_prepare(args):
         ],
         'workers': workers,
     }
-    root_map = SELFPLAY / 'worker_map.json'
-    archive = SELFPLAY / 'worker_map.todo24.json'
+    root_map = ROOT / 'worker_map.json'
+    archive = ROOT / 'worker_map.todo24.json'
     if root_map.is_file() and not archive.is_file():
         shutil.copy2(root_map, archive)
         print(f'  archived previous worker_map.json -> {archive}')
@@ -447,7 +465,7 @@ def cmd_launch(args):
     if args.k is not None:
         print(f'  NOTE: --k {args.k} limits the prepared workers; the pool assign is unchanged')
 
-    map_path = SELFPLAY / 'worker_map.json'
+    map_path = ROOT / 'worker_map.json'
     if not map_path.is_file():
         raise SystemExit('REFUSING: run `prepare` first (worker_map.json missing)')
     worker_map = json.loads(map_path.read_text())
@@ -508,7 +526,7 @@ def cmd_launch(args):
     for w in workers:
         pids[f'worker_{w["worker"]}'] = start(f'worker_{w["worker"]}', 'client.py', w['config'], logs_dir)
 
-    for target in (PIDS, pathlib.Path(logs_dir).parent / 'pids.json'):
+    for target in (pids_path(), pathlib.Path(logs_dir).parent / 'pids.json'):
         with open(target, 'w', encoding='utf-8') as f:
             json.dump(pids, f, indent=2)
             f.write('\n')
@@ -547,8 +565,8 @@ def log_count(path, needle):
 
 
 def cmd_status(args):
-    pids = json.loads(PIDS.read_text())
-    worker_map = json.loads((SELFPLAY / 'worker_map.json').read_text())
+    pids = json.loads(pids_path().read_text())
+    worker_map = json.loads((ROOT / 'worker_map.json').read_text())
     logs_dir = pathlib.Path(worker_map['logs_dir'])
     status = {
         'run': pids.get('run', {}),
@@ -583,7 +601,7 @@ def cmd_status(args):
 
 
 def cmd_stop(args):
-    pids = json.loads(PIDS.read_text())
+    pids = json.loads(pids_path().read_text())
     targets = [
         (role, pid) for role, pid in pids.items()
         if isinstance(pid, int) and pid > 1 and is_pid_role(role)
@@ -611,7 +629,7 @@ def cmd_stop(args):
     ).stdout.strip()
     print(f'  pgrep leftovers: {leftovers or "(none)"}')
     pids['stopped_at'] = now_iso()
-    with open(PIDS, 'w', encoding='utf-8') as f:
+    with open(pids_path(), 'w', encoding='utf-8') as f:
         json.dump(pids, f, indent=2)
         f.write('\n')
     if leftovers:
@@ -640,17 +658,26 @@ def main():
     p_prepare.add_argument('--k', type=int, default=2)
     p_prepare.add_argument('--games', type=int, default=100)
     p_prepare.add_argument('--pool', default=str(POOL_FILE))
+    p_prepare.add_argument('--root', default=None, help=f'experiment root (default {SELFPLAY})')
     p_prepare.set_defaults(func=cmd_prepare)
 
     p_launch = sub.add_parser('launch')
     p_launch.add_argument('--k', type=int, default=None)
     p_launch.add_argument('--pool', default=str(POOL_FILE))
+    p_launch.add_argument('--root', default=None, help=f'experiment root (default {SELFPLAY})')
     p_launch.set_defaults(func=cmd_launch)
 
-    sub.add_parser('status').set_defaults(func=cmd_status)
-    sub.add_parser('stop').set_defaults(func=cmd_stop)
+    p_status = sub.add_parser('status')
+    p_status.add_argument('--root', default=None, help=f'experiment root (default {SELFPLAY})')
+    p_status.set_defaults(func=cmd_status)
+
+    p_stop = sub.add_parser('stop')
+    p_stop.add_argument('--root', default=None, help=f'experiment root (default {SELFPLAY})')
+    p_stop.set_defaults(func=cmd_stop)
 
     args = parser.parse_args()
+    if getattr(args, 'root', None):
+        set_root(args.root)
     args.func(args)
 
 

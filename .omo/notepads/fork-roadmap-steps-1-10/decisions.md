@@ -77,3 +77,48 @@ Primary pre-registered criterion “Δpt 95 % CI lower bound > 0” **FAILS** (l
 **Decision: CLOSE the river-transformer (event-Transformer) line** under the current Q/CQL loss and the 20k-step matched budget. Keep the CNN trunk (A8's collapse is beyond any MDD; A7 shows the plain CNN at the same frames is at least as good on pool A). Re-open only with a materially different objective (e.g. todo 23 RL/KL) or different scale, and only with a fresh pre-registration + param-matched E3a-vs-E2-style control on an unconsumed seed pool. Pool B for E3a/E2 is now consumed; do not reuse it.
 Honest caveats recorded in `runs/exp/ARCH_VERDICT.md`: single shot (quote CI widths: 3.70 pt / 0.0468 rank), pool-A vs pool-B disagree in rank sign while pt direction is consistent, A9's declared train/eval order-mismatch confound, E2 param-match ≠ FLOP-match, and the disclosed EVT smoke use of seeds [50000,50010).
 Acceptance: five pool-A `report.csv` source dirs pairwise distinct (`runs/exp/{A7,A8,A9,E2,E3a}`) — asserted; `runs/1v3/*.json.gz` = 2004 before/after both runs; live checkpoint mtimes untouched.
+
+---
+
+## [2026-09-19T20:00Z] Resolution of two T23-surfaced conflicts (bindings for todos 24-27)
+
+**C-1 — pool B is SPENT.** Todo 22 consumed pool B (`seed_start=50000`, window `[50000,53000)`) as the single confirmatory shot for the architecture verdict (E3a vs E2, paired Δpt −2.52 CI [−4.34,−0.64] → CLOSE). The plan's decision #6 also names pool B for todo 26 (A14), which can no longer be satisfied literally without re-using confirmation seeds.
+**Binding resolution for todo 26**: use **pool A (`seed_start=10000`) for the trend**, and a **fresh never-used window for the confirmation** — `seed_start=70000` (`[70000,73000)`), documenting in PREREG that (a) pool B was spent by todo 22, (b) `60000` was consumed by the akochan ruler (T16), (c) `70000` has never been touched, and (d) the confirmation window is therefore still unseen-by-selection data, preserving the plan's intent even though the label "pool B" no longer applies. Any deviation from this must be argued in writing, not improvised.
+
+**C-2 — patch 0008 breaks a closed-but-reusable script.** `scripts/exp_a2b_calibration.py:406` calls `q = dqn(mish, masks)` and is now tuple-incompatible with `DQN.forward → (q, v)`. It is on the do-not-modify list (todo 14 is closed and its artifacts are committed), so it was left untouched. Consequence: **re-running A2b requires a one-line unpack fix first**. Recorded here and scheduled for the wrap-up (todo 30) to fix or explicitly document as `known-breaking-after-0008`. It does NOT affect F2 (`py_compile` passes — this is a runtime type error, not a syntax error).
+
+---
+
+## [2026-09-19T23:15Z] T26 VERDICT — CLOSE the self-play (online RL) line under the declared recipe
+
+PREREG: `runs/exp/A14/PREREG.md` (written 20:54:08, before the first training step at 21:04:23).
+Protocol as pre-registered: one full pool cycle (cycle 1, freshly sampled) = 8,000 games
+(4 members × 2,000), K=2, `online=true`, **`use_pg=true`** (lam_v=1.0, lam_kl=0.05, anchor =
+at-148800), trainee initialised from a byte copy of `checkpoints/mortal.pth.at-148800`, plain CNN,
+save_every=100, one generation only.
+
+- Confirm window (fresh, never used): **`seed_start=70000`** (`[70000,73000)`), key
+  `0x5dfaa4cef265cd7`, 12,000 games, champion at-148800, log_dir `runs/exp/A14/eval_confirm/games`.
+  Trainee: dist `[2649 2487 2664 4200]`, **avg_rank 2.701250 [2.682165,2.719833]**,
+  **pt −18.056250 [−19.500188,−16.589906]**; paired Δ vs the anchor seats
+  **Δrank +0.268333 [+0.242886,+0.293111]**, **Δpt −24.075000 [−26.000250,−22.119875]**.
+- Primary criterion (`pt_ci_lo > 0`) **FAILS**: the CI does not cross 0 but lies entirely *below*
+  0 — the trainee is **detectably worse** than the anchor it started from (≈10× the 12k MDD of
+  1.86 pt). Auxiliary criterion (`avg_rank_ci_hi < 2.500`) also **FAILS** (2.7198). Trend on pool A
+  agrees: 2.692083 / −17.051250 (`runs/exp/A14/report_poolA.csv`).
+- **Decision: CLOSE the online self-play line under this recipe and budget; A14b is NOT started**
+  (roadmap stop-loss: A14 non-significant ⇒ do not add mixed replay). Mechanisms are recipe-level
+  and were declared/observed: (i) upstream online-resume semantics skip the optimizer state when
+  the checkpoint's own config has `online=false` ⇒ fresh AdamW at lr 1e-4 for 1,300 steps;
+  (ii) online disables CQL (`train.py:378`); (iii) KL(λ=0.05)+next_rank(0.2) too weak. All losses
+  were finite and optimised; this is objective mis-alignment, not divergence. **Not evidence that
+  self-play RL cannot help** — re-open only with a new pre-registration that controls (i)/(ii)
+  (warm-start/optimizer handling, CQL online, stronger KL) on an unconsumed seed pool.
+- Integrity: `use_pg=true` proven by trainer log + finite TB scalars (pg/value_huber/kl_anchor over
+  13 saves, steps 148,900–150,100); 8,000 games in 4 drains; final checkpoint step 150,100
+  (sha256 `ac95620f…`); patch 0013 held live (no torch.cat error); `runs/1v3`=2004; live mtimes
+  untouched. Artefacts in `runs/exp/A14/**`, evidence `.omo/start-work/evidence/T26.txt`.
+- Commit message deviation (authorised by the task): the plan's `feat(exp): A14 self-play (pool B
+  confirm)` is factually wrong now (pool B was spent by T22), so the commit uses
+  `feat(exp): A14 self-play (confirm on fresh window 70000; pool B spent)` with the substitution
+  stated in the body.
