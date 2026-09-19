@@ -1,6 +1,8 @@
 [control]
 version = 4
-online = false
+# [patch 0009] online self-play: train.py serves params to the K workers and
+# trains on the replays they drain back (orchestration in runs/exp/SELFPLAY/).
+online = true
 state_file = "/home/ygsldr/riichi-ai/checkpoints/mortal.pth"
 best_state_file = "/home/ygsldr/riichi-ai/checkpoints/best.pth"
 tensorboard_dir = "/home/ygsldr/riichi-ai/runs"
@@ -71,7 +73,8 @@ lam_kl = 0.05
 anchor_state_file = "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800"
 
 [freeze_bn]
-mortal = false
+# [patch 0009] self-play training freezes the trainee's BatchNorm running stats.
+mortal = true
 
 [optim]
 eps = 1e-8

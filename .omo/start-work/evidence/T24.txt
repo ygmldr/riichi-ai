@@ -1,0 +1,145 @@
+===== T24 evidence — online self-play orchestration (K workers, distinct dirs) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 24 (lines 231-236)
+Date: 2026-09-19 19:48-20:13 +0800 (WSL restarted earlier; env re-activated: .venv py3.12.3, torch 2.11.0+cu128)
+Host: WSL, ~15 GB RAM, RTX 5070 Ti 16 GB. One GPU job at a time under /tmp/opencode/train.lock.
+
+Artifacts:
+  configs/config.toml            [control].online=true, [freeze_bn].mortal=true (backup configs/config.toml.sp-bak)
+  patches/0009-online-selfplay-config.patch   sha256 caff02d7cfb0cc7c253bc4d1dd26ff3c3edff53f36c1989b70d93fa7eb016a3d
+  scripts/selfplay_launch.py     prepare / launch / status / stop
+  runs/exp/SELFPLAY/orchestration.md, worker_map.json, worker_0.toml, worker_1.toml, server.toml, trainer.toml
+  runs/exp/SELFPLAY/logs/        server.log, trainer.log, worker_0.log, worker_1.log
+  runs/exp/SELFPLAY/worker_0/    100 game logs (opponent at-175200)
+  runs/exp/SELFPLAY/worker_1/    100 game logs (opponent at-148800)
+  runs/exp/SELFPLAY/run1/        run-1 preserved artifacts (logs, worker dirs, server buffer/drain)
+
+[A] Config change + grep (acceptance: `grep -n "online = true" configs/config.toml` hits)
+-------------------------------------------------------------------------------------
+$ cp configs/config.toml configs/config.toml.sp-bak
+$ grep -n "online = true" configs/config.toml
+5:online = true
+$ grep -n "mortal = true" configs/config.toml
+77:mortal = true
+$ diff -u configs/config.toml.sp-bak configs/config.toml
+  [control]  online = false -> online = true   (+ 2 comment lines)
+  [freeze_bn] mortal = false -> mortal = true  (+ 1 comment line)
+  (only these two keys change; sha256 of backup d73825fb8bd21f6d86a5f0bd43c5ce334a0584c90b0236ee46426acc8c4dcc26)
+
+[B] K configs — pairwise-distinct log_dir + distinct opponent snapshot (asserted in-script)
+-------------------------------------------------------------------------------------
+$ python3 scripts/selfplay_launch.py prepare --k 2 --games 100
+  worker_0 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_0
+  wrote runs/exp/SELFPLAY/worker_0.toml: opponent=at-175200 log_dir=.../worker_0
+  worker_1 log_dir OK (missing, fresh): /home/ygsldr/riichi-ai/runs/exp/SELFPLAY/worker_1
+  wrote runs/exp/SELFPLAY/worker_1.toml: opponent=at-148800 log_dir=.../worker_1
+  worker log_dirs pairwise distinct: ['.../worker_0', '.../worker_1']
+  worker opponent snapshots pairwise distinct: ['.../PINNED/mortal.pth.at-175200', '.../checkpoints/mortal.pth.at-148800']
+  wrote trainer.toml (state/best/tb under runs/exp/SELFPLAY/trainer/), server.toml (buffer/drain under runs/exp/SELFPLAY/server/)
+  wrote worker_map.json
+  PREPARE OK
+
+Diff of each worker config vs repo config (only 3 keys differ):
+  worker_0: train_play.default.games 800->100; train_play.default.log_dir -> .../worker_0;
+            baseline.train.state_file -> runs/exp/PINNED/mortal.pth.at-175200
+  worker_1: train_play.default.games 800->100; train_play.default.log_dir -> .../worker_1;
+            baseline.train.state_file -> checkpoints/mortal.pth.at-148800
+  trainer:  control.state_file/best_state_file/tensorboard_dir + test_play.log_dir -> runs/exp/SELFPLAY/trainer/**
+  server:   online.server.buffer_dir/drain_dir -> runs/exp/SELFPLAY/server/**
+
+Opponent snapshots are genuinely different checkpoints:
+  runs/exp/PINNED/mortal.pth.at-175200 : steps=175200 version=4 model={} sha256=f0a611b97f318e0b... bytes=130780507
+  checkpoints/mortal.pth.at-148800     : steps=148800 version=4 model={} sha256=73ec8108f1b9c4ab... bytes=130780507
+
+[C] Launch order + 200-game smoke (acceptance: >=2 distinct opponent snapshots each appear >=1 time)
+-------------------------------------------------------------------------------------
+$ python3 scripts/selfplay_launch.py launch
+  server pid=43608 -> listening on 127.0.0.1:5000
+  trainer pid=43623 -> "param has been submitted" (workers can only get_param after this)
+  worker_0 pid=43653 (MORTAL_CFG=worker_0.toml), worker_1 pid=43654 (MORTAL_CFG=worker_1.toml)
+  LAUNCH OK
+
+Per-worker game counts + configured snapshot (the >=2-opponents proof, from produced artifacts):
+  worker_0: 100 files in runs/exp/SELFPLAY/worker_0/  (all zcat -t OK), seeds 10025-10049,
+            key 2785677376402051391, configured opponent = runs/exp/PINNED/mortal.pth.at-175200
+  worker_1: 100 files in runs/exp/SELFPLAY/worker_1/  (all zcat -t OK), seeds 10025-10049,
+            key 3083534145373226237, configured opponent = checkpoints/mortal.pth.at-148800
+  => 2 distinct opponent snapshots, each appearing 100 times (>=1 required). 200 games total.
+
+Every game's first line: {"type":"start_game","names":["trainee","baseline","baseline","baseline"],...}
+  => trainee occupies exactly 1 seat; the 3 opponent seats are the frozen snapshot (engine name "baseline").
+  train.py online path uses player_names=['trainee'] (train.py:194-195), NOT [] — opponents' off-policy
+  decisions are not folded into REINFORCE.
+
+Worker logs (session boundaries + param rotation):
+  worker_0: param updated 20:03:28 -> seed [10000,10025) -> rankings [0 0 11 89] -> submitted 20:05:21
+            -> param updated 20:05:22 -> seed [10025,10050) -> rankings [0 0 4 96] -> submitted 20:07:09
+  worker_1: param updated 20:03:28 -> seed [10000,10025) -> rankings [0 3 10 87] -> submitted 20:05:14
+            -> param updated 20:05:14 -> seed [10025,10050) -> rankings [0 0 9 91] -> submitted 20:06:50
+
+Trainer drain/train/submit loop (trainer.log):
+  20:06:51 file list size: 100 -> total steps: 12 -> 20:06:57 param has been submitted
+  20:07:11 file list size: 100 -> total steps: 24
+  (run 1 additionally showed: file list size: 200 -> 37 steps -> param submitted -> next drain of 100)
+
+[D] Resource measurement (K choice; plan QA branch "multi-weight OOM -> lower K and record")
+-------------------------------------------------------------------------------------
+Peak during smoke (K=2): GPU 12,945 MiB / 16,303 MiB used; MemAvailable low 4.5 GB (15,992 MB host).
+  (WSL baseline phantom GPU usage ~4,074 MiB with no compute process; real job usage ~8.9 GB.)
+Per-process RSS: worker_0 ~1.9 GB, worker_1 ~1.9 GB, trainer child ~4.7 GB, server ~0.6 GB.
+Decision: K=2 kept. K=3 not attempted — only ~3.3 GB GPU headroom and ~4.5 GB RAM headroom remain,
+  so a third worker (each ~1.9 GB RSS + ~2-3 GB VRAM) risks OOM. No OOM occurred at K=2.
+
+[E] Teardown + invariants
+-------------------------------------------------------------------------------------
+$ python3 scripts/selfplay_launch.py stop
+  server pid=43608: SIGTERM to pgid 43608; trainer/worker_0/worker_1 already dead (SIGKILLed at session boundary)
+  pgrep leftovers: (none)   STOP OK
+$ pgrep -af 'python3 (server|client|train)\.py'   -> (none)
+$ rm -f /tmp/opencode/train.lock/owner.txt && rmdir /tmp/opencode/train.lock   -> lock released
+$ ls runs/1v3/*.json.gz | wc -l                   -> 2004   (before and after)
+$ stat -c '%n %y' checkpoints/mortal.pth checkpoints/best.pth
+  checkpoints/mortal.pth 2026-09-17 02:03:09.718844843 +0800   (unchanged)
+  checkpoints/best.pth   2026-09-16 02:59:45.582238799 +0800   (unchanged)
+No live checkpoint written: trainer.toml redirects state_file/best_state_file/tensorboard_dir to
+  runs/exp/SELFPLAY/trainer/** (scratch). runs/exp/SELFPLAY/trainer/ contains only tb/ (no state.pth,
+  because the smoke never reached save_every=2000).
+
+[F] Patch hygiene (patches/0009-online-selfplay-config.patch)
+-------------------------------------------------------------------------------------
+  diff --git a/configs/config.toml b/configs/config.toml  (single file, 23 lines)
+  '+' lines scanned for earlier-patch markers (non_blocking|holdout_loss|take_events|event_branch|
+    enable_rule_based_agari_guard|seed_start|label <= 36|use_pg|lam_kl|rl_loss|[rl]|[model]|[patch 0001-8])
+    -> NO LEAK (clean)
+  Apply test on pristine tree: git archive HEAD configs/config.toml -> /tmp/opencode/t24/applytest,
+    git init + commit, `git apply --check -p1` OK, `git apply -p1` applied, cmp vs working tree
+    -> BYTE-IDENTICAL.
+
+[G] Fragility found (recorded, NOT fixed here — todo 26 owns the real run)
+-------------------------------------------------------------------------------------
+Run 2's trainer crashed in the online tail-batch path:
+  File "vendor/mortal/mortal/train.py", line 591, in train_epoch
+    events = cat_event_batches(remaining_events)
+  File "vendor/mortal/mortal/event_data.py", line 29, in cat_event_batches
+    return {k: torch.cat([b[k] for b in batches], dim=0) for k in keys}
+  RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 149 but got size 150
+    for tensor number 1 in the list.
+Cause: each DataLoader batch's event `tokens`/`mask`/`causal` are sized to that batch's own max event
+  length (collate_events: seq_len = lengths.max()). The online tail path concatenates the leftover
+  sub-batch dicts along dim 0, which requires identical seq_len across them; two leftover batches with
+  different max lengths (149 vs 150) abort the epoch. Run 1 happened to have all tail batches share a
+  length and completed cleanly (no traceback; ended at 37 steps + param submit). This is a pre-existing
+  vendor limitation in the online path, not introduced by this todo; it is a real risk for todo 26's
+  long A14 run and should be handled there (e.g. pad tail event batches to a common seq_len before cat).
+  Not fixed here per MUST-NOT (no vendor change beyond patch 0009; A14 training is todo 26).
+
+[H] Deviations / notes
+-------------------------------------------------------------------------------------
+- The smoke ran twice. Run 1 (19:52-19:59) proved the full loop but a SIGCONT before stop let worker_0
+  resume and rmtree its own dir (player.py:137-138), so run 1's worker dirs were preserved under
+  runs/exp/SELFPLAY/run1/ and a clean run 2 (20:03-20:08) was done with SIGKILL-while-SIGSTOPped so both
+  worker_<k>/ dirs survive as durable per-worker evidence. Both runs used the same K=2 configs.
+- The Rust arena dumps a session's logs only at session end, so worker_<k>/ is empty mid-session; the
+  per-worker game counts above are from completed sessions.
+- No server protocol change; orchestration is entirely per-worker MORTAL_CFG configs.
+- No per-game snapshot rotation: each worker process loads exactly one opponent snapshot for its lifetime.
