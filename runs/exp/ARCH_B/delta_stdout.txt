@@ -1,0 +1,4 @@
+E3a: avg_rank=2.567000 pt=-5.242500 | E2: avg_rank=2.549500 pt=-2.722500
+d_rank=+0.017500 CI=[-0.005919,+0.040917] (crosses 0) | d_pt=-2.520000 CI=[-4.342688,-0.644625]
+decision: NO CONFIRMATION: Δpt 95% CI lower bound <= 0 -> CLOSE the river-transformer line
+delta_report -> /home/ygsldr/riichi-ai/runs/exp/ARCH_B/delta_e3a_vs_e2.json
