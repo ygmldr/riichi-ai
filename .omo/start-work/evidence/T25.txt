@@ -1,0 +1,218 @@
+===== T25 evidence — snapshot opponent pool (local configs, no server change) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 25 (lines 238-243)
+Date: 2026-09-19 20:20-20:45 +0800 (WSL; .venv py3.12.3, torch 2.11.0+cu128)
+Host: WSL ~15 GB RAM, RTX 5070 Ti 16 GB. One GPU job at a time under /tmp/opencode/train.lock.
+
+Artifacts:
+  runs/exp/SELFPLAY/pool.json      members + explicit weights + per-cycle assign (single source of truth)
+  runs/exp/SELFPLAY/pool.md        pool / weights / promotion-retirement documentation
+  scripts/selfplay_launch.py       validate / sample / prepare --cycle --wave / launch / status / stop
+  runs/exp/SELFPLAY/worker_map.json        latest prepared wave (todo24 schema + extensions)
+  runs/exp/SELFPLAY/worker_map.todo24.json archive of the todo-24 root worker_map.json (byte-preserved)
+  runs/exp/SELFPLAY/cycle_0/wave_0/        at-175200 (worker_0) + at-148800 (worker_1), 4 games each
+  runs/exp/SELFPLAY/cycle_0/wave_1/        best-220000 (worker_0) + baseline (worker_1), 4 games each
+  runs/exp/SELFPLAY/cycle_0/history/       earlier smoke generations kept for audit (see [J])
+  runs/exp/SELFPLAY/orchestration.md       section 8 updated to point at pool.md
+
+[A] Pool definition (pool.json)
+-------------------------------------------------------------------------------------
+Active members (all LOCAL snapshots; no heuristic opponents):
+
+  id            path                                              steps   bytes       sha256[:12]
+  best-220000   checkpoints/best.pth                              220000  130780507   7fe084d98f84
+  at-175200     runs/exp/PINNED/mortal.pth.at-175200              175200  130780507   f0a611b97f31
+  at-148800     checkpoints/mortal.pth.at-148800                  148800  130780507   73ec8108f1b9
+  baseline      checkpoints/baseline.pth                          — (tag='random-baseline')  43691001  83fd3929035d
+
+Aliases (NOT separate members): checkpoints/mortal.pth.at-175200 is byte-identical to at-175200
+  (same sha256 f0a611b9...); duplicates would double-sample identical weights.
+Excluded (recorded with reason):
+  checkpoints/mortal.pth   live in-training artifact (steps=328000, mtime 2026-09-17 02:03:09) — MUST NOT
+  checkpoints/grp.pth      DQN-only keys (model/optimizer/steps/timestamp), cannot load as Mortal opponent
+  file_index.pth / grp_file_index.pth   dataset indexes, not models
+
+Weighting (recency, explicit probabilities summing to 1):
+  rule: w_i = 2 ** (-rank_i / half_life_ranks), half_life_ranks=1.0; rank_key = steps desc (no-steps last)
+  best-220000 0.533333 | at-175200 0.266667 | at-148800 0.133333 | baseline 0.066667  => sum 1.000000
+  sampler: weighted_without_replacement_sequential, seed=20260925,
+           rng=random.Random(f'{seed}:cycle:{cycle}'), k_per_wave=2
+  cycle = ceil(N_active/k) waves; each active member appears exactly once per cycle; wave members distinct
+  stored plan: assign.cycle_0 = [["at-175200","at-148800"], ["best-220000","baseline"]]
+
+Promotion (documented in pool.json): pin new snapshot -> append active with bytes+sha256 -> re-rank/re-weight
+  with same formula -> if active > max_active=4 retire lowest-weight (status=retired, file kept, weight 0)
+  -> re-normalize stored weights -> sample next cycle (running cycle keeps its schedule). Example:
+  promoting 250k gives weights {new:0.533333, best-220000:0.266667, at-175200:0.133333, at-148800:0.066667}
+  and retires baseline.
+
+[B] Local snapshot enumeration (sha256sum + torch metadata, no invented members)
+-------------------------------------------------------------------------------------
+$ sha256sum runs/exp/PINNED/mortal.pth.at-175200 checkpoints/mortal.pth.at-175200 \
+    checkpoints/mortal.pth.at-148800 checkpoints/best.pth checkpoints/baseline.pth \
+    checkpoints/mortal.pth checkpoints/grp.pth | sort
+f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9  runs/exp/PINNED/mortal.pth.at-175200
+f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9  checkpoints/mortal.pth.at-175200
+73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e  checkpoints/mortal.pth.at-148800
+7fe084d98f8475967ea0602b9d74980b3d5fc439ca78b8b9701110fc0dd5be77  checkpoints/best.pth
+83fd3929035d4aa0d4df3423a16dd028267e40bb54f7dc3f831e18f6bbccc6c9  checkpoints/baseline.pth
+b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511  checkpoints/mortal.pth      (excluded)
+009014e4a4883434d7809ad32fd4fefa7840806494dc4cfa950ed5e6bc25aa29  checkpoints/grp.pth         (excluded)
+
+torch.load(weights_only=True) inspection (keys/version/params):
+  at-175200 / at-148800 / best / live: keys=[aux_net,best_perf,config,current_dqn,mortal,optimizer,scaler,
+    scheduler,steps,timestamp], version=4, mortal params=10,818,641, steps as tabled above
+  baseline: keys=[config,current_dqn,mortal,tag,timestamp], version=4, same 10,818,641 mortal params,
+    tag='random-baseline' (weights-only export; loadable by TrainPlayer: config+mortal+current_dqn all present)
+  grp: keys=[model,optimizer,steps,timestamp] — no mortal/current_dqn => excluded
+
+[C] Pool validation happy path (validate + sample determinism)
+-------------------------------------------------------------------------------------
+$ python3 scripts/selfplay_launch.py validate
+POOL VALIDATE: /home/ygsldr/riichi-ai/runs/exp/SELFPLAY/pool.json
+  [OK] best-220000   130780507 B  sha256 7fe084d98f84...  steps=220000  .../checkpoints/best.pth
+  [OK] at-175200     130780507 B  sha256 f0a611b97f31...  steps=175200  .../runs/exp/PINNED/mortal.pth.at-175200
+  [OK] at-148800     130780507 B  sha256 73ec8108f1b9...  steps=148800  .../checkpoints/mortal.pth.at-148800
+  [OK] baseline       43691001 B  sha256 83fd3929035d...  steps=None    .../checkpoints/baseline.pth
+  active members: 4  weights sum=1.000000  POOL OK   (rc=0)
+
+$ python3 scripts/selfplay_launch.py sample --cycle 0
+  {"cycle_0": [["at-175200","at-148800"],["best-220000","baseline"]], "k": 2}
+  => byte-identical to the stored assign.cycle_0 (sampler is deterministic and stored plans are its output).
+
+[D] Missing / corrupted snapshot => loud failure (rc != 0), demonstrated
+-------------------------------------------------------------------------------------
+Doctored copies were written under /tmp/opencode/t25/ (real pool.json untouched).
+
+$ python3 scripts/selfplay_launch.py validate --pool /tmp/opencode/t25/pool_missing.json   # rc=1
+  [FAIL] best-220000: file missing: /tmp/opencode/t25/does-not-exist.pth
+  error: missing snapshot: best-220000: /tmp/opencode/t25/does-not-exist.pth
+  REFUSING: pool validation failed (1 issue(s)): /tmp/opencode/t25/pool_missing.json
+
+$ python3 scripts/selfplay_launch.py prepare --cycle 0 --wave 0 --games 4 \
+      --pool /tmp/opencode/t25/pool_missing.json                                            # rc=1
+  (same POOL VALIDATE [FAIL] + REFUSING lines; no configs written)
+
+$ python3 scripts/selfplay_launch.py validate --pool /tmp/opencode/t25/pool_sha_wrong.json  # rc=1
+  [FAIL] at-175200: sha256 f0a611b97f318e0b... != recorded 0000...0000
+  error: sha256 mismatch: at-175200: ... pool=0000000000000000000000000000000000000000000000000000000000000000
+  REFUSING: pool validation failed (1 issue(s)): /tmp/opencode/t25/pool_sha_wrong.json
+
+$ python3 scripts/selfplay_launch.py validate --pool /tmp/opencode/t25/pool_sha_mismatch.json  # rc=1
+  [FAIL] baseline: bytes 130780507 != recorded 43691001: /home/ygsldr/riichi-ai/checkpoints/best.pth
+  REFUSING: pool validation failed (1 issue(s))
+  (exit codes captured: missing validate rc=1, missing prepare rc=1, sha-wrong validate rc=1)
+
+=> no silent downgrade: file missing, bytes drift and sha256 drift all abort prepare/launch before any process starts.
+
+[E] Assign uniqueness + cycle coverage (tested, not prose)
+-------------------------------------------------------------------------------------
+Python assert over pool.json + the two produced wave maps:
+  active: ['best-220000', 'at-175200', 'at-148800', 'baseline']
+  assign.cycle_0: [['at-175200', 'at-148800'], ['best-220000', 'baseline']]
+  cycle covers all active exactly once: True
+  wave_0 worker_0: member=at-175200    sha256=f0a611b97f31 games=4 dir=.../cycle_0/wave_0/worker_0
+  wave_0 worker_1: member=at-148800    sha256=73ec8108f1b9 games=4 dir=.../cycle_0/wave_0/worker_1
+  wave_1 worker_0: member=best-220000  sha256=7fe084d98f84 games=4 dir=.../cycle_0/wave_1/worker_0
+  wave_1 worker_1: member=baseline     sha256=83fd3929035d games=4 dir=.../cycle_0/wave_1/worker_1
+
+[F] Smoke: every member appears >= 1 time (evidence from produced logs/dirs, not intent)
+-------------------------------------------------------------------------------------
+Lock: mkdir /tmp/opencode/train.lock (owner.txt "T25-final-smoke-gen3"); released after stop.
+
+$ python3 scripts/selfplay_launch.py prepare --cycle 0 --wave 0 --k 2 --games 4   (rc=0)
+  worker_0 <- at-175200 (sha256 f0a611b97f31...) log_dir=.../cycle_0/wave_0/worker_0
+  worker_1 <- at-148800 (sha256 73ec8108f1b9...) log_dir=.../cycle_0/wave_0/worker_1
+  pairwise distinct: log_dirs / opponent snapshots (asserted)
+$ python3 scripts/selfplay_launch.py launch   (rc=0)
+  server pid=64607 -> listening 127.0.0.1:5000; trainer pid=64622 -> "param has been submitted";
+  worker_0 pid=64652 / worker_1 pid=64653, each with its own MORTAL_CFG; LAUNCH OK
+
+Watcher (kills each worker at its evidenced session boundary; SIGKILL on its pgid, never SIGCONT):
+  worker_0: SIGKILL(pgid) at session boundary, files_in_dir=4, log_has_submitted=true
+  worker_1: SIGKILL(pgid) at session boundary, files_in_dir=4, log_has_submitted=true
+status (worker_0/worker_1: opponent=at-175200/at-148800, current_session_files=4, sessions_submitted=1);
+  server_dirs: buffer=0 drain=8 after the trainer drained the submitted games.
+stop: SIGTERM pgids -> "STOP OK"; pgrep leftovers "(none)"; rc=0
+
+$ prepare --cycle 0 --wave 1 / launch   (same order; worker_0 <- best-220000, worker_1 <- baseline)
+  watcher: both workers SIGKILL at session boundary, files_in_dir=4, submitted=true
+  status: worker_0 opponent=best-220000 sha 7fe084d98f84, worker_1 opponent=baseline sha 83fd3929035d,
+  current_session_files=4 each, sessions_submitted=1; server_dirs buffer=4 drain=4;
+  gpu_compute_apps=64902 (trainer child alive during the wave; killed by stop)
+  stop: STOP OK; leftovers none; rc=0
+
+Per-member artifact proof (all four members):
+  wave_0 worker_0 (at-175200)   4 files, zcat -t all OK
+    log: "trainee rankings: [0 0 0 4] (4.0, -135.0pt)" + "logs have been submitted"
+  wave_0 worker_1 (at-148800)   4 files, zcat -t all OK
+    log: "trainee rankings: [0 0 0 4] ..." + "logs have been submitted"
+  wave_1 worker_0 (best-220000) 4 files, zcat -t all OK
+    log: "trainee rankings: [0 0 0 4] ..." + "logs have been submitted"
+  wave_1 worker_1 (baseline)    4 files, zcat -t all OK
+    log: "trainee rankings: [0 0 2 2] (3.5, -67.5pt)" + "logs have been submitted"
+  Each worker's toml carries [baseline.train].state_file = its member path; worker_map.json maps
+  worker -> pool_member_id -> sha256 -> log_dir.
+  Every dumped game starts with:
+    {"type":"start_game","names":["trainee","baseline","baseline","baseline"],"seed":[...]}
+  (trainee 1 seat; the 3 frozen seats are the configured member snapshot).
+  16 games total across the cycle; each member appears in 4 games (>=1 required).
+
+[G] Config hygiene: no live checkpoint in any generated config
+-------------------------------------------------------------------------------------
+Key diff vs configs/config.toml (worker_0 wave_1): 6 keys
+  baseline.train.state_file: checkpoints/baseline.pth -> checkpoints/best.pth        (member opponent)
+  control.state_file:        checkpoints/mortal.pth   -> .../worker_0.unused-control-state.pth   (scratch)
+  control.best_state_file:   checkpoints/best.pth     -> .../worker_0.unused-control-best.pth    (scratch)
+  control.tensorboard_dir:   runs                     -> .../worker_0.unused-control-tb          (scratch)
+  train_play.default.games:  800 -> 4     train_play.default.log_dir -> .../cycle_0/wave_1/worker_0
+server.toml: control.{state_file,best_state_file,tensorboard_dir} -> wave-local unused-* scratch;
+  online.server.buffer_dir/drain_dir -> wave-local server/{buffer,drain}
+trainer.toml: control.{state_file,best_state_file,tensorboard_dir} + test_play.log_dir -> wave-local trainer/**
+
+$ grep -rn 'checkpoints/mortal.pth"' runs/exp/SELFPLAY/cycle_0/wave_0 runs/exp/SELFPLAY/cycle_0/wave_1
+  (no matches; rc=1)  => the live checkpoint appears in NO generated config; best.pth appears only as a
+  member opponent. server.py does not read [control] at all:
+$ grep -n "control\|state_file" vendor/mortal/mortal/server.py   => rc=1 (no match)
+  client.py reads control.device/version only; player.py reads control.version/enable_cudnn_benchmark.
+
+[G2] Scratch validation of the server-control neutralization (prepare-only, GPU not used)
+  $ sample --cycle 9 --write; prepare --cycle 9 --wave 0 --games 4   (rc=0)
+    server.toml [control] state/best/tb -> cycle_9/.../unused-server-control-*
+    scan for 'checkpoints/mortal.pth"' -> none; best.pth only as member opponent
+  $ rm -rf cycle_9; restore pool.json + worker_map.json from backups -> cmp byte-identical (verified)
+
+[H] worker_map.json compatibility (todo 24 -> todo 25)
+-------------------------------------------------------------------------------------
+- The todo-24 root worker_map.json was archived first: runs/exp/SELFPLAY/worker_map.todo24.json
+  (copied before the first new prepare; still contains k=2, pool ids at-175200/at-148800, worker list).
+- Root worker_map.json now describes the LATEST prepared wave and keeps every original key with the same
+  meaning: experiment/todo/k/games_per_session/trainee/opponent_seats_per_game/pool/workers.
+  Extensions: cycle, wave, pool_source, pool_source_sha256, logs_dir, configs, assign;
+  pool[] += sha256/steps/status/weight; workers[] += opponent_sha256. A copy lives in each wave dir.
+- launch refuses if pool_source_sha256 != current pool.json hash (stale prepare after pool edit).
+- pids.json: run.{cycle,wave} metadata; PID roles are only server/trainer/worker_<k>.
+
+[I] Frozen-corpus invariants (checked before/after every step)
+-------------------------------------------------------------------------------------
+$ ls runs/1v3/*.json.gz | wc -l                      => 2004
+$ stat -c '%n %y' checkpoints/mortal.pth checkpoints/best.pth
+  checkpoints/mortal.pth 2026-09-17 02:03:09.718844843 +0800
+  checkpoints/best.pth   2026-09-16 02:59:45.582238799 +0800
+  (unchanged; no live checkpoint was written; GPU peak during smoke stayed within the known K=2 envelope,
+   final nvidia-smi 4358 MiB / MemAvailable 13 GB after cleanup)
+
+[J] Cleanup / deviations
+-------------------------------------------------------------------------------------
+- No processes remain: pgrep 'python3 (server|client|train)\.py' -> rc=1 after each stop.
+- Lock released: rm owner.txt && rmdir /tmp/opencode/train.lock (verified absent).
+- Smoke generations: the final committed wave dirs were preceded by two hardening generations, kept under
+  cycle_0/history/ (gen1: worker control not yet neutralized; gen2: server control not yet neutralized).
+  Each generation produced its own 4-game sessions; the FINAL generation is the evidence quoted in [F].
+- Bug found and fixed in the launcher during this todo: pids.json briefly stored `cycle`/`wave` as
+  top-level integers, which status/stop treated as PIDs; stop issued killpg(0) (would signal its own
+  process group) and aborted before reaching server/trainer. Fixed by nesting run metadata and filtering
+  PID roles (server/trainer/worker_<k> only, pid > 1); the affected server/trainer were then stopped
+  cleanly by the fixed `stop` (see [F]).
+- The smoke uses games=4 per session (one 4-split seed), K=2; no training beyond the membership smoke
+  (todo 26 owns A14); no 12k evaluation; pool B untouched (no seed_start=50000); no vendor/** change.

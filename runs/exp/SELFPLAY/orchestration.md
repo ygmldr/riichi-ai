@@ -115,8 +115,8 @@ rm -f /tmp/opencode/train.lock/owner.txt && rmdir /tmp/opencode/train.lock
 
 ## 8. 交接给 todo 25 / 26
 
-- todo 25（对手池）直接扩展 `worker_map.json` 的 `pool` 字段与 assign；换对手 = 重新 `prepare` 出新配置再 `launch`
-  （进程内不轮转）。
+- **todo 25 已落地（见 `pool.md`）**：对手池 = `pool.json`（4 个本地快照 + 显式权重 + per-cycle assign，全为本地配置、无 server 协议改动）；`worker_map.json` 现为“最近一次 prepare 的 wave”，原 todo24 文件归档在 `worker_map.todo24.json`。`prepare` 需要 `--cycle G --wave W`（配置/日志写入 `cycle_<g>/wave_<w>/`），并可 `validate`/`sample`；`launch` 会断言 pool 完整性（缺失/哈希漂移即拒绝启动）与 `pool_source_sha256`（防止 prepare 后改池不重跑）。
 - todo 26（A14）在 `trainer.toml` 基础上：`[rl].use_pg = true`（`lam_kl=0.05`、`lam_v=1.0` 已是仓库默认），
   `[control].state_file` 指向要续训的 mortal.pth 的 scratch 副本（**不要**写 live checkpoint），
-  并把 `[train_play.default].games` 提到真实 session 预算；K 与对手权重按 todo 25 的池规则定。
+  并把 `[train_play.default].games` 提到真实 session 预算；K 与对手权重按 `pool.md` 的池规则定
+  （K=2 实测上限；cycle 内每成员出场一次，下一 cycle 用 `sample --cycle N --write` 生成）。
