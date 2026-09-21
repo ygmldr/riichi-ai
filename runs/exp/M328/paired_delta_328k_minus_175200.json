@@ -1,0 +1,71 @@
+{
+  "champion": "old148800 (checkpoints/mortal.pth.at-148800)",
+  "comparison": {
+    "arm": "challenger_328k",
+    "arm_avg_pt": 0.99375,
+    "arm_avg_rank": 2.4804166666666667,
+    "arm_info": {
+      "candidates": 12000,
+      "games_dir": "/home/ygsldr/riichi-ai/runs/exp/M328/vs148800/games",
+      "ignored_files": 0,
+      "non_game_files": 0,
+      "sets": 3000
+    },
+    "bootstrap": {
+      "B": 2000,
+      "rng_seed": 0
+    },
+    "challenger_names": {
+      "arm": "at-328000",
+      "reference": "mortal (at-175200)"
+    },
+    "champion": "old148800 (checkpoints/mortal.pth.at-148800)",
+    "comparison": "challenger_328k - original",
+    "delta_avg_pt": -0.86625,
+    "delta_avg_pt_ci": [
+      -2.6551875,
+      0.802687499999999
+    ],
+    "delta_avg_rank": 0.0035833333333333333,
+    "delta_avg_rank_ci": [
+      -0.017922916666666667,
+      0.027002083333333322
+    ],
+    "games_dir_arm": "runs/exp/M328/vs148800/games",
+    "games_dir_reference": "runs/exp/EVAL_A_175200/games",
+    "mdd_80pct_12k": {
+      "avg_rank": 0.0239,
+      "pt": 1.86
+    },
+    "n_games": 12000,
+    "n_sets": 3000,
+    "original_avg_pt": 1.86,
+    "original_avg_rank": 2.4768333333333334,
+    "prereg_decision": "challenger_328k: NO detectable effect on avg_rank (95% CI crosses 0)",
+    "pt_ci_crosses_0": true,
+    "rank_ci_crosses_0": true,
+    "reference": "challenger_175200",
+    "reference_info": {
+      "candidates": 12000,
+      "games_dir": "/home/ygsldr/riichi-ai/runs/exp/EVAL_A_175200/games",
+      "ignored_files": 0,
+      "non_game_files": 0,
+      "sets": 3000
+    }
+  },
+  "mdd_80pct_12k": {
+    "avg_rank": 0.0239,
+    "pt": 1.86
+  },
+  "pins_sha256": {
+    "at-148800": "73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e",
+    "at-175200": "f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9",
+    "at-328000": "b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511"
+  },
+  "probe": "M328 paired delta: challenger at-328000 - challenger at-175200",
+  "seed_key": 423244137402621143,
+  "seed_window": [
+    10000,
+    13000
+  ]
+}

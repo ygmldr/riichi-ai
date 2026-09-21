@@ -1,0 +1,11 @@
+=== eval_report ===
+games_dir=/home/ygsldr/riichi-ai/runs/exp/M328/vs148800/games  source_dir=runs/exp/M328/vs148800  checkpoint=at-328000
+filter: seed_key=423244137402621143 (0x5dfaa4cef265cd7)  seed_range=[10000,13000) half-open
+candidates(*.json.gz)=12000 matched=12000 ignored_files=0 non-game files skipped=0
+sets=3000 games=12000 incomplete_sets=0 seed_key_groups=1
+seed_key=423244137402621143 seed_start=10000: dist(1/2/3/4)=[3096 3028 2891 2985] avg_rank=2.4804 pt=+0.9938
+  bootstrap B=2000 (resample sets, rng seed=0, bootstrap_sets=3000): avg_rank 95%CI=[2.4633, 2.4973]  pt 95%CI=[-0.2706, +2.3288]
+  arm: challenger='at-328000' x12000 vs champion={('old148800', 'old148800', 'old148800'): 12000}
+assertions: self-consistency OK
+assertions: exact gate not applicable for this invocation
+CSV -> /home/ygsldr/riichi-ai/runs/exp/M328/vs148800/report.csv (1 row(s))

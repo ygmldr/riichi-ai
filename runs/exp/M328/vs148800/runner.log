@@ -1,0 +1,33 @@
+CFG ASSERT OK: no state_file targets a live path
+  challenger=/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-328000
+  champion  =/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800
+  log_dir   =/home/ygsldr/riichi-ai/runs/exp/M328/vs148800/games
+  seed_key  =423244137402621143  seed_start=10000 games_per_iter=12000 iters=1
+[2026-09-20 00:53:35] INVARIANT[start] runs/1v3/*.json.gz=2004 (want 2004)
+[2026-09-20 00:53:35] INVARIANT[start] mortal.pth mtime='2026-09-17 02:03:09' (want 2026-09-17 02:03:09)
+[2026-09-20 00:53:35] INVARIANT[start] best.pth   mtime='2026-09-16 02:59:45' (want 2026-09-16 02:59:45)
+[2026-09-20 00:53:35] INVARIANT[start] pinned at-328000 sha256=b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511 (want b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511)
+[2026-09-20 00:53:35] INVARIANT[start] this run games/=0 *.json.gz
+[2026-09-20 00:53:35] LAUNCH: MORTAL_CFG=/tmp/opencode/m328/vs148800.toml PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release /home/ygsldr/riichi-ai/.venv/bin/python one_vs_three.py
+[2026-09-20 00:54:03] ARENA: launcher_pid=82754 arena_pid=82754
+[2026-09-20 00:54:03] ARENA log head: 2026-09-20 00:53:38,163     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans 
+[2026-09-20 01:30:30] ARENA DONE: pid=82754 wall=2215s (36m55s)
+2026-09-20 00:53:38,163     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans
+challenger rankings: [3096 3028 2891 2985] (2.4804166666666667, 0.99375pt)
+=== eval_report ===
+games_dir=/home/ygsldr/riichi-ai/runs/exp/M328/vs148800/games  source_dir=runs/exp/M328/vs148800  checkpoint=at-328000
+filter: seed_key=423244137402621143 (0x5dfaa4cef265cd7)  seed_range=[10000,13000) half-open
+candidates(*.json.gz)=12000 matched=12000 ignored_files=0 non-game files skipped=0
+sets=3000 games=12000 incomplete_sets=0 seed_key_groups=1
+seed_key=423244137402621143 seed_start=10000: dist(1/2/3/4)=[3096 3028 2891 2985] avg_rank=2.4804 pt=+0.9938
+  bootstrap B=2000 (resample sets, rng seed=0, bootstrap_sets=3000): avg_rank 95%CI=[2.4633, 2.4973]  pt 95%CI=[-0.2706, +2.3288]
+  arm: challenger='at-328000' x12000 vs champion={('old148800', 'old148800', 'old148800'): 12000}
+assertions: self-consistency OK
+assertions: exact gate not applicable for this invocation
+CSV -> /home/ygsldr/riichi-ai/runs/exp/M328/vs148800/report.csv (1 row(s))
+[2026-09-20 01:31:04] INVARIANT[end] runs/1v3/*.json.gz=2004 (want 2004)
+[2026-09-20 01:31:04] INVARIANT[end] mortal.pth mtime='2026-09-17 02:03:09' (want 2026-09-17 02:03:09)
+[2026-09-20 01:31:04] INVARIANT[end] best.pth   mtime='2026-09-16 02:59:45' (want 2026-09-16 02:59:45)
+[2026-09-20 01:31:04] INVARIANT[end] pinned at-328000 sha256=b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511 (want b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511)
+[2026-09-20 01:31:04] INVARIANT[end] this run games/=12000 *.json.gz
+[2026-09-20 01:31:04] RUN vs148800 OK: wall=2215s report=/home/ygsldr/riichi-ai/runs/exp/M328/vs148800/report.csv
