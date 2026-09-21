@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/M328/vs148800,at-328000,423244137402621143,10000,3000,12000,0,3096,3028,2891,2985,[3096 3028 2891 2985],2.480417,2.4633291666666666,2.4973375,0.993750,-0.2705625,2.3288437499999994,0
