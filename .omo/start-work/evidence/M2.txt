@@ -1,0 +1,152 @@
+EVIDENCE M2 — resume the offline DQN baseline from 328k (negative arms disabled)
+=================================================================================
+Host: WSL, RTX 5070 Ti 16 GB, ~15 GB RAM. One GPU job at a time under /tmp/opencode/train.lock.
+Repo: /home/ygsldr/riichi-ai (HEAD 35e9c30 "docs(exp): measure live 328k vs 175200/148800 on pool A").
+Date: 2026-09-21 ~15:18 CST launch. Training LEFT RUNNING (intentional).
+
+[1] RESUME CONFIG
+-----------------
+File: configs/resume_baseline_328k.toml  sha256 f247fee1a6884b1db2772471ec7b8b331c5622ec57426e01f5728419b607f3ac
+Built from configs/config.toml.sp-bak (copy + flag flip). Diff vs sp-bak (the only change):
+
+    [model]
+  - use_event_branch = true
+  + use_event_branch = false
+  (+2 comment lines documenting the closed negative arm)
+
+Diff vs the live configs/config.toml (record of the completed plan; NOT modified):
+    online            true -> false
+    use_event_branch  true -> false
+    freeze_bn.mortal  true -> false  (sp-bak = the offline regime; checkpoint's own
+                                      saved config also has freeze_bn.mortal=false)
+
+Resolved values (imported config under MORTAL_CFG, vendor/mortal/mortal):
+    online=False  use_event_branch=False  use_pg=False  lam_kl=0.05 (inert)  lam_v=1.0
+    state_file=checkpoints/mortal.pth          (live run continuation)
+    best_state_file=/home/ygsldr/riichi-ai/checkpoints/best.pth
+    tensorboard_dir=/home/ygsldr/riichi-ai/runs
+    test_play.log_dir=/home/ygsldr/riichi-ai/runs/test_play
+    train_play.default.log_dir=/home/ygsldr/riichi-ai/runs/train_play
+    resnet={conv_channels:192, num_blocks:40}; optim+scheduler == live config values
+    (all seven path/arch/optim equality checks == true)
+    dataset.globs = 14 explicit years 2009..2022 (no 2023), val_globs=[2023], val_batches=20
+    file_index=checkpoints/file_index.pth (rebuilt: 1,968,147 entries, zero /2023/)
+    enable_compile=true, batch_size=1024, save_every=2000, test_every=100000, submit_every=400
+
+[2] PRE-LAUNCH ASSERTIONS (harness /tmp/opencode/m2/precheck.py; full JSON below)
+------------------------------------------------------------------------------
+$ cd vendor/mortal/mortal
+$ MORTAL_CFG=/home/ygsldr/riichi-ai/configs/resume_baseline_328k.toml \
+  PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release \
+  .venv/bin/python /tmp/opencode/m2/precheck.py
+PRECHECK OK
+
+  (a) resolved flags          online=False / model.use_event_branch=False / rl.use_pg=False        PASS
+  (b) Brain                   event_branch is None; sum(numel) = 10,787,456 == pure CNN           PASS
+  (c) one-step loss parity    use_pg=False, lam_kl=0 -> old 19.896080017089844,
+                              new 19.896080017089844, delta 0.0 (bit-identical, < 1e-6)             PASS
+                              rl_loss_terms() returns pg=v=kl=0.0 exactly                            PASS
+                              (todo-23 harness /tmp/opencode/t23 was gone after the WSL restart;
+                               this is the minimal equivalent: real Brain/DQN/AuxNet from the resume
+                               config, the exact train.py loss expression, rl_loss_terms zeros)
+  (d) checkpoint               checkpoints/mortal.pth: steps=328,000, no event_branch.* weights,
+                              saved config online=false / no [model] key (plain CNN),
+                              optimizer state 410 tensors, scheduler last_epoch=328,000              PASS
+  (e) sha256                   live mortal.pth == pin at-328000 ==
+                              b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511    PASS
+  (f) pin untouched            runs/exp/PINNED/mortal.pth.at-328000 (same sha; mtime 2026-09-20 00:46) PASS
+  (g) log backup               runs/dqn_train.log.pre-resume-328k.bak == pre-launch runs/dqn_train.log
+                              (cmp IDENTICAL; sha256 6b85063e94cd239335b6b6e360bd6687ef82cbf2c108ae6088a99a2dc4b14e46,
+                              size 9,182,944, mtime 2026-09-20 00:46)                                    PASS
+  (h) baseline.pth exists (run_train.sh requirement)                                                     PASS
+  (i) frozen corpus            runs/1v3/*.json.gz = 2004                                                 PASS
+  (j) GPU idle                 no train/eval processes; nvidia-smi 3735 MiB (desktop) / 16,303 MiB
+
+Full precheck JSON (also /tmp/opencode/m2/precheck.json):
+  brain: {event_branch_is_none: true, numel: 10787456, version: 4, conv_channels: 192, num_blocks: 40}
+  checkpoint: {steps: 328000, has_event_branch_weights: false, saved_config_online: false,
+               best_perf: {avg_rank: 1.0, avg_pt: 90.0}, pin_matches: true,
+               optimizer_state_tensors: 410, scheduler_last_epoch: 328000}
+  loss_parity: {use_pg: false, lam_kl_used: 0.0, old_loss: 19.896080017089844,
+                new_loss: 19.896080017089844, delta: 0.0, bit_identical: true,
+                rl_terms_zero_when_pg_off: true, below_1e-6: true}
+  file_index: {entries: 1968147, has_2023: false}
+  unchanged_vs_live_config: all true
+
+[3] LAUNCH (detached, nohup inside run_train.sh)
+-----------------------------------------------
+$ mkdir /tmp/opencode/train.lock && owner.txt:
+  "resume-baseline-328k (M2) 2026-09-21T15:2x+08:00 config=configs/resume_baseline_328k.toml
+   launcher-shell=3175"
+$ setsid nohup bash scripts/run_train.sh /home/ygsldr/riichi-ai/configs/resume_baseline_328k.toml \
+      > /tmp/opencode/m2/run_train.out 2>&1 &
+  launcher_pid=3178 (setsid wrapper; exited after nohup)
+$ cat /tmp/opencode/m2/run_train.out:
+  >>> 环境: .venv (Python 3.12.3)
+  >>> PYTHONPATH 已加入 libriichi(release): /home/ygsldr/riichi-ai/vendor/mortal/target/release
+  >>> 离线 DQN 训练开始: Mon Sep 21 15:18:29 CST 2026
+  PID: 3215 | 日志: /home/ygsldr/riichi-ai/runs/dqn_train.log
+TRAIN PID = 3215 (python3 train.py), + 3 DataLoader workers (3242/3243/3244).
+Lock: /tmp/opencode/train.lock HELD by this long-running training (owner.txt above) — intentional.
+run_train.sh truncated runs/dqn_train.log (">"}, as designed; history is the verified .bak.
+
+[4] LOG HEAD (resume proof)
+---------------------------
+2026-09-21 15:18:32,178 INFO train.py:85  version: 4
+2026-09-21 15:18:32,179 INFO train.py:86  obs shape: (1012, 34)
+2026-09-21 15:18:32,179 INFO train.py:87  mortal params: 10,787,456
+2026-09-21 15:18:32,179 INFO train.py:88  dqn params: 48,175
+2026-09-21 15:18:32,179 INFO train.py:89  aux params: 4,096
+2026-09-21 15:18:32,180 INFO train.py:115 [rl] use_pg=False lam_v=1.0 lam_kl=0.05 anchor=(not loaded)
+2026-09-21 15:18:32,596 INFO train.py:148 loaded: 2026-09-17 02:03:09
+2026-09-21 15:18:32,607 INFO train.py:164 device: cuda:0 (NVIDIA GeForce RTX 5070 Ti)
+2026-09-21 15:18:32,620 INFO train.py:204 loaded 0 players
+2026-09-21 15:18:35,924 INFO train.py:234 holdout file list size: 168,777
+2026-09-21 15:18:35,924 INFO train.py:235 file list size: 1,968,147
+2026-09-21 15:18:35,924 INFO train.py:238 total steps: 328,000 (~72,000)
+
+[5] FIRST INTERVALS (2,000 steps each; save_every=2000)
+-------------------------------------------------------
+2026-09-21 15:28:03,357 INFO train.py:457 holdout_loss: 3.083202 (dqn: 0.399460, cql: 0.507748, next_rank: 0.725004)
+2026-09-21 15:28:03,398 INFO train.py:476 total steps: 330,000 (~70,000)
+2026-09-21 15:36:27,649 INFO train.py:457 holdout_loss: 2.985855 (dqn: 0.349007, cql: 0.497456, next_rank: 0.747832)
+2026-09-21 15:36:27,654 INFO train.py:476 total steps: 332,000 (~68,000)
+
+  steps > 328,000            YES (330,000 then 332,000)                     PASS
+  finite losses              holdout_loss 3.083202 / 2.985855, all finite    PASS
+  holdout_loss present       YES, both intervals (2023 never trained)        PASS
+  checkpoint rewritten       checkpoints/mortal.pth mtime 2026-09-21 15:28 -> 15:36
+                             (size 130,781,915; steps=332,000 in the file; saved config
+                              now carries use_event_branch=False / use_pg=False /
+                              val_globs=[2023])                                PASS
+
+  RATE (honest, interval wall clock incl. holdout+save overhead):
+    interval 1 (328k->330k, incl. startup/compile warm-up): 567.5 s -> 12,688 steps/h (3.52 steps/s)
+    interval 2 (330k->332k, steady state):                   504.3 s -> 14,278 steps/h (3.97 steps/s)
+    reference: historical segment 3 = 4,880 steps/h; the five arms = 3.2-3.9 steps/s
+              with enable_compile=false.
+  => NO regression from the event-collate path (patches 0006/0013 are in the tree even with
+     the branch off and its per-step assert runs): the resume is ~2.6-2.9x the historical
+     rate and at/above the arm rates. Extrapolation: next test_play (3000 games) at
+     step 400,000 is 68,000 steps -> ~4.8 h from 15:36 (~20:30 CST).
+
+[6] POST-LAUNCH INVARIANTS (checked 15:38, training still running)
+------------------------------------------------------------------
+  runs/exp/PINNED/mortal.pth.at-328000 sha256 = b14e77ed...a3511 (UNCHANGED)     PASS
+  checkpoints/mortal.pth sha256 = 844b5a88...3391 (EXPECTED to change: now 332k)  (intended)
+  runs/1v3/*.json.gz = 2004                                                       PASS
+  checkpoints/best.pth mtime 2026-09-16 02:59 (unchanged), grp.pth 2026-08-10,
+  mortal.pth.at-148800 2026-09-14 23:14 (unchanged)                               PASS
+  runs/dqn_train.log.pre-resume-328k.bak untouched (Sep 20 00:46, 9,182,944 B)    PASS
+  configs/config.toml unmodified (git diff empty)                                 PASS
+  datasets/ untouched (top-level mtimes Sep 13)                                   PASS
+  one GPU job only: no eval/one_vs_three processes; training is the sole GPU user
+  (nvidia-smi memory 7.4 GB vs 3.7 GB desktop baseline; `--query-compute-apps` is empty
+   on this WSL driver — step rate + loss lines are the authoritative liveness signal).
+
+[7] FINAL STATUS
+----------------
+  Training: RUNNING (PID 3215), detached, lock held at /tmp/opencode/train.lock.
+  Do NOT launch any evaluation until it is stopped; the run is expected to continue for
+  hours (next milestone: test_play at step 400,000, ~20:30 CST).
+  To stop: kill 3215 (and children), then `rm /tmp/opencode/train.lock/owner.txt && rmdir /tmp/opencode/train.lock`.

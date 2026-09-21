@@ -122,3 +122,11 @@ save_every=100, one generation only.
   confirm)` is factually wrong now (pool B was spent by T22), so the commit uses
   `feat(exp): A14 self-play (confirm on fresh window 70000; pool B spent)` with the substitution
   stated in the body.
+
+## [2026-09-21] Resume 决定 — 从 328k 续训纯 CNN 离线基线（M2）
+
+- **依据**：M1 测量（池 A 12k）显示 148.8k/175.2k/328k 互相不可分辨；负结论臂已闭环（事件分支 E3a −2.52 pt/A8 崩溃；online 自博弈 Δpt −24.08；RL/PG 仅 A14 recipe 用过且失败）。用户指令"保留正结论、去掉负结论"。
+- **配置**：新建 `configs/resume_baseline_328k.toml`（**不改** `configs/config.toml`，后者保留已完成计划的 toggles 作为记录）：由 `config.toml.sp-bak` 复制，唯一语义改动 `[model].use_event_branch=false`；继承 sp-bak 的 `online=false`、`use_pg=false`、`freeze_bn.mortal=false`（与 328k checkpoint 自带 config 的离线 regime 一致）；`state_file=checkpoints/mortal.pth`（续跑同一 live 文件）；`best_state_file`/`tensorboard_dir`/`test_play.log_dir`/`train_play.default.log_dir` 与 live 一致；`globs`=2009–2022、`val_globs`=2023、`file_index=checkpoints/file_index.pth`（重制版，1,968,147 条、0 条 /2023/）；`[resnet]` 与 optimizer/scheduler 不动。
+- **启动前断言（全过）**：flags、Brain numel=10,787,456/event_branch=None、loss 位相同（Δ=0.0）、ckpt steps=328,000 且 sha==pin、pin 未动、`.bak` 校验、baseline.pth 存在、`runs/1v3`=2004、GPU 空闲。
+- **锁与运行**：`/tmp/opencode/train.lock`（owner.txt 记 M2 resume）；`setsid nohup bash scripts/run_train.sh configs/resume_baseline_328k.toml`，TRAIN PID **3215**（15:18:29 启动），日志 `runs/dqn_train.log`（旧历史已在 `.bak`）。**训练有意保持 RUNNING**；期间禁止并发评估。
+- **首个 interval 验收**：15:28:03 `holdout_loss 3.083202` + `total steps: 330,000`；15:36:27 `holdout_loss 2.985855` + `total steps: 332,000`；ckpt mtime 15:28→15:36（就地增长，含新 config）；实测 12,688→14,278 steps/h，无事件 collate 回归。下一里程碑：step 400,000 的 3000 局 test_play（≈20:30）。
