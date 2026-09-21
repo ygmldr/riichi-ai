@@ -1,0 +1,9 @@
+>>> 环境: .venv (Python 3.12.3)
+>>> PYTHONPATH 已加入 libriichi(release): /home/ygsldr/riichi-ai/vendor/mortal/target/release
+>>> 1v3 评估开始: Mon Sep 21 21:16:22 CST 2026 | 日志: /home/ygsldr/riichi-ai/runs/1v3/eval_20260921_2116.log
+2026-09-21 21:16:27,095     INFO one_vs_three.rs:131  seed: [120000, 126000) w/ 0x5dfaa4cef265cd7, start 6000 sets, 24000 hanchans
+2026-09-21 23:18:57,127     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [5895 6113 6243 5749] (2.4935833333333335, 1.23pt)
+>>> 1v3 评估结束: Mon Sep 21 23:19:18 CST 2026 | 日志: /home/ygsldr/riichi-ai/runs/1v3/eval_20260921_2116.log

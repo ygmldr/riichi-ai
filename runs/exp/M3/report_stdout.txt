@@ -1,0 +1,11 @@
+=== eval_report ===
+games_dir=runs/exp/M3/games  source_dir=runs/exp/M3/games  checkpoint=at382000
+filter: seed_key=423244137402621143 (0x5dfaa4cef265cd7)  seed_range=[120000,126000) half-open
+candidates(*.json.gz)=24000 matched=24000 ignored_files=0 non-game files skipped=0
+sets=6000 games=24000 incomplete_sets=0 seed_key_groups=1
+seed_key=423244137402621143 seed_start=120000: dist(1/2/3/4)=[5895 6113 6243 5749] avg_rank=2.4936 pt=+1.2300
+  bootstrap B=2000 (resample sets, rng seed=0, bootstrap_sets=6000): avg_rank 95%CI=[2.4816, 2.5050]  pt 95%CI=[+0.3429, +2.1435]
+  arm: challenger='at382000' x24000 vs champion={('at328000', 'at328000', 'at328000'): 24000}
+assertions: self-consistency OK
+assertions: exact gate not applicable for this invocation
+CSV -> runs/exp/M3/report.csv (1 row(s))
