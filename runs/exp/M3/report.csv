@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/M3/games,at382000,423244137402621143,120000,6000,24000,0,5895,6113,6243,5749,[5895 6113 6243 5749],2.493583,2.481621875,2.505003125,1.230000,0.342890625,2.143453124999998,0
