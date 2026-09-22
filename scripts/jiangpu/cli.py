@@ -12,10 +12,12 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
+from analyze_alllast import analyze_stream, decode_events  # noqa: E402  既有函数复用
 from eval_report import SEAT_OF_SPLIT  # noqa: E402  <-- Task 8 必须在此导入(否则 build_document 直接 NameError)
+from jiangpu import aggregate  # noqa: E402
 from jiangpu import contract  # noqa: E402
 from jiangpu.models import load_bundle  # noqa: E402
-from jiangpu.providers import q_ev, rank_dist, sp_table  # noqa: E402
+from jiangpu.providers import q_ev, rank_dist, regret, sp_table  # noqa: E402
 from jiangpu.record import read_record  # noqa: E402
 from jiangpu.replay import iter_decisions  # noqa: E402
 
@@ -45,12 +47,19 @@ def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
     sp_payloads = sp_table.compute(decisions)
     rd_payloads = rank_dist.compute(bundle, record, decisions)
 
+    game = analyze_stream(record.path, decode_events(record.path))
+    final_scores = game["final_scores"]
+
+    regret_payloads = regret.compute(decisions, q_payloads, calibration=calibration)
+    agg = aggregate.build(decisions, q_payloads, regret_payloads, rd_payloads,
+                          record, final_scores=final_scores, subject_player=subject)
+
     unavailable = []
     out_decisions = []
     for dec in decisions:
         metrics = {}
         for name, payloads in (("q_ev", q_payloads), ("sp_table", sp_payloads),
-                              ("rank_dist", rd_payloads)):
+                              ("rank_dist", rd_payloads), ("regret", regret_payloads)):
             payload = payloads.get(dec.index)
             if payload is None:
                 unavailable.append({"metric": f"{name}@decision{dec.index}",
@@ -82,10 +91,10 @@ def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
                    "names": record.names, "seed": record.seed, "key": record.key,
                    "split": record.split},
         "decisions": out_decisions,
-        "kyoku_summaries": [],
-        "game_summary": {},
-        "key_moments": [],
-        "unavailable": unavailable,
+        "kyoku_summaries": agg["kyoku_summaries"],
+        "game_summary": agg["game_summary"],
+        "key_moments": agg["key_moments"],
+        "unavailable": unavailable + agg["unavailable"],
     }
     return contract.round_floats(doc)
 
