@@ -49,7 +49,7 @@ W2 实力与尺子(另立 spec) ────┘
 | 补 11 | 被鸣风险 `called_risk` | **未决**(见 §9 Q3) |
 
 > **量纲警告(必须在契约里区分)**:`#5 q_rel` 是 **pt-EV 尺度**(顺位点的价值差),而 SP 表的
-> `exp_values`(#3 / 补 9)是 **agari 点数尺度**(和了点数的期望)—— **两者不可互换、不可比大小**。
+> `exp_values`(#3 / 补 9)是 **normalized_ev 尺度**(归一化期望值)—— **两者不可互换、不可比大小**。
 > 契约中必须**分字段命名**并在 schema 里写明单位(对应 §3.2 D6)。
 
 ### 1.3 明确不做(YAGNI)
@@ -115,7 +115,7 @@ W2 实力与尺子(另立 spec) ────┘
 | 2 | `replayer` | 用 `libriichi.PlayerState` **只推进状态**(不用 `Bot`,它会自行选动作),产出逐决策上下文 | libriichi `state` | `iter_decisions(rec) -> Iterator[Decision{player, obs, mask, legal_actions, public_state}]` |
 | 3 | `metric_providers` | 一个指标一个 provider,各自声明版本与校准元数据 | — | `provider(ctx) -> payload \| Unavailable(reason)` |
 | 3a | ├ `q_ev` | DQN 前向 → 46 维掩码 Q → **相对分**(定义 `q_rel_i = q_i − max_j q_j`,即同决策点内对最优动作的差) | `model.py` DQN | `{q_rel[], action_index_map, unit:"pt_ev", confidence}` |
-| 3b | ├ `sp_table` | 按文档偏移切出 SP 表(**该表语义 = 自家按期限抵达听牌/和了的概率**,非"对手当前听牌似然") | `obs_layout.py:545-577` | `{own_tenpai_prob, own_win_prob, own_ev, by_turn[], unit:"agari_points"}` |
+| 3b | ├ `sp_table` | 按文档偏移切出 SP 表(**该表语义 = 自家按期限抵达听牌/和了的概率**,非"对手当前听牌似然") | `obs_layout.py:545-577` | `{own_tenpai_prob, own_win_prob, own_ev, by_turn[], unit:"normalized_ev"}` |
 | 3c | ├ `rank_dist` | 跑 GRP → (4,4) 顺位矩阵(**状态级**) | `grp.pth` + `calc_matrix` | `{matrix[4][4], expected_rank[4]}` |
 | 3d | ├ **`opp_tenpai`**〔新〕 | 每对手听牌概率(逐巡目) | 回放自动标注(事实 6) | `{opp_tenpai_prob[4], by_turn[]}` |
 | 3e | ├ **`danger`**〔新〕 | 每对手 × 每张牌 的放铳概率 + 期望失点 | 回放自动标注(事实 6) | `{deal_in[j][34], exp_loss[j][34]}` |
@@ -140,7 +140,7 @@ W2 实力与尺子(另立 spec) ────┘
 | **D3** | 人类牌譜路径复用 `mjai-reviewer` 的 `convlog`(Apache-2.0),Mortal 留在**进程边界外** | 许可侦察:Mortal/libriichi=AGPL(本 fork 已是);`convlog`=Apache-2.0 可放心用;进程边界即许可边界 |
 | **D4** | 契约**自带分层摘要**(逐决策明细 + 每局摘要 + key_moments),不给下游原始张量 | 一局 270 决策 × 5+ 指标远超 2B 模型上下文;压缩必须在引擎侧完成 |
 | **D5** | 每个 provider 输出必须带 `{version, checkpoint_sha256, calibration}` | 让 W2c 的"换了检查点/杠杆后指标怎么变"可归因;也让 W3 语料可重放 |
-| **D6** | **两套 EV 尺度必须分字段、并在 schema 写明单位**(Q = pt-EV vs SP = agari-points) | 二者不可比;混用会让讲解出现"数字对但结论错"的错误 |
+| **D6** | **两套 EV 尺度必须分字段、并在 schema 写明单位**(Q = pt-EV vs SP = normalized_ev) | 二者不可比;混用会让讲解出现"数字对但结论错"的错误 |
 | **D7** | `low_confidence` 阈值**来自校准产物**(provider 元数据),**不得硬编码** | 阈值是 Q 校准的函数;硬编码会在换检查点后失效 |
 
 ## 4. 数据流
