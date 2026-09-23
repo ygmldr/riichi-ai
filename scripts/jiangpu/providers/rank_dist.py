@@ -9,6 +9,9 @@ import torch
 PROVIDER_NAME = "rank_dist"
 PROVIDER_VERSION = 1
 UNIT = "probability"
+NO_HIDDEN_INFO = True
+# GRP 每局特征是 start_kyoku 的 7 个公开量(grp.rs:134-147),不含任何暗手
+BASIS = "public_info_predictor"
 KIND = "state_level"
 
 
@@ -28,6 +31,7 @@ def _degrade(decisions, bundle, reason):
     return {d.index: {
         "provider": PROVIDER_NAME, "provider_version": PROVIDER_VERSION,
         "checkpoint_sha256": bundle.sha256, "unit": UNIT,
+        "no_hidden_info": NO_HIDDEN_INFO, "basis": BASIS,
         "unavailable": True, "reason": reason,
     } for d in decisions}
 
@@ -45,6 +49,7 @@ def compute(bundle, record, decisions):
             out[dec.index] = {
                 "provider": PROVIDER_NAME, "provider_version": PROVIDER_VERSION,
                 "checkpoint_sha256": bundle.sha256, "unit": UNIT,
+                "no_hidden_info": NO_HIDDEN_INFO, "basis": BASIS,
                 "unavailable": True,
                 "reason": f"at_kyoku={k} 超出 GRP 局数 {len(matrices)}",
             }
@@ -58,6 +63,8 @@ def compute(bundle, record, decisions):
             "provider_version": PROVIDER_VERSION,
             "checkpoint_sha256": bundle.sha256,
             "unit": UNIT,
+            "no_hidden_info": NO_HIDDEN_INFO,
+            "basis": BASIS,
             "kind": KIND,
             "matrix": [[round(float(v), 6) for v in row] for row in norm],
             "expected_rank": round(expected, 6),
