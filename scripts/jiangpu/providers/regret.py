@@ -7,6 +7,8 @@
 PROVIDER_NAME = "regret"
 PROVIDER_VERSION = 1
 UNIT = "pt_ev"
+NO_HIDDEN_INFO = True
+BASIS = "self_hand"     # 派生自 q_ev(自家观测),不新增任何信息源
 
 
 def compute(decisions, q_payloads, calibration=None):
@@ -24,6 +26,7 @@ def compute(decisions, q_payloads, calibration=None):
             out[dec.index] = {
                 "provider": PROVIDER_NAME, "provider_version": PROVIDER_VERSION,
                 "checkpoint_sha256": None, "unit": UNIT,
+                "no_hidden_info": NO_HIDDEN_INFO, "basis": BASIS,
                 "unavailable": True, "reason": "缺少 q_ev",
             }
             continue
@@ -33,6 +36,8 @@ def compute(decisions, q_payloads, calibration=None):
             "provider_version": PROVIDER_VERSION,
             "checkpoint_sha256": payload.get("checkpoint_sha256"),
             "unit": UNIT,
+            "no_hidden_info": NO_HIDDEN_INFO,
+            "basis": BASIS,
             "delta_rel": round(min(delta, 0.0), 6),
             # D7: 未校准 ⇒ is_blunder 为 None(不产出确定性判定),而非硬编码阈值
             "is_blunder": (None if threshold is None else bool(delta <= threshold)),

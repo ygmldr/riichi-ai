@@ -46,7 +46,7 @@ class CliTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             doc = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(len(doc["decisions"]), 4)
-            self.assertEqual(doc["schema_version"], 1)
+            self.assertEqual(doc["schema_version"], 2)
 
     def test_cli_exit_1_on_bad_record(self):
         with tempfile.TemporaryDirectory() as td:

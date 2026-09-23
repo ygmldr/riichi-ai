@@ -14,6 +14,8 @@ from jiangpu.tiles import deaka
 PROVIDER_NAME = "sp_table"
 PROVIDER_VERSION = 1
 UNIT = "normalized_ev"
+NO_HIDDEN_INFO = True
+BASIS = "self_hand"     # SP 表由自家观测张量烤入,只描述自家
 SP_TURNS = 17
 
 
@@ -32,7 +34,9 @@ def compute(decisions):
         if t_count != 3 * SP_TURNS:
             out[dec.index] = {
                 "provider": PROVIDER_NAME, "provider_version": PROVIDER_VERSION,
-                "checkpoint_sha256": None, "unit": UNIT, "unavailable": True,
+                "checkpoint_sha256": None, "unit": UNIT,
+                "no_hidden_info": NO_HIDDEN_INFO, "basis": BASIS,
+                "unavailable": True,
                 "reason": f"sp_tables 通道数应为 {3 * SP_TURNS},实为 {t_count}",
             }
             continue
@@ -51,7 +55,9 @@ def compute(decisions):
         if reason is not None:
             out[dec.index] = {
                 "provider": PROVIDER_NAME, "provider_version": PROVIDER_VERSION,
-                "checkpoint_sha256": None, "unit": UNIT, "unavailable": True,
+                "checkpoint_sha256": None, "unit": UNIT,
+                "no_hidden_info": NO_HIDDEN_INFO, "basis": BASIS,
+                "unavailable": True,
                 "reason": reason,
             }
             continue
@@ -67,6 +73,8 @@ def compute(decisions):
             "provider_version": PROVIDER_VERSION,
             "checkpoint_sha256": None,
             "unit": UNIT,
+            "no_hidden_info": NO_HIDDEN_INFO,
+            "basis": BASIS,
             # r2/r3: 本 payload 混两种量纲 ⇒ 逐字段声明(D6)
             "unit_by_field": {"own_tenpai_prob": "probability",
                               "own_win_prob": "probability",

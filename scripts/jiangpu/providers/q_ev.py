@@ -11,6 +11,8 @@ import torch
 PROVIDER_NAME = "q_ev"
 PROVIDER_VERSION = 1
 UNIT = "pt_ev"
+NO_HIDDEN_INFO = True
+BASIS = "self_hand"     # Q 只吃自家观测与公开事件,绝不消费对手暗手/真值
 
 
 def _chunks(seq, n):
@@ -43,6 +45,8 @@ def compute(bundle, decisions, batch_size=64, device=None, calibration=None):
                 "provider_version": PROVIDER_VERSION,
                 "checkpoint_sha256": bundle.sha256,
                 "unit": UNIT,
+                "no_hidden_info": NO_HIDDEN_INFO,
+                "basis": BASIS,
                 "q_rel": q_rel,
                 "logged_action_q_rel": round(gap, 6),
                 "confidence": conf,
