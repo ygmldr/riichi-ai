@@ -64,9 +64,11 @@ class M2Test(unittest.TestCase):
 
     def test_m3_metrics_declared_unavailable(self):
         metrics = {item["metric"] for item in self.out["unavailable"]}
-        for name in ("opp_tenpai", "danger", "called_risk", "meld_decision_eval",
-                     "dangerous_tiles"):
+        for name in ("danger", "called_risk", "meld_decision_eval", "dangerous_tiles"):
             self.assertIn(name, metrics)
+        # H1 is delivered by the standalone opp_tenpai provider (2026-11); aggregate no longer
+        # declares it unavailable.
+        self.assertNotIn("opp_tenpai", metrics)
 
     def test_kyoku_summaries_cover_observed_kyoku(self):
         keys = {s["kyoku"] for s in self.out["kyoku_summaries"]}

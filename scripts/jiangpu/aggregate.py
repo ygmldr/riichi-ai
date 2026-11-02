@@ -7,7 +7,7 @@
 归属到该局首个决策点。
 """
 KEY_MOMENT_TOP_K = 5
-M3_PLUS_METRICS = ("opp_tenpai", "danger", "called_risk", "meld_decision_eval",
+M3_PLUS_METRICS = ("danger", "called_risk", "meld_decision_eval",
                    "dangerous_tiles")
 
 
