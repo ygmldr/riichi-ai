@@ -17,7 +17,7 @@ from eval_report import SEAT_OF_SPLIT  # noqa: E402  <-- Task 8 必须在此导�
 from jiangpu import aggregate  # noqa: E402
 from jiangpu import contract  # noqa: E402
 from jiangpu.models import load_bundle  # noqa: E402
-from jiangpu.providers import q_ev, rank_dist, regret, sp_table  # noqa: E402
+from jiangpu.providers import opp_tenpai, q_ev, rank_dist, regret, sp_table  # noqa: E402
 from jiangpu.record import read_record  # noqa: E402
 from jiangpu.replay import iter_decisions  # noqa: E402
 
@@ -32,7 +32,7 @@ def _source_tag(record_path):
 
 
 def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
-                   max_decisions=None, calibration=None):
+                   max_decisions=None, calibration=None, head_checkpoint=None):
     record = read_record(record_path)
     subject = int(SEAT_OF_SPLIT[record.split])          # challenger 席位
     # r2 修正: 只分析该席位的决策。否则 judgement_score/摘要 会把四家的决策混在一起,
@@ -51,10 +51,17 @@ def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
     final_scores = game["final_scores"]
 
     regret_payloads = regret.compute(decisions, q_payloads, calibration=calibration)
+    opp_payloads = (opp_tenpai.compute(decisions, checkpoint_path=head_checkpoint,
+                                       device=device) if head_checkpoint else {})
     agg = aggregate.build(decisions, q_payloads, regret_payloads, rd_payloads,
                           record, final_scores=final_scores, subject_player=subject)
 
     unavailable = []
+    if decisions and not head_checkpoint:
+        unavailable.append({"metric": "opp_tenpai",
+                            "reason": "未提供 --head-checkpoint:H1 头不可用"})
+    opp_missing = 0
+    opp_reason = None
     out_decisions = []
     for dec in decisions:
         metrics = {}
@@ -70,6 +77,15 @@ def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
                                     "reason": str(payload.get("reason", "unknown"))})
                 continue
             metrics[name] = payload
+        if head_checkpoint:
+            payload = opp_payloads.get(dec.index)
+            if payload is None:
+                opp_missing += 1
+            elif payload.get("unavailable"):
+                opp_missing += 1
+                opp_reason = str(payload.get("reason", "unknown"))
+            else:
+                metrics["opp_tenpai"] = payload
         out_decisions.append({
             "index": dec.index,
             "player_id": dec.player_id,
@@ -81,6 +97,10 @@ def build_document(record_path, checkpoint_path, grp_dir=None, device="cpu",
             "public": dec.public,
             "metrics": metrics,
         })
+    if opp_missing:
+        unavailable.append({"metric": "opp_tenpai",
+                            "reason": (opp_reason or "provider 未返回该决策点")
+                            + f" ({opp_missing}/{len(decisions)} decisions)"})
 
     doc = {
         "schema_version": contract.SCHEMA_VERSION,
@@ -107,6 +127,8 @@ def main(argv=None):
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--max-decisions", type=int, default=None)
     ap.add_argument("--calibration", default=None)
+    ap.add_argument("--head-checkpoint", default=None,
+                    help="frozen H1 checkpoint (optional; without it opp_tenpai is unavailable)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
 
@@ -117,7 +139,8 @@ def main(argv=None):
     try:
         doc = build_document(args.record, args.checkpoint, grp_dir=args.grp_dir,
                              device=args.device, max_decisions=args.max_decisions,
-                             calibration=calibration)
+                             calibration=calibration,
+                             head_checkpoint=args.head_checkpoint)
     except Exception as exc:                        # noqa: BLE001
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
