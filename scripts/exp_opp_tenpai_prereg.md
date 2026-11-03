@@ -29,14 +29,21 @@ validity claim measured exactly once on an unconsumed holdout?
 
 ## 4. Evaluation data and one-shot rule
 
-- Subset: `report_sub` from `runs/exp/EX1/corpus_index.json` — 800 files, 130,060 decisions,
-  390,180 opponent slots, years 2024–2026, splits a/b/c/d. Never used for training, threshold
-  fitting, or head selection.
+- Subset: `report_sub` from `runs/exp/EX1/corpus_index.json` — 800 files, **130,060 label rows;
+  129,890 real decisions** (170 kan-select pseudo-decisions excluded by t2's `real_mask`, the same
+  convention as EX1 t14's calib_sub: 63,736 rows → 63,649 real); **389,670 opponent slots**; years
+  2024–2026, splits a/b/c/d. Never used for training, threshold fitting, or head selection.
 - `report_sub` is evaluated **exactly once** for this prereg. No second look, no model-variant
   comparison on it. If the result fails, record the negative result and require a new holdout for
   another attempt. The evaluation script refuses to overwrite an existing metrics report.
 - Labels are oracle-derived (t2) and are used only inside the validity harness; the shipped
   provider consumes no oracle tensor.
+
+**Amendment 1 (2026-11-03, before any `report_sub` scoring).** The draft's "130,060 decisions /
+390,180 slots" is corrected above to distinguish label rows from real decisions. The t2 label
+files contain 130,060 rows; 129,890 are real decisions, and H1 is scored on the `real_mask` rows
+(the same convention as EX1 t14's calib_sub). No metric, pass line, model, split, or one-shot rule
+changed; `report_sub` remains unconsumed at the time of this amendment.
 
 ## 5. Metrics and pass rule
 
