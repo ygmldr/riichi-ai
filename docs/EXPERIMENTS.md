@@ -212,3 +212,26 @@ cat docs/exp-gates.md; python3 scripts/analyze_alllast.py runs/1v3
 ## 8. 缺失产物
 
 无。上述全部条目的产物均在磁盘实读;无"未完成"项需要补齐命令。
+
+---
+
+## 9. EX1 + H1(2026-09-23 起,新计划,不在旧 30-todo 内)
+
+### EX1 — 讲谱指标有效性 / 新指标(未关闭)
+
+- 计划: `.omo/plans/2026-09-23-explainability-metrics-and-validity.md`(20 todo + F1–F4)。
+- 已完成: t1–t13(13 项;t12/t13 于 2026-11-02 补勾);t14 官方评估完成,但同种子复跑未做,未勾。
+- 数据: 20,000 局训练标签(2009–2022,3,287,306 决策);calib 400 / select 400 / report 800(2024–26)。
+- t14 官方结果(`calib_sub`,2026-11-02):H1 AUC 0.93703 / BSS 0.53741 / ECE 0.01213;H3 AP 0.07503 / BSS 0.04123;H2 AP 1.79× 基率 / BSS −3.9e-5;H4 MAE skill −0.0819 / ρ 0.00124。gate-2 与 shuffle 控制通过。
+- 结论: H2/H4 不过 triage ⇒ Route A 按 EX1 §6.5 **不合格**;t16 预计 `winner=null`。t15–t20、F1–F4 未做。
+- 已记录的负结果: q_ev leg2 AUC 0.528;regret/judgement AUC 0.528/0.535;sp_table `own_tenpai` ECE 0.1487;校准产物 gap=0 退化。`rank_dist` 过线。
+
+### H1 — `opp_tenpai` 单独交付(2026-11-03 评估)
+
+- PREREG: `scripts/exp_opp_tenpai_prereg.md`(sha256 `605ad636…`);模型冻结在 `runs/exp/EX1/headA/headA.pt`(sha256 `2dcb6d6a…`)。
+- 评估: `report_sub` 800 局 / 129,890 real decisions / 389,670 opponent slots,**只评一次**。
+- 主结果: AUC 0.93662 [0.93441, 0.93883];BSS 0.54093 [0.53123, 0.55032];ECE 0.01201 [0.01052, 0.01365];PR-AUC 0.81034。
+- 控制: 真标签 shuffle AUC 0.5573 / BSS +0.0062 → 字面 §6 **不过**;shuffled-label null AUC 0.5020 / BSS −0.0014 → 通过。有效决定 **`ship_low_confidence`**,不是 `calibrated`。
+- 产物: `runs/exp/OPP_TENPAI/{metrics_report.json,control_review.json,CONTROL_REVIEW.md}`;provider `scripts/jiangpu/providers/opp_tenpai.py` + `scripts/jiangpu/opp_tenpai_features.py`;CLI `--head-checkpoint` 接缝;150 tests 全绿。
+- 未做: `danger`/`called_risk`/`post_call_risk` 仍 `unavailable`;EX1 t15–t20/F1–F4 未完成。若要升级为 `calibrated`,需新预注册澄清控制口径,不得事后放宽 §6。
+

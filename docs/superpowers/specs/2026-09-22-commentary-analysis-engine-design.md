@@ -5,6 +5,7 @@
 - 项目仓库:`/home/ygsldr/riichi-ai`
 - 上位目标:讲谱 AI(对牌谱做量化分析并生成讲解)
 - 覆盖范围:**仅 W1(分析引擎)**。W2(实力与可验证尺子)、W3(LLM 讲解层)只给出定位与依赖,各自另立 spec。
+- 实现状态(2026-11-03):W1 引擎已落地;`opp_tenpai_prob` 已作为独立 H1 provider 在 `report_sub` 评估(**ship_low_confidence**,控制口径见 `docs/EXPERIMENTS.md` §9 与 `runs/exp/OPP_TENPAI/CONTROL_REVIEW.md`);`danger`/`called_risk`/`post_call_risk` 仍 `unavailable`。
 
 ## 1. 背景与目标
 
