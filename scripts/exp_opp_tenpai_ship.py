@@ -138,7 +138,7 @@ def _metrics(x, y, groups, checkpoint, device, jobs):
     point = H.binary_family(y, p, groups, binning="equal_width")["point"]
     ci = H.bootstrap_ci(fam, [("opp_tenpai", "auc"), ("opp_tenpai", "bss"),
                               ("opp_tenpai", "ece")], 2000, jobs)
-    return point, ci
+    return point, ci, p
 
 
 def evaluate(args) -> int:
@@ -176,8 +176,30 @@ def evaluate(args) -> int:
     if len(y) != len(groups):
         raise SystemExit("FATAL: label/group length mismatch")
 
-    point, ci = _metrics(x, y, groups, CHECKPOINT, args.device, args.jobs)
-    shuf_point, _ = _metrics(x, y, groups, SHUFFLE, args.device, args.jobs)
+    point, ci, _ = _metrics(x, y, groups, CHECKPOINT, args.device, args.jobs)
+    shuf_point, _, p_shuf = _metrics(x, y, groups, SHUFFLE, args.device, args.jobs)
+
+    # Control has two readings: (a) the true-label sanity check (literal §6 wording), and
+    # (b) the proper label-leakage null (evaluate against labels shuffled with the training seed).
+    rng = np.random.default_rng(0)
+    y_shuf = y[rng.permutation(y.size)]
+    shuf_null_point = H.binary_family(y_shuf, p_shuf, groups, binning="equal_width")["point"]
+    control = {
+        "true_label_control": {
+            "point": shuf_point,
+            "auc_within_0.02": abs(shuf_point["auc"] - 0.5) <= 0.02,
+            "bss_nonpositive": shuf_point["brier_skill"] <= 0.0,
+        },
+        "shuffled_label_control": {
+            "point": shuf_null_point,
+            "auc_within_0.02": abs(shuf_null_point["auc"] - 0.5) <= 0.02,
+            "bss_nonpositive": shuf_null_point["brier_skill"] <= 0.0,
+        },
+    }
+    control_passed = all((control["true_label_control"]["auc_within_0.02"],
+                          control["true_label_control"]["bss_nonpositive"],
+                          control["shuffled_label_control"]["auc_within_0.02"],
+                          control["shuffled_label_control"]["bss_nonpositive"]))
 
     primary = {
         "bss_ge_0.10": point["brier_skill"] >= 0.10,
@@ -188,7 +210,7 @@ def evaluate(args) -> int:
         "bss_ci_low_ge_0.05": ci[("opp_tenpai", "bss")]["ci95"][0] >= 0.05,
         "auc_ci_low_ge_0.70": ci[("opp_tenpai", "auc")]["ci95"][0] >= 0.70,
     }
-    if all(primary.values()) and all(robust.values()):
+    if all(primary.values()) and all(robust.values()) and control_passed:
         decision = "ship_calibrated"
     elif all(primary.values()):
         decision = "ship_low_confidence"
@@ -215,9 +237,10 @@ def evaluate(args) -> int:
         }},
         "controls": {
             "base_rate": point["base_rate_control"],
-            "trained_shuffle": {"checkpoint_sha256": shuf_sha, "point": shuf_point},
+            "trained_shuffle": {"checkpoint_sha256": shuf_sha, **control},
         },
-        "pass": {"primary": primary, "robustness": robust, "decision": decision},
+        "pass": {"primary": primary, "robustness": robust,
+                 "control_passed": control_passed, "decision": decision},
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
