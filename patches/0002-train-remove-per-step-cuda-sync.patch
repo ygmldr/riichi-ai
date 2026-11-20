@@ -1,0 +1,33 @@
+diff --git a/mortal/train.py b/mortal/train.py
+index 17bd7eb..1d86c76 100644
+--- a/mortal/train.py
++++ b/mortal/train.py
+@@ -217,14 +217,22 @@ def train():
+             nonlocal idx
+             nonlocal pb
+ 
+-            obs = obs.to(dtype=torch.float32, device=device)
+-            actions = actions.to(dtype=torch.int64, device=device)
+-            masks = masks.to(dtype=torch.bool, device=device)
+-            steps_to_done = steps_to_done.to(dtype=torch.int64, device=device)
+-            kyoku_rewards = kyoku_rewards.to(dtype=torch.float64, device=device)
+-            player_ranks = player_ranks.to(dtype=torch.int64, device=device)
++            # [patch 0002] mask/action legality check on the CPU tensors BEFORE
++            # the device conversion: asserting on the GPU tensors (as upstream
++            # does) forces a host sync every step, which serializes the
++            # CPU/GPU pipeline. Checking the CPU copies keeps the guard for ~µs.
+             assert masks[range(batch_size), actions].all()
+ 
++            # [patch 0002] non_blocking H2D copies: the DataLoader pins batches
++            # (pin_memory=True), so the copies may overlap with GPU execution
++            # instead of blocking the host thread.
++            obs = obs.to(dtype=torch.float32, device=device, non_blocking=True)
++            actions = actions.to(dtype=torch.int64, device=device, non_blocking=True)
++            masks = masks.to(dtype=torch.bool, device=device, non_blocking=True)
++            steps_to_done = steps_to_done.to(dtype=torch.int64, device=device, non_blocking=True)
++            kyoku_rewards = kyoku_rewards.to(dtype=torch.float64, device=device, non_blocking=True)
++            player_ranks = player_ranks.to(dtype=torch.int64, device=device, non_blocking=True)
++
+             q_target_mc = gamma ** steps_to_done * kyoku_rewards
+             q_target_mc = q_target_mc.to(torch.float32)
+ 

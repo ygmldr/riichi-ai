@@ -13,3 +13,7 @@
   ```bash
   git -C vendor/mortal apply "$(pwd)/patches/0001-train-grp-dataloader-num-workers-0.patch"
   ```
+- `patches/0002-train-remove-per-step-cuda-sync.patch` — `mortal/train.py`: ①mask/action 合法性 assert 移到 H2D 转换前的 CPU 张量上(上游版在 GPU 上 `.all()` 会每步强制一次 D2H 同步,串行化 CPU/GPU 流水线);②六个 `.to(device)` 改为 `non_blocking=True`(DataLoader 已 pin_memory)。**2026-09-16 起工作区已应用**;重训(新克隆/重置后)需重打:
+  ```bash
+  git -C vendor/mortal apply "$(pwd)/patches/0002-train-remove-per-step-cuda-sync.patch"
+  ```
