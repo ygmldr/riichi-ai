@@ -97,23 +97,31 @@ config.toml 的 [1v3] 段编辑清单:
   首次验证(几分钟),验收时再加大(注意 iters = 500 即 100 万局,近似无限跑)
 - `[1v3.akochan] enabled = false` 时对手为 baseline 模型,无需 akochan 即可验收
 
-### 准备 akochan 对手(可选)
-想对更强对手验收时:
-1. 获取源码(任一):
-   ```bash
-   git clone https://github.com/critter-mj/akochan.git vendor/akochan
-   ```
-   或从已有环境拷贝已构建的 akochan 目录(需含二进制与 tactics.json)。
-2. 构建(需 Rust 工具链):
-   ```bash
-   cd vendor/akochan
-   cargo build --release
-   ```
-3. 启用: config.toml 中 `[1v3.akochan] enabled = true`(dir/tactics 默认已指向
-   `vendor/akochan/`,如 clone 到别处则改路径)。
-4. 重新运行 `bash scripts/run_eval.sh configs/config.toml`。
+### akochan 对手(2026-09-16 已构建,见下方踩坑记录)
 
-akochan 非必需: 用我们自己的训练产物(baseline 模型)作 champion 同样满足验收链路。
+已就绪:`vendor/akochan/` 含 `system.exe`(二进制)、`libai.so`、`tactics.json`、`params/`、
+`.boost_local/`(本地 Boost 前缀)。启用只需把 config.toml 的 `[1v3.akochan].enabled` 置 true
+(路径默认已对);里程碑评估用 `bash scripts/eval_akochan.sh` 会自动处理。
+
+重建时的踩坑记录(**非 Rust 项目,README 里曾误写 cargo**):
+1. 源码: `git clone https://github.com/critter-mj/akochan.git vendor/akochan`(C++/GNU Make)
+2. Boost 依赖:系统无 boost 且无 sudo → 用 `apt-get download` 下载 `libboost1.83-dev`、
+   `libboost-system1.83-dev`、`libboost-system1.83.0`,再用 `dpkg-deb -x` 解到
+   `vendor/akochan/.boost_local`(约 190MB,免 root)
+3. 两段构建(libai.so → system.exe);system.exe 的 RUNPATH 必须是 `$ORIGIN`,
+   否则 Mortal spawn 时找不到 libai.so:
+   ```bash
+   cd vendor/akochan/ai_src && nice -n 10 make -f Makefile_Linux -j4 \
+     LIBS="-I../.boost_local/usr/include -L../.boost_local/usr/lib/x86_64-linux-gnu -lboost_system"
+   cd .. && nice -n 10 make -f Makefile_Linux -j4 \
+     LIBS="-I.boost_local/usr/include -L.boost_local/usr/lib/x86_64-linux-gnu -lboost_system -I. -L. -lai -Wl,-rpath,\$$ORIGIN"
+   ```
+4. tactics.json 必须是 `{"tactics": {...}}` 包装格式(akochan `set_tactics_one` 断言该键);
+   内容取自 Equim-chan/mjai-reviewer 的同名文件(jun_pt [90,45,0,-135],与 strength.md 官方跑分一致)
+5. 接线(libriichi `src/agent/akochan.rs`):以 `cwd=vendor/akochan` 执行
+   `system.exe pipe <tactics> <player_id>`;akochan 用相对路径读 `params/`,故 cwd 必须正确
+
+akochan 非必需: 用我们自己的训练产物(baseline/旧快照)作 champion 同样满足验收链路。
 
 ## 验收标准(P3 完成)
 解析评估日志,challenger 相对 champion 的均顺位分 > 0 即通过:
@@ -121,3 +129,29 @@ akochan 非必需: 用我们自己的训练产物(baseline 模型)作 champion �
 python3 scripts/parse_eval.py runs/1v3/eval_*.log
 ```
 (对手为 baseline 或 akochan 均可;parse_eval.py 用法详见其 docstring)
+
+## 里程碑评估(akochan 绝对基准)
+
+每 **50 万步**(0.5M/1M/1.5M/2M/2.5M/3M…)执行一次 akochan 基准,用于绝对参照
+(与上游 `vendor/mortal/docs/src/perf/strength.md` 的数字直接可比):
+
+```bash
+bash scripts/eval_akochan.sh          # 10000 局(默认;2500 sets)
+bash scripts/eval_akochan.sh 4000     # 快速版(噪声约 ±1.7)
+```
+
+脚本行为:快照 `checkpoints/mortal.pth` → `runs/akochan_eval/mortal.pth.at-<steps>` →
+生成临时配置(`[1v3.akochan].enabled=true`、challenger=快照、固定 seed_key) →
+`run_eval.sh` + `parse_eval.py --akochan`(与训练**并发**运行,训练会变慢)。
+
+**速度预期(实测 2026-09-16)**:akochan 每决策约 0.4-1.1s(前几次含参数加载需数秒),一局里
+akochan 一个席位约 100+ 次决策 → **1 set(4 局,4 局并行)实测 ≈ 13.5 分钟**(训练并发时)。
+因此:**40 局 ≈ 2.3h;100 局 ≈ 5.6h;400 局 ≈ 22h;2000 局 ≈ 4-5 天**。
+- 里程碑建议 `games=40~100` 做趋势观察(噪声约 ±5~8pt);要严谨绝对值需后台跑数百局以上
+- 上游 strength.md 的 akochan 对照表用了 1.3-7 万局(在本机这个速度不现实),故我们只做趋势
+- 注意:WSL 下 SIGSTOP 无法可靠暂停训练(实测进程仍为 R 状态),所以评估只与训练并发跑;
+  训练期间评估会让训练慢 ~10-15%
+
+解读:**日志中 "challenger" 是 akochan(x1),我方模型坐 3 个 champion 席位**;
+"我方每席位均分 > 0"即强于 akochan。上游参照:akochan 每席位 -5.67pt(Mortal 3.1 时代),
+v4 约 -8~-9pt(推算)。
