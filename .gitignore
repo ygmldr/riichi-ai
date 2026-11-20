@@ -27,7 +27,8 @@ curl_download.log
 .omo/
 .superpowers/
 
-# 发布暂存
+# 发布暂存与备份(scripts/publish_public.sh)
+.publish/
 dist/
 
 # 本地嵌套仓库(各自独立 git,不入父仓库)
