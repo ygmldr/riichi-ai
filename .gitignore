@@ -26,3 +26,15 @@ curl_download.log
 .codegraph
 .omo/
 .superpowers/
+
+# 发布暂存
+dist/
+
+# 本地嵌套仓库(各自独立 git,不入父仓库)
+mjai-reviewer/
+vendor/akochan/
+
+# 实验配置快照 / Windows 下载残留
+configs/*.bak-*
+configs/*-bak
+*:Zone.Identifier
