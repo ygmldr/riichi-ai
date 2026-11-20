@@ -1,0 +1,34 @@
+# Proposed main model. Main-H depends on MVP-S gates and a real GPU benchmark.
+run_id: RF-MAIN-H-PILOT
+arch:
+  name: RiichiFormerH
+  output_action_dim: 46
+  local:
+    d_model: 384
+    layers: 8
+    heads: 6
+    ffn_hidden: 1024
+    attention: sdpa_causal
+  memory:
+    d_model: 384
+    layers: 4
+    heads: 6
+    ffn_hidden: 1024
+    summary_tokens_per_completed_kyoku: 4
+    current_kyoku_summary_visible_to_current_decision: false
+    memory_gradient_mode: truncated_bptt
+    bptt_kyoku_window_initial: 2
+    no_grad_summary_without_auxiliary_supervision: false
+  fusion:
+    type: gated_residual
+    ablate_memory_by_input: true
+train:
+  inherit_mvp_optimizer_after_g3: true
+  grad_accumulation: tune_from_benchmark
+  bf16: true
+  initial_loss: bc_only
+  rank_auxiliary_weight_default: 0.0
+  belief_auxiliary_weight_default: 0.0
+  no_silent_truncation: true
+  validate_cross_kyoku_fence: true
+  eval_against_flat_f_equal_compute: true

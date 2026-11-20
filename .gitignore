@@ -11,7 +11,7 @@ venv/
 *.egg-info/
 
 # 数据集(大文件不进仓库)
-data/
+/data/
 datasets/
 
 # 训练产物
@@ -39,3 +39,15 @@ vendor/akochan/
 configs/*.bak-*
 configs/*-bak
 *:Zone.Identifier
+
+# RiichiFormer V2 (PR-00): 产物、私有映射与凭据一律不入库
+# artifacts/riichiformer/{manifest,shards,checkpoints,teacher,eval,bench,preflight.json}
+artifacts/riichiformer/
+# 私有账户映射 / 盐 / 密钥 / 本地覆盖(见 00_MASTER_PLAN.md §3.3)
+docs/riichiformer/private/
+*player_map*
+*player_hmac*
+*.salt
+*.key
+.env
+.env.*

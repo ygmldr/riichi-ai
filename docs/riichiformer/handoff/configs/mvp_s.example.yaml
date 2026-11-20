@@ -1,0 +1,43 @@
+# Proposed initial values, NOT a verified configuration on the user's GPU.
+run_id: RF-MVP-S-SMOKE
+arch:
+  name: LocalTransformerS
+  vocab_version: 2
+  d_model: 256
+  layers: 6
+  heads: 4
+  ffn_hidden: 768
+  norm: rmsnorm
+  activation: swiglu
+  position: rope
+  dropout: 0.0
+  max_seq_len_policy: dynamic_bucket_no_silent_truncation
+  output_action_dim: 46
+training:
+  task: behavior_cloning
+  bf16: true
+  optimizer: adamw
+  learning_rate: 0.0003
+  weight_decay: 0.1
+  warmup_ratio: 0.02
+  lr_schedule: cosine
+  grad_clip_norm: 1.0
+  microbatch_initial: 4
+  gradient_accumulation_initial: 8
+  loss_unit: per_seat_game
+  exclude_forced_and_censored_from_bc: true
+  rank_loss_weight: 0.0
+  belief_loss_weight: 0.0
+  seed: 20261121
+  benchmark_first: true
+  checkpoint_every_steps: 100
+validation:
+  protocol: L
+  allow_confirm_set_peeking: false
+  metric_for_best_checkpoint: validation_bc_nll
+paths:
+  shards: artifacts/riichiformer/shards/pilot
+  checkpoint_root: artifacts/riichiformer/checkpoints/mvp_s
+  logs_root: artifacts/riichiformer/runs/mvp_s
+provenance:
+  required_hashes: [schema, action_mapping, normalizer, manifest, split_registry]
