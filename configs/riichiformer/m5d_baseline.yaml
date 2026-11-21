@@ -15,7 +15,7 @@ engine:
   native_driver: libriichi.arena.OneVsThree.py_vs_py
   version: 4
 inference_mode: deterministic_argmax
-libriichi_build_sha256: ceb9287cba5e9f93cd1141ce3395d844af23a1f4cfaf68f19de25424f55a5c86
+libriichi_build_sha256: 582e36734b10c3d3b1230a834eacc494f94e40f6d642c712eadc23f6cabfaf4e
 libriichi_git_sha: 0cff2b52982be5b1163aa9a62fb01f03ce91e0d2
 model_arch: resnet{conv_channels=192,num_blocks=40}
 model_config:
@@ -45,17 +45,18 @@ patch_manifest:
   0012-1v3-seed-start.patch: c81a309776c72984266b9eb1f9e7d4744872a96d5fc46a3fbacfa096a83e99dc
   0013-online-tail-event-pad.patch: 467dd03f6708208f292122d8d0b489be1f15554c7e254cd5ac770b18587ba454
   0014-rule-r02-r25-r26.patch: 5eccaf72d4b340afc570e79e37762e60cb014e4eaa7cbd8643935b4fc50c1352
-patch_manifest_hash: 70b94a1bc55113726b2210b863bbb4f3a0e1e04689388cc8c27dc341b7366433
+  0015-rule-r29-ippatsu-fixture.patch: 3a91e912d61aa7f8f8b2a54365b35214a9ef9663875c57f41d03f048e2a53c0b
+patch_manifest_hash: fb2d57f19b8ffb2be8de7785225ca96064ef0b25162c2aa46ec121529b1ae55f
 permission: local_research_only
 permission_note: Research scope only. This registry grants no licence, no redistribution
   right and no permission to publish the checkpoint or game logs.
 python_driver_files:
-  riichiformer/eval/m5d_arena.py: 9e88ae16105b0d96e1d4202a5cdf103ce5bd89f6ff4b8204c4862fcf3252bb88
+  riichiformer/eval/m5d_arena.py: ec93e5016f530741ac1f32225dbda12589c31e62f2f447688b53e289112d2cc7
   riichiformer/eval/mortal_anchor.py: 22a531932ade52dfcbcddbd9605268320fe4692fcc5ccee4461152489f68e6d0
   riichiformer/eval/relative_pt.py: 1c653f687032a2a9b1d9729e89318033cf0b95c987be14ab86deaa7517eb97e5
   scripts/rf_eval_m5d.py: 53b32fd759d5f2864f7cf20ef9282fb99127cd101942ec0490a789087c36e2c8
 python_driver_git_sha: e76022600018e9adc6536ccbb904db8c9dc498b3
-registry_hash: 96524922fe2b201151b0c01aeaa699fef2f94ff2d33de912103b882f354278cd
+registry_hash: 45da0923b35112868422eefb5d169edf85975d9d374866665a072dea84a08fc8
 registry_schema: rf-m5d-baseline-registry/1
 role: frozen_opponent
 rule_based_agari_guard: false
