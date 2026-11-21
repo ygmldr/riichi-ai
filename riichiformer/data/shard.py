@@ -34,7 +34,7 @@ from ..schemas.event_v3 import event_from_dict
 from ..schemas.schema_v3 import load_schema
 from . import pov
 
-FORMAT_VERSION = "rf-shard/2"
+FORMAT_VERSION = "rf-shard/3"
 PURPOSES = ("train", "audit", "diagnostic")
 FROZEN_SCHEMA = load_schema()
 SCHEMA_HASH = FROZEN_SCHEMA["schema_hash"]
@@ -169,6 +169,8 @@ class ShardMetadata:
     ruleset_deviations: tuple[str, ...] = ()
     source_kind: str = SourceKind.HUMAN_LOG.value
     projection_version: str = pov.POV_PROJECTION_VERSION
+    research_policy: str = "licensed_only"
+    research_policy_hash: str = ""
     created_utc: str = field(
         default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
@@ -182,9 +184,17 @@ class ShardMetadata:
         status = str(self.rights_status).upper()
         if status not in {"ALLOWED", "RESTRICTED", "UNKNOWN"}:
             raise ShardError(f"rights_status must be ALLOWED/RESTRICTED/UNKNOWN, got {self.rights_status!r}")
-        if self.purpose == "train" and (not self.train_allowed or status != "ALLOWED"):
+        if self.research_policy not in {"licensed_only", "operator_private_research"}:
+            raise ShardError("unknown research policy")
+        if self.research_policy == "operator_private_research":
+            if len(self.research_policy_hash) != 64:
+                raise ShardError("private research requires a 64-character policy hash")
+        elif self.research_policy_hash:
+            raise ShardError("licensed_only must not carry a private research hash")
+        if self.purpose == "train" and self.research_policy == "licensed_only" \
+                and (not self.train_allowed or status != "ALLOWED"):
             raise ShardRightsError(
-                "training shards require train_allowed=True and rights_status=ALLOWED; "
+                "licensed training shards require train_allowed=True and rights_status=ALLOWED; "
                 f"got train_allowed={self.train_allowed}, rights_status={status}")
         for name in ("canonical_manifest_sha256", "canonical_index_sha256",
                      "split_manifest_sha256"):
@@ -217,6 +227,8 @@ class ShardMetadata:
             "source_id": self.source_id,
             "rights_status": str(self.rights_status).upper(),
             "train_allowed": self.train_allowed,
+            "research_policy": self.research_policy,
+            "research_policy_hash": self.research_policy_hash,
             "canonical_manifest_sha256": self.canonical_manifest_sha256,
             "canonical_index_sha256": self.canonical_index_sha256,
             "split_manifest_sha256": self.split_manifest_sha256,
@@ -247,6 +259,8 @@ class ShardMetadata:
             normalizer_hash=value["normalizer_hash"], ruleset_id=value["ruleset_id"],
             ruleset_deviations=tuple(value.get("ruleset_deviations", ())),
             source_kind=value["source_kind"], projection_version=value["projection_version"],
+            research_policy=value.get("research_policy", "licensed_only"),
+            research_policy_hash=value.get("research_policy_hash", ""),
             created_utc=value.get("created_utc", "1970-01-01T00:00:00Z"),
         )
 
@@ -483,16 +497,18 @@ class ShardWriter:
         if not isinstance(game, GameRecord):
             raise ShardError("game must be GameRecord")
         if self.metadata.purpose == "train":
-            if not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED":
-                raise ShardRightsError("cannot write training shard from blocked source")
+            if self.metadata.research_policy == "licensed_only" and (
+                    not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED"):
+                raise ShardRightsError("cannot write licensed training shard from blocked source")
             # Per-game gate: metadata alone cannot smuggle a val/blocked row into train.
             if game.split != "train":
                 raise ShardRightsError(
                     f"training shard refuses non-train split {game.split!r} "
                     f"for {game.game_id}")
-            if not game.train_allowed or game.rights_status.upper() != "ALLOWED":
+            if self.metadata.research_policy == "licensed_only" and (
+                    not game.train_allowed or game.rights_status.upper() != "ALLOWED"):
                 raise ShardRightsError(
-                    f"training shard refuses per-game rights "
+                    f"licensed training shard refuses per-game rights "
                     f"train_allowed={game.train_allowed}, "
                     f"rights_status={game.rights_status!r} for {game.game_id}")
             if game.source_id not in self._allowed_sources():
