@@ -49,7 +49,7 @@ not evidence of strength. No arena result is a Tenhou dan/rank.
 
 ## Full suite
 
-- Final suite (CUDA disabled) at the merged tree: **840 passed, 6 skipped, 319 subtests**, 340.52 s, exit 0 (`docs/riichiformer/v3/logs/V3_3_W2_full_suite.log`). The 6 skips are the CUDA-only/pre-existing skips; no GPU was used.
+- Final suite (CUDA disabled) at the merged tree: **841 passed, 6 skipped, 319 subtests**, 313.35 s after the P1 isolation fixes, exit 0 (`docs/riichiformer/v3/logs/V3_3_W2_full_suite.log`). The 6 skips are the CUDA-only/pre-existing skips; no GPU was used.
 - Earlier full suite at an intermediate merged tree: **804 passed, 3 skipped,
   319 subtests**, 412.32 s. That run accidentally executed the pre-existing tiny
   `rf_test_bench.py::test_gpu_bf16_smoke` because CUDA was visible. It did not
