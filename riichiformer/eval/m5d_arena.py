@@ -115,6 +115,17 @@ class IllegalReaction(M5DArenaError):
     """The native engine rejected a decoded reaction; the run must abort."""
 
 
+class KanSelectionRequired(M5DArenaError):
+    """Action 42 is legal for more than one concrete kan; a second decision is required."""
+
+    def __init__(self, context):
+        super().__init__(
+            f"action 42 has {len(context.kan_options)} concrete kan candidates; "
+            "run a KAN_SELECTION decision before decoding")
+        self.context = context
+        self.options = tuple(context.kan_options)
+
+
 # ---------------------------------------------------------------------------
 # output safety
 # ---------------------------------------------------------------------------
@@ -410,7 +421,12 @@ def context_from_native(
         raise BridgeError("native/legal mask must be 46 bools with one legal action")
     native_phase = (ActionPhase.SELF_TURN if _bool_cans(cans, "can_discard")
                     else ActionPhase.CALL_RESPONSE)
-    if phase is not None and phase is not native_phase:
+    if phase is not None and phase is ActionPhase.KAN_SELECTION:
+        # The KAN_SELECTION decision shares the native SELF_TURN prefix but has
+        # its own policy phase and a tile-only legal mask.  It is not a rewrite of
+        # the native phase.
+        native_phase = ActionPhase.KAN_SELECTION
+    elif phase is not None and phase is not native_phase:
         raise BridgeError(f"phase {phase.value} disagrees with native {native_phase.value}")
     hand = _native_hand(state)
     last_kawa = _tile_ref(state.last_kawa_tile())
@@ -461,8 +477,11 @@ def decode_native_action(
 ) -> tuple[dict, ActionContext]:
     """Map one policy action to one concrete native-valid MJAI event.
 
-    Multi-kan declarations are resolved deterministically (native candidate order,
-    first option), exactly once; there is no retry/fallback path here.
+    A bare action 42 with multiple concrete kan candidates is **not** decoded by
+    choosing ``kan_options[0]``.  It raises :class:`KanSelectionRequired`; the
+    caller must issue a real ``KAN_SELECTION`` decision (tile action 0..36) and
+    pass that phase/mask back here.  This makes the second policy call observable
+    and prevents silent first-candidate fallback.
     """
     if isinstance(action, bool) or not isinstance(action, int):
         raise BridgeError(f"policy action must be int, got {action!r}")
@@ -470,7 +489,7 @@ def decode_native_action(
     if not 0 <= action < 46 or not context.legal_mask[action]:
         raise BridgeError(f"policy action {action} is outside the native legal mask")
     if action == 42 and len(context.kan_options) > 1:
-        context = context.with_kan_choice(context.kan_options[0].tile)
+        raise KanSelectionRequired(context)
     try:
         event = action_to_mjai(action, context)
     except AmbiguousKanError as exc:
@@ -491,6 +510,19 @@ def decode_native_action(
 # ---------------------------------------------------------------------------
 # RF policy backend
 # ---------------------------------------------------------------------------
+def _ema_shadow(payload: Mapping) -> Mapping:
+    """Return ``payload['ema']['shadow']`` or fail closed (never Raw fallback)."""
+    ema = payload.get("ema")
+    if not isinstance(ema, Mapping):
+        raise BridgeError(
+            "EMA requested but checkpoint has no EMA state; refusing Raw fallback")
+    shadow = ema.get("shadow")
+    if not isinstance(shadow, Mapping) or not shadow:
+        raise BridgeError(
+            "EMA requested but checkpoint EMA has no shadow state; refusing Raw fallback")
+    return shadow
+
+
 def _torch():
     import torch
 
@@ -550,7 +582,10 @@ class RFPolicyBackend:
         if payload.get("model_config_hash") not in (None, expected_hash):
             raise BridgeError("RF checkpoint model_config_hash does not match its config")
         model = Policy(config)
-        state = payload.get("ema") if use_ema and payload.get("ema") is not None else payload.get("model")
+        if use_ema:
+            state = _ema_shadow(payload)
+        else:
+            state = payload.get("model")
         if not isinstance(state, Mapping):
             raise BridgeError("RF checkpoint has no model state_dict")
         try:
@@ -638,7 +673,10 @@ class RFMjaiLogEngine:
         self.name = name or backend.name
         self.player_ids: tuple[int, ...] | None = None
         self.streams: dict[int, PovDecisionStream] = {}
-        self.stats = {"decisions": 0, "illegal": 0, "fallback": 0, "bridge_errors": 0}
+        self.stats = {
+            "decisions": 0, "illegal": 0, "fallback": 0,
+            "bridge_errors": 0, "kan_selections": 0,
+        }
 
     def set_player_ids(self, ids) -> None:
         ids = tuple(int(value) for value in ids)
@@ -695,9 +733,29 @@ class RFMjaiLogEngine:
             raise BridgeError(
                 "projected own aka count disagrees with the native PlayerState")
         action = self.backend.act(decision, meta)
-        event, _context = decode_native_action(
-            action, state, seat=stream.pov, legal_mask=mask, phase=phase)
         self.stats["decisions"] += 1
+        try:
+            event, _context = decode_native_action(
+                action, state, seat=stream.pov, legal_mask=mask, phase=phase)
+        except KanSelectionRequired as required:
+            # Real second policy decision on the unchanged visible prefix.
+            kan_mask = [False] * 46
+            for option in required.options:
+                index = (option.tile.kind if option.tile.aka is None
+                         else 34 + option.tile.aka)
+                if 0 <= index < 37:
+                    kan_mask[index] = True
+            if not any(kan_mask):
+                raise BridgeError("multi-kan context has no decodable tile action")
+            kan_decision, kan_meta = stream.build_decision(
+                game_state.events_json, legal_mask=kan_mask,
+                phase=ActionPhase.KAN_SELECTION)
+            kan_action = self.backend.act(kan_decision, kan_meta)
+            self.stats["decisions"] += 1
+            self.stats["kan_selections"] += 1
+            event, _context = decode_native_action(
+                kan_action, state, seat=stream.pov, legal_mask=kan_mask,
+                phase=ActionPhase.KAN_SELECTION)
         return json.dumps(event, separators=(",", ":"), sort_keys=True)
 
 

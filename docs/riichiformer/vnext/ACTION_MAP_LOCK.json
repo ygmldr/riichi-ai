@@ -1,0 +1,657 @@
+{
+  "schema": "rf-vnext-action-map-lock/1",
+  "generated_utc": "2026-11-21T17:52:10Z",
+  "base_branch": "rf/vnext-core",
+  "base_sha": "8a915d1df89ced8f322e5f2e6e664b3a0e1fcf85",
+  "action_space": 46,
+  "action_map_hash": "6cf1efc5ba99533ec4844f38184ef51a7941174164f9588f21d33ca70a873a2e",
+  "schema_version": "rf-schema-v3/2",
+  "schema_hash": "12503d36e2571449d4e4bdd4c8780e00f285d3a2ec81f9e26af184d24c8ef43c",
+  "normalizer_hash": "37df861b08b3958c3030c53dcbfa27762892c41332b383060caf46788f9ad444",
+  "phases": [
+    "SELF_TURN",
+    "CALL_RESPONSE",
+    "KAN_SELECTION"
+  ],
+  "phase_legal_actions": {
+    "SELF_TURN": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      42,
+      43,
+      44
+    ],
+    "CALL_RESPONSE": [
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      45
+    ],
+    "KAN_SELECTION": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36
+    ]
+  },
+  "entries": [
+    {
+      "index": 0,
+      "name": "discard_1m",
+      "kind": "discard",
+      "tile_kind": 0,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 1,
+      "name": "discard_2m",
+      "kind": "discard",
+      "tile_kind": 1,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 2,
+      "name": "discard_3m",
+      "kind": "discard",
+      "tile_kind": 2,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 3,
+      "name": "discard_4m",
+      "kind": "discard",
+      "tile_kind": 3,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 4,
+      "name": "discard_5m",
+      "kind": "discard",
+      "tile_kind": 4,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 5,
+      "name": "discard_6m",
+      "kind": "discard",
+      "tile_kind": 5,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 6,
+      "name": "discard_7m",
+      "kind": "discard",
+      "tile_kind": 6,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 7,
+      "name": "discard_8m",
+      "kind": "discard",
+      "tile_kind": 7,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 8,
+      "name": "discard_9m",
+      "kind": "discard",
+      "tile_kind": 8,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 9,
+      "name": "discard_1p",
+      "kind": "discard",
+      "tile_kind": 9,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 10,
+      "name": "discard_2p",
+      "kind": "discard",
+      "tile_kind": 10,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 11,
+      "name": "discard_3p",
+      "kind": "discard",
+      "tile_kind": 11,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 12,
+      "name": "discard_4p",
+      "kind": "discard",
+      "tile_kind": 12,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 13,
+      "name": "discard_5p",
+      "kind": "discard",
+      "tile_kind": 13,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 14,
+      "name": "discard_6p",
+      "kind": "discard",
+      "tile_kind": 14,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 15,
+      "name": "discard_7p",
+      "kind": "discard",
+      "tile_kind": 15,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 16,
+      "name": "discard_8p",
+      "kind": "discard",
+      "tile_kind": 16,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 17,
+      "name": "discard_9p",
+      "kind": "discard",
+      "tile_kind": 17,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 18,
+      "name": "discard_1s",
+      "kind": "discard",
+      "tile_kind": 18,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 19,
+      "name": "discard_2s",
+      "kind": "discard",
+      "tile_kind": 19,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 20,
+      "name": "discard_3s",
+      "kind": "discard",
+      "tile_kind": 20,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 21,
+      "name": "discard_4s",
+      "kind": "discard",
+      "tile_kind": 21,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 22,
+      "name": "discard_5s",
+      "kind": "discard",
+      "tile_kind": 22,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 23,
+      "name": "discard_6s",
+      "kind": "discard",
+      "tile_kind": 23,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 24,
+      "name": "discard_7s",
+      "kind": "discard",
+      "tile_kind": 24,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 25,
+      "name": "discard_8s",
+      "kind": "discard",
+      "tile_kind": 25,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 26,
+      "name": "discard_9s",
+      "kind": "discard",
+      "tile_kind": 26,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 27,
+      "name": "discard_E",
+      "kind": "discard",
+      "tile_kind": 27,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 28,
+      "name": "discard_S",
+      "kind": "discard",
+      "tile_kind": 28,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 29,
+      "name": "discard_W",
+      "kind": "discard",
+      "tile_kind": 29,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 30,
+      "name": "discard_N",
+      "kind": "discard",
+      "tile_kind": 30,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 31,
+      "name": "discard_P",
+      "kind": "discard",
+      "tile_kind": 31,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 32,
+      "name": "discard_F",
+      "kind": "discard",
+      "tile_kind": 32,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 33,
+      "name": "discard_C",
+      "kind": "discard",
+      "tile_kind": 33,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard",
+        "KAN_SELECTION": "kan_tile"
+      }
+    },
+    {
+      "index": 34,
+      "name": "discard_5mr",
+      "kind": "discard_aka",
+      "tile_kind": 4,
+      "aka": 0,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard_aka",
+        "KAN_SELECTION": "kan_tile_aka"
+      }
+    },
+    {
+      "index": 35,
+      "name": "discard_5pr",
+      "kind": "discard_aka",
+      "tile_kind": 13,
+      "aka": 1,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard_aka",
+        "KAN_SELECTION": "kan_tile_aka"
+      }
+    },
+    {
+      "index": 36,
+      "name": "discard_5sr",
+      "kind": "discard_aka",
+      "tile_kind": 22,
+      "aka": 2,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "discard_aka",
+        "KAN_SELECTION": "kan_tile_aka"
+      }
+    },
+    {
+      "index": 37,
+      "name": "riichi",
+      "kind": "riichi",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "riichi"
+      }
+    },
+    {
+      "index": 38,
+      "name": "chi_low",
+      "kind": "chi",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": "low",
+      "semantics": {
+        "CALL_RESPONSE": "chi_low"
+      }
+    },
+    {
+      "index": 39,
+      "name": "chi_mid",
+      "kind": "chi",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": "mid",
+      "semantics": {
+        "CALL_RESPONSE": "chi_mid"
+      }
+    },
+    {
+      "index": 40,
+      "name": "chi_high",
+      "kind": "chi",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": "high",
+      "semantics": {
+        "CALL_RESPONSE": "chi_high"
+      }
+    },
+    {
+      "index": 41,
+      "name": "pon",
+      "kind": "pon",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "CALL_RESPONSE": "pon"
+      }
+    },
+    {
+      "index": 42,
+      "name": "kan",
+      "kind": "kan",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "kan_decide",
+        "CALL_RESPONSE": "kan_decide"
+      }
+    },
+    {
+      "index": 43,
+      "name": "agari",
+      "kind": "agari",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "tsumo_agari",
+        "CALL_RESPONSE": "ron_agari"
+      }
+    },
+    {
+      "index": 44,
+      "name": "ryukyoku",
+      "kind": "ryukyoku",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "SELF_TURN": "ryukyoku"
+      }
+    },
+    {
+      "index": 45,
+      "name": "pass",
+      "kind": "pass",
+      "tile_kind": null,
+      "aka": null,
+      "chi_type": null,
+      "semantics": {
+        "CALL_RESPONSE": "pass"
+      }
+    }
+  ],
+  "lock_hash": "96de20c72dda07a3ece161c61221a25624aed1ccb9cf39643208e934d106252c"
+}

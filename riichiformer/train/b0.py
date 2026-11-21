@@ -1432,8 +1432,10 @@ def evaluate_multi_batches(
         step: int, device: str = "cpu") -> ValidationMetrics:
     """Forward-only CE/top1/top3/legal/non-finite metrics (no optimizer).
 
-    The model is switched to ``eval()`` and restored afterwards; no gradient is
-    computed and no RNG/optimizer/EMA state is touched.
+    All reductions over decisions and top-k values are vectorized per batch; the
+    hot loop performs no per-decision ``bool``/``float`` device synchronization.
+    Metadata parsing (which targets are supervised) is CPU-side dictionary work
+    and does not read a scalar tensor.
     """
     if not isinstance(model, Policy):
         raise B0ProtocolError("evaluate_multi_batches needs a Policy")
@@ -1461,31 +1463,44 @@ def evaluate_multi_batches(
                               & (torch.isfinite(out.logprobs)
                                  | ~out.legal_mask).all(dim=1))
                 nonfinite += int((~finite_row).sum())
-                top3 = out.masked_logits.topk(3, dim=-1).indices
-                legal_mask = batch.legal_mask
+                if not targets:
+                    continue
+                n = len(targets)
+                actions = torch.full((n,), -1, dtype=torch.long, device=device)
+                weights = torch.zeros((n,), dtype=torch.float32, device=device)
+                supervised_mask = torch.zeros((n,), dtype=torch.bool,
+                                              device=device)
                 for index, target in enumerate(targets):
                     weight = _validation_weight(target)
-                    if weight is None:
-                        continue
-                    supervised += 1
+                    if weight is not None:
+                        supervised_mask[index] = True
+                        weights[index] = float(weight)
                     action = target.get("expert_action")
                     if isinstance(action, bool) or not isinstance(action, int) \
                             or not 0 <= action < ACTION_SPACE:
                         continue
-                    if not bool(legal_mask[index, action]):
-                        continue
-                    legal += 1
-                    if not bool(finite_row[index]):
-                        continue
-                    logprob = out.logprobs[index, action]
-                    if not bool(torch.isfinite(logprob)):
-                        continue
-                    ce_sum += float(-logprob) * weight
-                    weight_sum += weight
-                    if int(top3[index, 0]) == action:
-                        top1_hits += 1
-                    if action in top3[index].tolist():
-                        top3_hits += 1
+                    actions[index] = int(action)
+                supervised += int(supervised_mask.sum())
+                in_range = (actions >= 0) & (actions < ACTION_SPACE)
+                safe_actions = actions.clamp(0, ACTION_SPACE - 1)
+                legal_mask = batch.legal_mask
+                legal_row = (supervised_mask & in_range
+                             & legal_mask[torch.arange(n, device=device),
+                                          safe_actions])
+                legal += int(legal_row.sum())
+                if not bool(legal_row.any()):
+                    continue
+                selected = legal_row & finite_row
+                if not bool(selected.any()):
+                    continue
+                logprob = out.logprobs[torch.arange(n, device=device),
+                                       safe_actions]
+                ce_sum += float(-logprob[selected].mul(weights[selected]).sum())
+                weight_sum += float(weights[selected].sum())
+                top3 = out.masked_logits.topk(3, dim=-1).indices
+                top1_hits += int((top3[:, 0] == actions)[selected].sum())
+                top3_hits += int(
+                    (top3 == actions.unsqueeze(1)).any(dim=1)[selected].sum())
     finally:
         model.train(was_training)
     ce = ce_sum / weight_sum if weight_sum > 0 else math.nan

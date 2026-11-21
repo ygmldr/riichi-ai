@@ -47,6 +47,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Mapping
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -64,6 +65,7 @@ from riichiformer.policy.config import (  # noqa: E402
 from riichiformer.policy.research_policy import ResearchPolicyError  # noqa: E402
 from riichiformer.train.b0 import (  # noqa: E402
     B0_TRAINING_PATH, B0Candidate, B0Protocol, B0ProtocolError, B0Refusal,
+    ValidationMetrics,
     B0Selection, B0SelectionRule, B0StopEvent, B0StopMonitor, B0StopPolicy,
     B0StopTriggered, B0TrainSettings, ModelEMA, build_protocol_from_files,
     candidate_filename, checkpoint_provenance, evaluate_candidate, not_run_items,
@@ -223,6 +225,53 @@ def _append_jsonl(path: Path, record: dict) -> None:
         handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
+def _load_prior_candidates(seed_dir: Path, protocol: B0Protocol,
+                           seed: int, up_to_step: int) -> list[B0Candidate]:
+    """Restore candidate records from this exact run after a strict resume.
+
+    ``run_seed`` starts a fresh checkpoint/optimizer but the selection rule is
+    global over every candidate produced for the seed.  Without this registry a
+    second invocation would silently forget step-6 when selecting at step 10.
+    Foreign/mismatched sidecars are rejected, never merged by filename.
+    """
+    records: dict[int, B0Candidate] = {}
+    for path in sorted((seed_dir / "candidates").glob("step_*.pt")):
+        try:
+            step = int(path.stem.split("_")[-1])
+        except ValueError:
+            continue
+        if step > up_to_step:
+            continue
+        payload = torch.load(path, weights_only=False, map_location="cpu")
+        extra = payload.get("extra") or {}
+        if extra.get("b0_experiment_id") != protocol.experiment_id:
+            raise WrapperRefusal(
+                f"prior candidate {path.name} belongs to a different experiment")
+        if int(extra.get("b0_seed", -1)) != int(seed):
+            raise WrapperRefusal(
+                f"prior candidate {path.name} belongs to a different seed")
+        if extra.get("b0_protocol_fingerprint") != protocol.fingerprint():
+            raise WrapperRefusal(
+                f"prior candidate {path.name} has a different protocol fingerprint")
+        raw = extra.get("b0_validation_raw")
+        if not isinstance(raw, Mapping):
+            raise WrapperRefusal(
+                f"prior candidate {path.name} lacks raw validation metrics")
+        ema_raw = extra.get("b0_validation_ema")
+        sidecar = json.loads(Path(str(path) + ".json").read_text(encoding="utf-8"))
+        counters = payload.get("counters") or {}
+        candidate = B0Candidate(
+            experiment_id=protocol.experiment_id, seed=int(seed), step=step,
+            checkpoint_path=str(path), checkpoint_sha256=sidecar["sha256"],
+            raw=ValidationMetrics.from_dict(raw),
+            ema=(ValidationMetrics.from_dict(ema_raw)
+                 if isinstance(ema_raw, Mapping) else None),
+            tokens=int(counters.get("tokens", 0)),
+            decisions=int(counters.get("decisions", 0)))
+        records[step] = candidate
+    return [records[step] for step in sorted(records)]
+
+
 def run_seed(
         protocol: B0Protocol, seed: int, *, out_dir: Path, max_steps: int,
         device: str, policy: PolicyConfig | None, resume: str | None = None,
@@ -270,6 +319,8 @@ def run_seed(
 
     losses: list[float] = []
     candidates: list[B0Candidate] = []
+    if resume:
+        candidates = _load_prior_candidates(seed_dir, protocol, seed, step)
     monitor = B0StopMonitor(protocol.stop_policy, device=device)
     started = time.monotonic()
     status = "completed"

@@ -1,0 +1,113 @@
+{
+  "schema": "rf-vnext-source-rights-gate/1",
+  "generated_utc": "2026-11-21T17:52:10Z",
+  "registry": "configs/riichiformer/source_rights.csv",
+  "summary": {
+    "rows": 11,
+    "status": {
+      "RESTRICTED": 8,
+      "UNKNOWN": 3
+    },
+    "train_allowed": {
+      "RESTRICTED": 6,
+      "UNKNOWN": 5
+    },
+    "redistribute_allowed": {
+      "RESTRICTED": 8,
+      "UNKNOWN": 3
+    },
+    "allowed_rows": []
+  },
+  "decision": "BLOCKED_FOR_NEW_TRAINING",
+  "reason": "No source row has status=ALLOWED and train_allowed=ALLOWED; operator_private_research is not a licence.",
+  "sources": [
+    {
+      "source_id": "tenhou_raw_logs",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://tenhou.net/man/",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "tenhou_old",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://tenhou.net/man/",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "tenhou_recent",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://tenhou.net/man/",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "tenhou_to_mjai_dataset",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://tenhou.net/man/",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "tenhou_to_mjai_code",
+      "status": "UNKNOWN",
+      "train_allowed": "UNKNOWN",
+      "redistribute_allowed": "UNKNOWN",
+      "terms_url": "https://github.com/NikkeTryHard/tenhou-to-mjai/blob/main/LICENSE",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "mortal_code",
+      "status": "UNKNOWN",
+      "train_allowed": "UNKNOWN",
+      "redistribute_allowed": "UNKNOWN",
+      "terms_url": "https://github.com/Equim-chan/Mortal/blob/main/LICENSE",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "teacher_local",
+      "status": "RESTRICTED",
+      "train_allowed": "UNKNOWN",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://github.com/Equim-chan/Mortal",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "akochan_code",
+      "status": "RESTRICTED",
+      "train_allowed": "UNKNOWN",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "https://github.com/critter-mj/akochan/blob/master/LICENSE",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "selfplay_own",
+      "status": "UNKNOWN",
+      "train_allowed": "UNKNOWN",
+      "redistribute_allowed": "UNKNOWN",
+      "terms_url": "https://github.com/ygmldr/riichi-ai/blob/main/NOTICE.md",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "majsoul_optional",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "UNKNOWN",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    },
+    {
+      "source_id": "third_party_mirror_hf",
+      "status": "RESTRICTED",
+      "train_allowed": "RESTRICTED",
+      "redistribute_allowed": "RESTRICTED",
+      "terms_url": "UNKNOWN",
+      "reviewer": "H-03 Dev-C (AI agent; evidence draft; no human sign-off)"
+    }
+  ]
+}

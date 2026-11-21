@@ -269,13 +269,24 @@ class NativeContextTests(unittest.TestCase):
         self.assertEqual(event["target"], 3)
         self.assertIs(context.phase, ActionPhase.CALL_RESPONSE)
 
-    def test_multi_kan_picks_first_candidate(self):
+    def test_multi_kan_requires_explicit_second_decision(self):
         hand = _hand("5m", "5m", "5m", "5m", "6p", "6p", "6p", "6p",
                      "1m", "2m", "3m", "4m", "6m", "7m")
         state = _MockState(hand, mask=_mask_with(42), ankan=("5m", "6p"),
                            cans=_Cans(can_ankan=True))
-        event, _ = A.decode_native_action(42, state, seat=0)
+        with self.assertRaises(A.KanSelectionRequired) as raised:
+            A.decode_native_action(42, state, seat=0)
+        self.assertEqual(
+            [option.tile.text for option in raised.exception.options], ["5m", "6p"])
+        self.assertEqual(state.validated, [])
+        # The second stage is a real KAN_SELECTION decision with a tile-only mask.
+        selection_mask = _mask_with(4)  # 5m tile kind
+        event, context = A.decode_native_action(
+            4, state, seat=0, legal_mask=selection_mask,
+            phase=ActionPhase.KAN_SELECTION)
         self.assertEqual(event["consumed"], ["5m"] * 4)
+        self.assertIs(context.phase, ActionPhase.KAN_SELECTION)
+        self.assertEqual(len(state.validated), 1)
 
     def test_false_tsumogiri_regression(self):
         hand = _hand("1m", "2m", "3m", "4m", "6m", "7m", "8m", "9m",

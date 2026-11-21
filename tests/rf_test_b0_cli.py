@@ -223,8 +223,17 @@ class B0WrapperTests(unittest.TestCase):
         for key in ("optimizer", "scheduler", "ema"):
             assert_state_equal(self, left[key], right[key], key)
         self.assertEqual(left["counters"], right["counters"])
+        left_selection = json.loads(
+            (uninterrupted / "EXP-B0-RESUME" / "selection.json").read_text())
+        right_selection = json.loads(
+            (resumed / "EXP-B0-RESUME" / "selection.json").read_text())
+        self.assertEqual(left_selection["candidate_id"],
+                         right_selection["candidate_id"])
+        self.assertEqual(left_selection["considered"],
+                         right_selection["considered"])
+        self.assertEqual(len(right_selection["considered"]), 2)
         print("PR48_RESUME resumed step-10 model/optimizer/scheduler/EMA == "
-              "uninterrupted")
+              "uninterrupted; selection registry preserved")
 
     def test_legacy_and_cross_path_resume_refused(self):
         protocol = make_protocol(self.root, name="EXP-B0-LEGACY",
