@@ -21,9 +21,25 @@
 ## Lead 首轮验证步骤
 
 1. 保存用户未提交的代码和 vendor 子模块变更；核对当前本地 rf3-g3 基线。远程公开的是 filtered history，不能直接 merge 本地开发史。
-2. 在独立工作树检出 rf/v3.2-policy-parallel-plan；运行：
-   PYTHONPATH=vendor/mortal/target/release .venv/bin/python -m pytest -q tests/rf_test_shards.py tests/rf_test_training.py tests/rf_test_source_rights.py tests/rf_test_research_policy.py
-3. 使用本地 H02 full 数据运行只有 10 场的 dry-run：
+2. **必须先从 GitHub 拉取最新远程 V3.2 分支**，再用独立 worktree 开发。不要把远程 filtered history 直接 merge/cherry-pick 到本地 rf/v3；不要 reset、clean 或强制推送。下面命令假设仓库主目录是 /home/ygsldr/riichi-ai 且远程名是 origin，Lead 应先检查 git remote -v 并根据实际目录适配：
+
+   ```bash
+   cd /home/ygsldr/riichi-ai
+   MAIN_ROOT="$PWD"
+   git remote -v
+   git status --short
+   git fetch origin refs/heads/rf/v3.2-policy-parallel-plan:refs/remotes/origin/rf/v3.2-policy-parallel-plan
+   git rev-parse origin/rf/v3.2-policy-parallel-plan
+   git worktree add -b rf/v3.2-local worktrees/v3.2-policy origin/rf/v3.2-policy-parallel-plan
+   cd worktrees/v3.2-policy
+   git rev-parse HEAD
+   PYTHONPATH="$MAIN_ROOT/vendor/mortal/target/release" "$MAIN_ROOT/.venv/bin/python" -m pytest -q tests/rf_test_shards.py tests/rf_test_training.py tests/rf_test_source_rights.py tests/rf_test_research_policy.py
+   ```
+
+   如果本地已有 rf/v3.2-local 或 worktrees/v3.2-policy，先检查状态并复用或另起名字，**不要**删除现有分支/目录。这里使用的是远程 filtered 分支的树，不能擅自替代冻结的 rf3-g3；与原本地数据及 vendor 依赖应通过 MAIN_ROOT 的绝对路径引用。进入 worktree 后需重新设置 MAIN_ROOT 为真正的本地主工作树目录（不要误指新 worktree）。
+
+3. 使用本地 H02 full 数据运行只有 10 场的 dry-run（本地原仓库根目录，**不是**新的 worktree 目录）：
+
    .venv/bin/python scripts/rf_build_shards.py --canonical-dir artifacts/riichiformer/h02/canonical --split-manifest artifacts/riichiformer/h02/split_full/split_manifest_L_v2.parquet --purpose train --limit 10 --out /tmp/rf32_private10.rfshard --research-policy operator_private_research --dry-run
 4. 确认选中的 game_id 全属于训练分区，再将 --dry-run 换为 --write。校验 manifest 的 research_policy、research_policy_hash、source_id 和 rights_status，并用 ShardReader(purpose=train) 抽验。
 5. 在 5070 Ti 上进行两步六层模型 smoke：
