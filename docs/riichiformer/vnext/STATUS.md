@@ -34,7 +34,7 @@
 * validation at 5,000: 50-batch BC CE 1.4891 / rank 1.2881; 500-batch re-eval
   **1.5019 / 1.1787**. At 10,000: 50-batch 1.4666 / 1.2870; 500-batch
   1.4895 / 1.1472. At 15,000: 50-batch **1.4539 / 1.2557**; 500-batch
-  **1.4720 / 1.1363**; checkpoints
+  **1.4720 / 1.1363**. At 20,000: 50-batch **1.4396 / 1.2705**; checkpoints
   `step_005000.pt` / `step_010000.pt`.
 
 ## Current measured evidence
