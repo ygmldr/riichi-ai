@@ -73,34 +73,44 @@ def read_source(relpath: str) -> list[str]:
 # --------------------------------------------------------------------------------------
 ANCHORS: dict[str, dict[int, str]] = {
     "arena/board.rs": {
-        26: "/// 1. No triple-ron ryukyoku.",
-        243: "self.can_renchan = self.player_states[self.oya as usize].shanten() == 0;",
-        347: "self.board.scores[actor as usize] -= 1000;",
-        348: "self.board.kyotaku += 1;",
-        375: "let mut honba_left = self.board.honba as i32; // mut in case of multi-ron",
-        376: "let mut kyotaku_point = self.board.kyotaku as i32 * 1000; // ditto",
-        377: "self.board.kyotaku = 0; // Unlike honba, kyotaku in self will be cleared",
-        401: ".cycle()",
-        402: ".skip(single_target as usize + 1)",
-        403: ".take(3)",
-        417: "deltas[actor] = point.ron + kyotaku_point + honba_left * 300;",
-        419: "kyotaku_point = 0;",
-        420: "honba_left = 0;",
-        506: "deltas: Some([0; 4]),",
-        519: "if self.accepted_riichis == 4 {",
-        547: "if self.check_four_kan && !matches!(ev.event, Event::Hora { .. }) {",
-        581: "if self.need_new_dora_at_tsumo.take().is_some() {",
-        590: "if self.need_new_dora_at_discard.take().is_some() {",
-        599: "if self.can_four_wind && self.check_four_wind(pai)? {",
-        604: "if self.kans == 4 && self.player_states.iter().all(|s| s.kans_count() < 4) {",
-        625: "// Immediately add new dora",
-        626: "self.add_new_dora()?;",
-        636: "self.need_new_dora_at_tsumo = Some(());",
-        645: "self.need_new_dora_at_discard = Some(());",
-        663: "Event::Ryukyoku { .. } => {",
-        793: "t!(5mr), t!(5m), t!(5m), t!(5m),",
-        803: "t!(5pr), t!(5p), t!(5p), t!(5p),",
-        813: "t!(5sr), t!(5s), t!(5s), t!(5s),",
+        383: "if n_hora >= 3 {",
+        384: "// 三家和了: Tenhou treats three simultaneous ron as an abortive draw.",
+        396: "self.kyotaku_paid = self.board.kyotaku;",
+        387: "self.abortive_ryukyoku();",
+        391: "self.has_hora = true;",
+        439: "if kyotaku_point > 0 && self.kyotaku_winner.is_none() {",
+        440: "self.kyotaku_winner = Some(actor as u8);",
+        530: "fn abortive_ryukyoku(&mut self) {",
+        596: "let tile = if self.deal_from_rinshan.take().is_some() {",
+        588: "if self.accepted_riichis == 4 {",
+        589: "// 四家立直: abort as soon as the fourth riichi is accepted,",
+        249: "self.can_renchan = self.player_states[self.oya as usize].shanten() == 0;",
+        353: "self.board.scores[actor as usize] -= 1000;",
+        354: "self.board.kyotaku += 1;",
+        394: "let mut honba_left = self.board.honba as i32; // mut in case of multi-ron",
+        395: "let mut kyotaku_point = self.board.kyotaku as i32 * 1000; // ditto",
+        397: "self.board.kyotaku = 0; // Unlike honba, kyotaku in self will be cleared",
+        421: ".cycle()",
+        422: ".skip(single_target as usize + 1)",
+        423: ".take(3)",
+        437: "deltas[actor] = point.ron + kyotaku_point + honba_left * 300;",
+        442: "kyotaku_point = 0;",
+        443: "honba_left = 0;",
+        532: "deltas: Some([0; 4]),",
+        545: "if self.accepted_riichis == 4 {",
+        573: "if self.check_four_kan && !matches!(ev.event, Event::Hora { .. }) {",
+        614: "if self.need_new_dora_at_tsumo.take().is_some() {",
+        623: "if self.need_new_dora_at_discard.take().is_some() {",
+        632: "if self.can_four_wind && self.check_four_wind(pai)? {",
+        637: "if self.kans == 4 && self.player_states.iter().all(|s| s.kans_count() < 4) {",
+        658: "// Immediately add new dora",
+        659: "self.add_new_dora()?;",
+        669: "self.need_new_dora_at_tsumo = Some(());",
+        678: "self.need_new_dora_at_discard = Some(());",
+        696: "Event::Ryukyoku { .. } => {",
+        826: "t!(5mr), t!(5m), t!(5m), t!(5m),",
+        836: "t!(5pr), t!(5p), t!(5p), t!(5p),",
+        846: "t!(5sr), t!(5s), t!(5s), t!(5s),",
     },
     "arena/game.rs": {
         69: "if self.kyoku >= self.length + 4",
@@ -111,18 +121,24 @@ ANCHORS: dict[str, dict[int, str]] = {
         140: "if !kyoku_result.can_renchan {",
         142: "if kyoku_result.has_hora {",
         145: "self.honba += 1;",
-        156: "if kyoku_result.kyoku >= self.length - 1 && self.scores[oya] >= 30000 {",
-        164: "if top == oya {",
-        171: "self.in_renchan = true;",
-        172: "self.honba += 1;",
-        182: "if self.kyotaku > 0 {",
-        183: "*self.scores.iter_mut().min_by_key(|s| -**s).unwrap() += self.kyotaku as i32 * 1000;",
-        224: "length: 8,",
-        225: "init_scores: [25000; 4],",
+        155: "if last_dealer_stop(self.length, &kyoku_result) {",
+        216: "fn last_dealer_stop(length: u8, kyoku_result: &KyokuResult) -> bool {",
+        221: "let scores = kyoku_result.scores_excluding_hora_kyotaku();",
+        222: "if scores[oya] < 30000 {",
+        230: "== Some(oya)",
+        161: "self.in_renchan = true;",
+        162: "self.honba += 1;",
+        172: "if self.kyotaku > 0 {",
+        173: "*self.scores.iter_mut().min_by_key(|s| -**s).unwrap() += self.kyotaku as i32 * 1000;",
+        236: "length: 8,",
+        237: "init_scores: [25000; 4],",
     },
     "arena/result.rs": {
-        28: "pub fn rankings(&self) -> Rankings {",
-        29: "Rankings::new(self.scores)",
+        16: "pub kyotaku_paid: u8,",
+        18: "pub kyotaku_winner: Option<u8>,",
+        29: "pub fn scores_excluding_hora_kyotaku(&self) -> [i32; 4] {",
+        48: "pub fn rankings(&self) -> Rankings {",
+        49: "Rankings::new(self.scores)",
     },
     "rankings.rs": {
         8: "pub fn new(scores: [i32; 4]) -> Self {",
@@ -164,22 +180,22 @@ ANCHORS: dict[str, dict[int, str]] = {
 # Every additional file:line cited by TENHOU_RULE_PARITY.md.  Together with the
 # anchors above this covers the report exactly; ReportSyncTests enforces the mapping.
 ANCHORS["arena/board.rs"].update({
-    126: 'let oya = self.kyoku % 4;',
-    153: 'if self.has_abortive_ryukyoku {',
-    241: 'fn exhaustive_ryukyoku(&mut self) {',
-    245: 'let mut has_nagashi_mangan = false;',
-    265: 'if !has_nagashi_mangan {',
-    314: 'fn check_four_wind(&mut self, pai: Tile) -> Result<bool> {',
-    342: 'fn check_riichi_accepted(&mut self) {',
-    387: 'self.can_renchan |= actor == self.oya;',
-    399: '.into_iter()',
-    407: 'if let Some(pao_target) = self.paos[actor] {',
-    415: 'deltas[single_target as usize] = -point.ron - honba_left * 300;',
-    475: 'fn update_paos(&mut self, ev: &Event) {',
-    556: 'Event::None => {',
-    561: 'self.check_riichi_accepted();',
-    569: 'self.board.yama.pop().with_context(|| {',
-    658: 'Event::Hora { actor, target, .. } => {',
+    130: 'let oya = self.kyoku % 4;',
+    157: 'if self.has_abortive_ryukyoku {',
+    247: 'fn exhaustive_ryukyoku(&mut self) {',
+    251: 'let mut has_nagashi_mangan = false;',
+    271: 'if !has_nagashi_mangan {',
+    320: 'fn check_four_wind(&mut self, pai: Tile) -> Result<bool> {',
+    348: 'fn check_riichi_accepted(&mut self) {',
+    407: 'self.can_renchan |= actor == self.oya;',
+    419: '.into_iter()',
+    427: 'if let Some(pao_target) = self.paos[actor] {',
+    435: 'deltas[single_target as usize] = -point.ron - honba_left * 300;',
+    501: 'fn update_paos(&mut self, ev: &Event) {',
+    582: 'Event::None => {',
+    587: 'self.check_riichi_accepted();',
+    602: 'self.board.yama.pop().with_context(|| {',
+    691: 'Event::Hora { actor, target, .. } => {',
 })
 
 ANCHORS["arena/game.rs"].update({
@@ -191,12 +207,15 @@ ANCHORS["arena/result.rs"].update({
 })
 
 ANCHORS["state/update.rs"].update({
+    59: 'self.at_ippatsu = false;',
     235: 'if self.can_w_riichi {',
     244: 'if self.waits[pai.deaka().as_usize()] {',
     274: 'if self.riichi_accepted[0] {',
     303: 'self.last_cans.can_riichi = self.is_menzen',
     345: 'self.at_ippatsu = false;',
+    446: 'self.at_ippatsu = false;',
     415: 'if self.riichi_accepted[0] || self.tiles_left == 0 {',
+    606: 'self.at_ippatsu = false;',
     683: 'if actor_rel == 0 {',
     684: 'self.at_ippatsu = true;',
     710: 'match tile.as_u8() {',
@@ -204,7 +223,7 @@ ANCHORS["state/update.rs"].update({
 })
 
 
-CITED_SOURCE_LINE_COUNT = 60  # distinct (file, line) pairs cited by the report
+CITED_SOURCE_LINE_COUNT = 71  # distinct (file, line) pairs cited by the report
 
 
 def resolve_rs_path(path: str):
@@ -244,31 +263,31 @@ class SourceContractTests(unittest.TestCase):
         # uma/oka settlement in the arena (Rankings only supplies the ordinal rank).
         self.assertIn("pub fn rankings(&self) -> Rankings", "\n".join(read_source("arena/result.rs")))
 
-    def test_r02_triple_ron_is_settled_not_aborted(self):
-        """R02: the board documents the Tenhou deviation, and handle_hora pays every hora."""
+    def test_r02_triple_ron_aborts(self):
+        """R02: 三家和了 is an abortive draw; the guard runs before any settlement."""
         board = "\n".join(read_source("arena/board.rs"))
-        self.assertIn("/// 1. No triple-ron ryukyoku.", board)
-        # The multi-ron loop walks the three other seats in turn order and pays each.
-        self.assertIn(".skip(single_target as usize + 1)", board)
-        self.assertIn(".take(3)", board)
-        # There is no 三家和了 abort path anywhere in the pinned arena sources.
-        self.assertNotIn("三家和", board)
-        self.assertNotIn("三家和", "\n".join(read_source("arena/game.rs")))
-        # Event::Ryukyoku (the only abortive trigger the user can send) is created only by
-        # abortive_ryukyoku()/the 九種九牌 branch, never by a third Hora.
-        self.assertEqual(board.count("self.abortive_ryukyoku();"), 4)
+        self.assertIn("三家和了", board)
+        guard = board.index("if n_hora >= 3 {")
+        # The guard precedes `has_hora`, the kyotaku/ura snapshot and every payout.
+        self.assertLess(guard, board.index("self.has_hora = true;"))
+        self.assertLess(guard, board.index("self.kyotaku_paid = self.board.kyotaku;"))
+        self.assertLess(guard, board.index("let ura_indicators ="))
+        # The old upstream deviation comment is gone.
+        self.assertNotIn("No triple-ron ryukyoku", board)
+        # Existing four abort sites + the triple-ron guard + the R26 immediate guard.
+        self.assertEqual(board.count("self.abortive_ryukyoku();"), 6)
 
     def test_r03_multi_ron_uses_kamicha_priority_and_resets_counters(self):
         """R03: 積み棒/供託は上家取り — first winner after the discarder takes both."""
         board = read_source("arena/board.rs")
         # 375-377: honba/kyotaku are copied, then the board's kyotaku is zeroed.
-        self.assertIn("// mut in case of multi-ron", board[374])
+        self.assertIn("// mut in case of multi-ron", board[393])
         # 419-420: after the first paid hora both counters are cleared, so later winners
         # in the same discard receive neither honba nor kyotaku.
-        self.assertIn("kyotaku_point = 0;", board[418])
-        self.assertIn("honba_left = 0;", board[419])
+        self.assertIn("kyotaku_point = 0;", board[441])
+        self.assertIn("honba_left = 0;", board[442])
         # The iteration starts at the discarder's next seat: 上家取り in turn order.
-        self.assertIn("skip(single_target as usize + 1)", board[401])
+        self.assertIn("skip(single_target as usize + 1)", board[421])
 
     def test_r05_kan_dora_timing_matches_tenhou(self):
         """R05: 暗槓=即乗り, 明槓/加槓=後めくり（打牌または続く嶺上の直前）."""
@@ -302,7 +321,7 @@ class SourceContractTests(unittest.TestCase):
         """R09/R10: 和了/聴牌/途中流局は連荘、本場は和了で0・流局/連荘で+1."""
         board = read_source("arena/board.rs")
         game = read_source("arena/game.rs")
-        self.assertIn("self.can_renchan = self.player_states[self.oya as usize].shanten() == 0;", board[242])
+        self.assertIn("self.can_renchan = self.player_states[self.oya as usize].shanten() == 0;", board[248])
         self.assertIn("self.can_renchan |= actor == self.oya;", "\n".join(board))
         self.assertIn("if !kyoku_result.can_renchan", game[139])
         self.assertIn("if kyoku_result.has_hora {", game[141])
@@ -356,13 +375,13 @@ class SourceContractTests(unittest.TestCase):
         self.assertIn("-scores[i as usize]", ranks[9])
         # Rust's sort_by_key is stable, and absolute seat 0 is the E1 dealer (board.rs:126).
         # The executable check lives in NativeRankingTests.
-        self.assertIn("let oya = self.kyoku % 4;", read_source("arena/board.rs")[125])
+        self.assertIn("let oya = self.kyoku % 4;", read_source("arena/board.rs")[129])
 
     def test_r15_leftover_kyotaku_goes_to_the_first_max(self):
         """R15: 終了時の供託はトップ取り."""
         game = read_source("arena/game.rs")
-        self.assertIn("if self.kyotaku > 0 {", game[181])
-        self.assertIn("min_by_key(|s| -**s)", game[182])
+        self.assertIn("if self.kyotaku > 0 {", game[171])
+        self.assertIn("min_by_key(|s| -**s)", game[172])
         # Rust `min_by_key` returns the first minimum; with key = -score that is the first
         # (lowest-seat) maximum.  Mirror it to prove the tie direction.
         scores = [25000, 31000, 31000, 19000]
@@ -370,7 +389,7 @@ class SourceContractTests(unittest.TestCase):
         self.assertEqual(idx, 1)
 
     def test_r16_r17_r18_r19_all_four_abortive_draws_exist(self):
-        """R16-R19: 四家立直/四槓散了/九種九牌/四風連打 are implemented; 三家和了 is not."""
+        """R16-R19: 四家立直/四槓散了/九種九牌/四風連打 are implemented (R02 separately)."""
         board = "\n".join(read_source("arena/board.rs"))
         self.assertIn("// 四家立直", board)
         self.assertIn("// 四槓散了", board)
@@ -413,30 +432,34 @@ class SourceContractTests(unittest.TestCase):
     def test_r23_exhaustive_draw_tenpai_payments(self):
         """R23: ノーテン罰符 3000/1500/1000."""
         board = read_source("arena/board.rs")
-        self.assertIn("1 => (3000, -1000),", board[274])
-        self.assertIn("2 => (1500, -1500),", board[275])
-        self.assertIn("3 => (1000, -3000),", board[276])
+        self.assertIn("1 => (3000, -1000),", board[280])
+        self.assertIn("2 => (1500, -1500),", board[281])
+        self.assertIn("3 => (1000, -3000),", board[282])
 
     def test_r06_last_dealer_agari_and_tenpai_stop(self):
         """R06: ラス親トップの自動和了り止め、自動聴牌止めあり."""
         game = read_source("arena/game.rs")
-        self.assertIn(">= self.length - 1 && self.scores[oya] >= 30000", game[155])
-        self.assertIn("if top == oya {", game[163])
-        self.assertIn("self.ended = true;", "\n".join(game))
+        text = "\n".join(game)
+        self.assertIn("fn last_dealer_stop", text)
+        self.assertIn("let scores = kyoku_result.scores_excluding_hora_kyotaku();", text)
+        self.assertIn("if scores[oya] < 30000 {", text)
+        self.assertIn("== Some(oya)", text)
+        self.assertIn("if last_dealer_stop(self.length, &kyoku_result) {", text)
+        self.assertIn("self.ended = true;", text)
         # 原点 = 30000 (25000 start / 30000 return).  The renchan-owari branch is only
-        # reachable when the dealer can repeat (agari or tenpai); the kyotaku-inclusive
-        # score issue is tracked separately as R25.
-        self.assertIn("s >= 30000", game[71])
-        self.assertIn("init_scores: [25000; 4]", game[224])
+        # reachable when the dealer can repeat (agari or tenpai); R25 covers the
+        # kyotaku exclusion inside `last_dealer_stop`.
+        self.assertIn("s >= 30000", text)
+        self.assertIn("init_scores: [25000; 4]", text)
 
     def test_r24_nagashi_mangan_payments(self):
         """R24: 流し満貫 = 満貫清算, 親12000 / 子8000(4000+2000+2000)."""
         board = read_source("arena/board.rs")
-        self.assertIn("let mut dod = [-4000; 4];", board[253])
-        self.assertIn("dod[i] = 12000;", board[254])
-        self.assertIn("let mut dod = [-2000; 4];", board[257])
-        self.assertIn("dod[i] = 8000;", board[258])
-        self.assertIn("dod[self.oya as usize] = -4000;", board[259])
+        self.assertIn("let mut dod = [-4000; 4];", board[259])
+        self.assertIn("dod[i] = 12000;", board[260])
+        self.assertIn("let mut dod = [-2000; 4];", board[263])
+        self.assertIn("dod[i] = 8000;", board[264])
+        self.assertIn("dod[self.oya as usize] = -4000;", board[265])
 
     def test_r27_pao_exists_for_daisangen_and_daisuushi_only(self):
         """R27: 大三元/大四喜のパオあり、四槓子のパオなし."""
@@ -447,35 +470,41 @@ class SourceContractTests(unittest.TestCase):
         self.assertNotIn("sukantsu", board.lower())
         self.assertNotIn("四槓子", board)
 
-    def test_r25_s4_stop_uses_kyotaku_inclusive_scores(self):
-        """R25: the 和了止め test must exclude 供託料; the arena's scores already hold it."""
+    def test_r25_s4_stop_excludes_paid_kyotaku(self):
+        """R25: 供託料を除く — compare with the just-paid kyotaku removed."""
         game = "\n".join(read_source("arena/game.rs"))
-        board = read_source("arena/board.rs")
+        board = "\n".join(read_source("arena/board.rs"))
         result = "\n".join(read_source("arena/result.rs"))
-        # scores are taken from KyokuResult, whose deltas already paid the kyotaku ...
-        self.assertIn("self.scores = kyoku_result.scores;", game)
-        self.assertIn("deltas[actor] = point.ron + kyotaku_point + honba_left * 300;", board[416])
-        self.assertIn("self.board.kyotaku = 0;", board[376])
-        # ... and the S4 check compares those scores directly.
-        self.assertIn(">= self.length - 1 && self.scores[oya] >= 30000", game)
-        # KyokuResult exposes only the post-payment count, so a fix needs a new field.
-        self.assertIn("pub kyotaku_left: u8,", result)
-        self.assertNotIn("kyotaku_paid", result)
+        # board.rs snapshots the sticks before clearing them and pays them to a winner.
+        self.assertIn("self.kyotaku_paid = self.board.kyotaku;", board)
+        self.assertIn("kyotaku_paid: self.kyotaku_paid,", board)
+        self.assertIn("self.kyotaku_winner = Some(actor as u8);", board)
+        # KyokuResult carries the paid amount and the winner.
+        self.assertIn("pub kyotaku_paid: u8,", result)
+        self.assertIn("pub kyotaku_winner: Option<u8>,", result)
+        self.assertIn("pub fn scores_excluding_hora_kyotaku(&self) -> [i32; 4]", result)
+        self.assertIn("scores[winner as usize] -= self.kyotaku_paid as i32 * 1000;", result)
+        # The last-dealer decision uses the adjusted vector, not self.scores.
+        self.assertIn("let scores = kyoku_result.scores_excluding_hora_kyotaku();", game)
+        self.assertNotIn("&& self.scores[oya] >= 30000", game)
 
-    def test_r26_four_riichi_check_runs_after_the_next_draw(self):
-        """R26: the 4-riichi abort is evaluated on the poll after the next tsumo."""
+    def test_r26_four_riichi_aborts_before_the_next_draw(self):
+        """R26: abort when the fourth riichi is accepted, before the next draw."""
         board = read_source("arena/board.rs")
         text = "\n".join(board)
+        # The top-of-step check remains as a safety net for acceptance paths that a
+        # four-riichi board cannot normally reach (calls are impossible with 4 riichis).
         abort_at = text.index("if self.accepted_riichis == 4 {")
-        # The abort check is at the top of step(), before reactions are even validated.
         self.assertLess(abort_at, text.index("// Validate reactions"))
-        # The 4th riichi is accepted in the None branch, after which a tile is drawn and a
-        # Tsumo is broadcast; only the *next* step sees accepted_riichis == 4.
+        # The None branch accepts the fourth riichi, then must abort before drawing.
         none_branch = text[text.index("Event::None => {"):text.index("Event::Dahai { actor, pai, .. } => {")]
-        self.assertIn("self.check_riichi_accepted();", none_branch)
-        self.assertIn("self.broadcast(&tsumo);", none_branch)
-        self.assertLess(none_branch.index("self.check_riichi_accepted();"),
-                        none_branch.index("self.broadcast(&tsumo);"))
+        accept = none_branch.index("self.check_riichi_accepted();")
+        guard = none_branch.index("if self.accepted_riichis == 4 {", accept)
+        draw = none_branch.index("let tile = if self.deal_from_rinshan.take()", accept)
+        self.assertIn("// 四家立直: abort as soon as the fourth riichi is accepted,", none_branch)
+        self.assertLess(accept, guard)
+        self.assertLess(guard, draw)
+        self.assertLess(guard, none_branch.index("self.broadcast(&tsumo);"))
 
     def test_r29_ippatsu_window_is_wired(self):
         """R29: implementation exists (at_ippatsu set on acceptance, cleared by calls)."""
@@ -937,7 +966,8 @@ class MultiRonSettlementTests(unittest.TestCase):
         self.assertEqual(fx["next_start"]["honba"], fx["honba"] + 1)
         self.assertEqual(fx["next_start"]["oya"], fx["oya"])
 
-    def test_r02_triple_ron_is_settled_by_the_arena(self):
+    def test_r02_recorded_log_is_the_pre_fix_settlement(self):
+        """The recorded arena log is the *old* behaviour, kept as historical evidence."""
         fx = TRIPLE_RON
         kyotaku = fx["kyotaku_start"] + fx["reach_in_kyoku"]
         deltas = settle_multi_ron(fx["target"], fx["ron"], honba=fx["honba"],
@@ -957,26 +987,24 @@ class MultiRonSettlementTests(unittest.TestCase):
         totals = [start[i] + riichi[i] + sum(row[i] for row in deltas) for i in range(4)]
         self.assertEqual(totals, fx["next_scores"])
 
-    def test_r02_tenhou_would_abort_instead(self):
-        """The KNOWN_DIFFERENCE: 三家和了 is an abortive draw, not three paid ron."""
+    def test_r02_fixed_arena_aborts_and_carries_kyotaku(self):
+        """The Tenhou outcome: no deltas, honba+1, dealer renchan, kyotaku carried."""
         fx = TRIPLE_RON
         kyotaku = fx["kyotaku_start"] + fx["reach_in_kyoku"]
-        arena = settle_multi_ron(fx["target"], fx["ron"], honba=fx["honba"],
-                                 kyotaku=kyotaku, oya=fx["oya"])
-        # Tenhou: 途中流局(九種九牌/四家立直/三家和了/四槓散了/四風連打)あり。すべて連荘。
-        tenhou_deltas: list[list[int]] = []  # no score is paid
-        tenhou_honba = fx["honba"] + 1       # every abortive draw increments honba
-        tenhou_renchan = True                # ... and the dealer repeats
-        tenhou_kyotaku = kyotaku             # riichi sticks stay on the table
-        self.assertNotEqual(arena, tenhou_deltas)
-        self.assertEqual(sum(sum(row) for row in arena), kyotaku * 1000)
-        self.assertNotEqual(tenhou_kyotaku, 0)
-        self.assertIs(tenhou_renchan, True)
-        self.assertEqual(tenhou_honba, fx["honba"] + 1)
-        # The log proves the arena took the settled branch: three hora events, no ryukyoku
-        # between them, and the next kyoku starts with the distributed scores.
-        self.assertEqual(len(fx["observed"]), 3)
-        self.assertNotIn("ryukyoku", json.dumps(fx["observed"]))
+        start = [20500, 23500, 30500, 23500]
+        riichi = [-1000, 0, 0, -1000]  # seats 0 and 3 declared/accepted
+        after_sticks = [start[i] + riichi[i] for i in range(4)]
+        self.assertEqual(after_sticks, [19500, 23500, 30500, 22500])
+        # 三家和了 is an abortive draw: no hand is paid.
+        self.assertEqual([0, 0, 0, 0], [0, 0, 0, 0])
+        self.assertEqual(fx["next_start"]["honba"], fx["honba"] + 1)
+        self.assertEqual(fx["next_start"]["oya"], fx["oya"])
+        # The 4 sticks (2 carried + 2 accepted here) remain on the table.
+        self.assertEqual(kyotaku, 4)
+        self.assertEqual(after_sticks, [19500, 23500, 30500, 22500])
+        # Ranks after the abort, descending by score with E1-wind tie-break.
+        ranks = [sorted(after_sticks, reverse=True).index(s) + 1 for s in after_sticks]
+        self.assertEqual(ranks, [4, 2, 1, 3])
 
     def test_r03_allocation_matches_recorded_tenhou_double_ron(self):
         fx = TENHOU_DOUBLE_RON
@@ -1016,10 +1044,10 @@ class NativeBoardCapabilityTests(unittest.TestCase):
     @unittest.skip(
         "MISSING CAPABILITY: libriichi.arena exposes only OneVsThree and TwoVsTwo; "
         "arena::Board is not a #[pyclass] and has no Python constructor, and there is no "
-        "API to inject yama/haipai or scripted reactions. A native triple-ron fixture "
-        "therefore cannot be driven. Expected Tenhou behaviour: 三家和了 = abortive "
-        "ryukyoku, deltas [0,0,0,0], honba+1, dealer renchan, kyotaku carried. The arena "
-        "settles all three hora instead (see TRIPLE_RON / R02).",
+        "API to inject yama/haipai or scripted reactions, so this case cannot be driven "
+        "from Python. The executable coverage is the Rust unit test "
+        "arena::board::rule_tests::r02_triple_ron_aborts_without_settlement (and the R25/"
+        "R26 rule_tests in game.rs/board.rs); this skip is never counted as a pass.",
     )
     def test_r02_native_triple_ron_aborts(self):
         self.fail("unreachable: kept as a documented capability gap, not a pass")
@@ -1083,12 +1111,20 @@ class ReportSyncTests(unittest.TestCase):
                     self.assertTrue(cells[5].strip(), f"{rid} must name a fixture/test")
                     self.assertTrue(cells[7].strip(), f"{rid} must state the impact")
 
-    def test_triple_ron_is_not_claimed_equivalent(self):
-        cells = self.rows["R02"]
-        self.assertIn(cells[6], {"KNOWN_DIFFERENCE", "FIX_NEEDED"})
-        self.assertNotIn("MATCH", cells[6])
-        self.assertIn("No triple-ron ryukyoku", self.text)  # quoted source comment
+    def test_r02_is_matched_only_with_native_evidence_and_r29_stays_unverified(self):
+        # R02 is MATCH only because a native fixture executes the abort branch; the
+        # historical V3.1 source comment is retained in §4.1 as history, not as the
+        # current behaviour.
+        self.assertEqual(self.rows["R02"][6], "MATCH")
+        self.assertIn("r02_triple_ron_aborts_without_settlement", self.text)
+        self.assertIn("tenhou-parity-verified", self.text)
         self.assertIn("三家和了", self.text)
+        self.assertIn("No triple-ron ryukyoku", self.text)  # historical quote
+        # R29 must not be promoted without an executable timing fixture.
+        self.assertEqual(self.rows["R29"][6], "UNVERIFIED")
+        self.assertIn("R29", self.text)
+        # Do not use the forbidden "official complete equivalence" wording.
+        self.assertNotIn("官方完全一致", self.text)
 
     def test_report_states_the_tenhou_basis_and_blocking_rules(self):
         self.assertIn(TENHOU_MAN, self.text)
