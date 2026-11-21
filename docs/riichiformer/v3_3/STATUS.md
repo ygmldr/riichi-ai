@@ -1,6 +1,6 @@
 # RiichiFormer V3.3 — Wave 2 status (Lead)
 
-Updated: 2026-11-21 17:xx +0800. This file is Lead-owned and records only operations
+Updated: 2026-11-21 18:00 +0800. This file is Lead-owned and records only operations
 actually run on this host. It is not a strength report.
 
 ## Base facts (verified, not assumed)
@@ -56,10 +56,10 @@ only; Dev-D is CPU Rust build/tests only.
 | Gate | Status |
 |---|---|
 | `G-V33-W2` | **PASS** — reviewer P1 closed, tag `rf3.2-w2`, 708 tests at `e760226` |
-| `G-V33-A0` | IN PROGRESS — anchor confirmed; adapter/4-seat/self-control smoke pending Dev-A |
-| `G-V33-D0` | IN PROGRESS — validation/E2E code pending Dev-B |
-| `G-V33-B0` | NOT_RUN — protocol/code only; no full epoch |
-| `G-V33-C0` | NOT_RUN — no confirm pool consumed, no strength claim |
+| `G-V33-A0` | **PASS at smoke scale** — M5D-R0 identity, 4-seat rotation, real self-control ΔPT 0.0, RF bridge 2,298 decisions / 0 rejected |
+| `G-V33-D0` | **PASS for data/pipeline** — 100 native games, 73,841 decisions, disjoint, diagnostic shard, CE 1.937, E2E two walls |
+| `G-V33-B0` | **CODE_PASS / FULL_TRAIN NOT_RUN** — 41 tests, 2 seeds × 2 CPU steps; full 6,191-step epoch not run |
+| `G-V33-C0` | **NOT_RUN** — no confirm pool, no strength claim |
 
 `STRENGTH_NOT_RUN` remains true for the project. No ΔPT, rank, dan, or Mortal-superiority
 claim is made from loss or mock runs.
