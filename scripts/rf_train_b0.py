@@ -43,6 +43,7 @@ No strength claim is made from loss/CE anywhere in this script.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -242,7 +243,14 @@ def _load_prior_candidates(seed_dir: Path, protocol: B0Protocol,
             continue
         if step > up_to_step:
             continue
+        sidecar = json.loads(Path(str(path) + ".json").read_text(encoding="utf-8"))
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if sidecar.get("sha256") != digest:
+            raise WrapperRefusal(
+                f"prior candidate {path.name} sidecar hash does not match the file")
         payload = torch.load(path, weights_only=False, map_location="cpu")
+        if payload.get("format") != "rf-checkpoint/1":
+            raise WrapperRefusal(f"prior candidate {path.name} has an unknown format")
         extra = payload.get("extra") or {}
         if extra.get("b0_experiment_id") != protocol.experiment_id:
             raise WrapperRefusal(
@@ -258,7 +266,6 @@ def _load_prior_candidates(seed_dir: Path, protocol: B0Protocol,
             raise WrapperRefusal(
                 f"prior candidate {path.name} lacks raw validation metrics")
         ema_raw = extra.get("b0_validation_ema")
-        sidecar = json.loads(Path(str(path) + ".json").read_text(encoding="utf-8"))
         counters = payload.get("counters") or {}
         candidate = B0Candidate(
             experiment_id=protocol.experiment_id, seed=int(seed), step=step,

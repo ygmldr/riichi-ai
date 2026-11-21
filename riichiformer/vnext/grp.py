@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import math
-from dataclasses import dataclass
-from typing import Sequence
+import os
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Mapping, Sequence
 
 import torch
 from torch import Tensor, nn
@@ -228,8 +231,68 @@ def grp_state_sha(model: GRP24) -> str:
     return digest.hexdigest()
 
 
+def grp_config_hash(config: GRPConfig) -> str:
+    payload = json.dumps(asdict(config), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def save_grp_checkpoint(path: str | Path, model: GRP24, *,
+                        normalizer_hash: str, rules_hash: str,
+                        permutation_map_hash: str) -> dict:
+    """Save an independent GRP artifact; no Actor state is written."""
+    if not isinstance(model, GRP24):
+        raise ContractError("model must be GRP24")
+    for name, value in (("normalizer_hash", normalizer_hash),
+                        ("rules_hash", rules_hash),
+                        ("permutation_map_hash", permutation_map_hash)):
+        if not isinstance(value, str) or len(value) != 64:
+            raise ContractError(f"{name} must be a 64-char sha256")
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "format": "rf-grp-checkpoint/1",
+        "config": asdict(model.config),
+        "config_hash": grp_config_hash(model.config),
+        "state": model.state_dict(),
+        "state_sha256": grp_state_sha(model),
+        "normalizer_hash": normalizer_hash,
+        "rules_hash": rules_hash,
+        "permutation_map_hash": permutation_map_hash,
+    }
+    tmp = Path(str(path) + ".tmp")
+    torch.save(payload, tmp)
+    digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
+    os.replace(tmp, path)
+    manifest = {key: value for key, value in payload.items() if key != "state"}
+    manifest["sha256"] = digest
+    Path(str(path) + ".json").write_text(
+        json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+    return manifest
+
+
+def load_grp_checkpoint(path: str | Path) -> tuple[GRP24, dict]:
+    path = Path(path)
+    if not path.is_file():
+        raise ContractError(f"GRP checkpoint not found: {path}")
+    sidecar = json.loads(Path(str(path) + ".json").read_text(encoding="utf-8"))
+    if sidecar.get("sha256") != hashlib.sha256(path.read_bytes()).hexdigest():
+        raise ContractError("GRP checkpoint file SHA-256 does not match sidecar")
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if payload.get("format") != "rf-grp-checkpoint/1":
+        raise ContractError("unknown GRP checkpoint format")
+    config = GRPConfig(**payload["config"])
+    if grp_config_hash(config) != payload.get("config_hash"):
+        raise ContractError("GRP config hash mismatch")
+    model = GRP24(config)
+    model.load_state_dict(payload["state"], strict=True)
+    if grp_state_sha(model) != payload.get("state_sha256"):
+        raise ContractError("GRP state hash mismatch")
+    return model, sidecar
+
+
 __all__ = [
     "CalibrationReport", "GRP24", "GRPConfig", "boundaries_tensor",
-    "calibration_report", "grp_loss", "grp_state_sha", "permutation_consistency_error",
-    "permute_input_scores", "permute_prob_perm",
+    "calibration_report", "grp_config_hash", "grp_loss", "grp_state_sha",
+    "load_grp_checkpoint", "permutation_consistency_error",
+    "permute_input_scores", "permute_prob_perm", "save_grp_checkpoint",
 ]

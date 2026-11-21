@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,7 +19,8 @@ from riichiformer.vnext.contracts import (  # noqa: E402
 )
 from riichiformer.vnext.grp import (  # noqa: E402
     GRP24, GRPConfig, boundaries_tensor, calibration_report, grp_loss,
-    grp_state_sha, permute_input_scores, permute_prob_perm,
+    grp_state_sha, load_grp_checkpoint, permute_input_scores, permute_prob_perm,
+    save_grp_checkpoint,
 )
 
 
@@ -86,6 +88,18 @@ class GRPLossTests(unittest.TestCase):
         self.assertLess(report.brier, 1e-6)
         self.assertLess(report.ece, 1e-6)
         self.assertEqual(report.count, 2)
+
+    def test_independent_checkpoint_roundtrip(self):
+        model = GRP24(GRPConfig(hidden=8, layers=1))
+        root = Path(tempfile.mkdtemp(prefix="rf_grp_ckpt_"))
+        path = root / "grp.pt"
+        manifest = save_grp_checkpoint(
+            path, model, normalizer_hash="1" * 64, rules_hash="2" * 64,
+            permutation_map_hash="3" * 64)
+        self.assertEqual(manifest["format"], "rf-grp-checkpoint/1")
+        loaded, sidecar = load_grp_checkpoint(path)
+        self.assertEqual(grp_state_sha(loaded), grp_state_sha(model))
+        self.assertEqual(sidecar["rules_hash"], "2" * 64)
 
     def test_state_hash_stable(self):
         model = GRP24(GRPConfig(hidden=8, layers=1))

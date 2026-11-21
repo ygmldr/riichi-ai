@@ -14,13 +14,13 @@
 | Event + 34-tile state | `observable.py` | included in model suite |
 | Model / cross-attn / heads | `model.py` | 14 model tests |
 | Runtime | `runtime.py` | 4 tests |
-| GRP24 | `grp.py` | 7 tests |
+| GRP24 | `grp.py` | 8 tests |
 | Critic | `critic.py` | 4 tests |
 | BC adapter/trainer | `data.py`, `train.py` | 5 tests |
 | RL contracts/toy | `rl.py` | 14 tests |
 | V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | 8 synthetic tests + 43 B0 tests |
 
-Last clean VNext-only CPU run: **62 passed** in 2.02 s
+Last clean VNext-only CPU run: **63 passed** in ~2 s
 (`logs/vnext/vnext_cpu_only.log`), with CUDA hidden.  The VNext + P1 + B0
 combined run is recorded separately; it does not substitute for a full native
 Arena.

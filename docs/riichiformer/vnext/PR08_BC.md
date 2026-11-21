@@ -38,6 +38,24 @@ ranges, supervision, weights and forced flags.
 * checkpoint save/load restores identical weights and refuses a wrong contract
   hash.
 
+## Bounded real diagnostic (read-only)
+
+A 100-game `diagnostic` shard from the V3.3 validation lane
+(`/tmp/v33_b_smoke/val100.rfshard`, `source_id=selfplay_own`, `UNKNOWN`,
+`train_allowed=false`) was read through `ShardReader(purpose="audit")` and
+`VNextBatchAdapter` for the first 104 decisions.  This is a **read-only adapter
+smoke**, not training and not a Census:
+
+```text
+games=1 povs=1 decisions=104 supervised=103
+phases={'SELF_TURN': 79, 'CALL_RESPONSE': 25}
+ranks={'1': 104}
+elapsed=0.3s batches=13
+```
+
+The one-game sample is not representative and no shard was modified.  Its
+rights gate remains `UNKNOWN`/`train_allowed=false`.
+
 ## NOT_RUN
 
 * Real 2.51M-match Census, per-phase decision counts and P50/P90/P99 token

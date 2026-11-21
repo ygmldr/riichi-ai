@@ -28,7 +28,8 @@
 * true permutation gets near-zero CE, wrong permutation does not;
 * perfect calibration gives NLL/Brier/ECE ≈ 0;
 * seat-permutation transform of the probability vector;
-* state hash stable across `state_dict` roundtrip.
+* state hash stable across `state_dict` roundtrip;
+* independent `rf-grp-checkpoint/1` save/load with config/state/sidecar hashes.
 
 ## NOT_RUN
 
