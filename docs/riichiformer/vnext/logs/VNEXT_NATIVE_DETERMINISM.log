@@ -1,0 +1,43 @@
+{
+  "identical": true,
+  "kind": "native_vnext_trained_determinism",
+  "runs": {
+    "a": {
+      "log_traces": [
+        "4f0b97fd080d2621631c38b01c3b82bdddb971ac2ee5504877c8c4df634ca801",
+        "4ab62d4723aa8080ffaa37ecaeb8b74a5421ae7ae30afeccc0cfa95654e824b1",
+        "9a9d32a66b051a4e21a26c94d43f6e878e0b3b9949ba475886ec945e8cce6051",
+        "6ed263171d267950fb26e3fc33df2a042bbd18624492e598785c1e1021de45be",
+        "87a80b6bb2b4a9eddecb84c9e1be454c1af6217622bc6bc0ff7aa08e6f0d8f03",
+        "3684deb549f5858b41174e6a34a36ad86b225f54c7035096ef1c192bd1120c1d",
+        "d417968adec78e61796bff023f55be3d6f33c365bedc93faf474c0198d301cef",
+        "f57dc74df3d35bdd30a26df92963be26dfab94f0f02738ff67e055ce3b5d0be2"
+      ],
+      "rank_counts": [
+        0,
+        1,
+        5,
+        2
+      ]
+    },
+    "b": {
+      "log_traces": [
+        "4f0b97fd080d2621631c38b01c3b82bdddb971ac2ee5504877c8c4df634ca801",
+        "4ab62d4723aa8080ffaa37ecaeb8b74a5421ae7ae30afeccc0cfa95654e824b1",
+        "9a9d32a66b051a4e21a26c94d43f6e878e0b3b9949ba475886ec945e8cce6051",
+        "6ed263171d267950fb26e3fc33df2a042bbd18624492e598785c1e1021de45be",
+        "87a80b6bb2b4a9eddecb84c9e1be454c1af6217622bc6bc0ff7aa08e6f0d8f03",
+        "3684deb549f5858b41174e6a34a36ad86b225f54c7035096ef1c192bd1120c1d",
+        "d417968adec78e61796bff023f55be3d6f33c365bedc93faf474c0198d301cef",
+        "f57dc74df3d35bdd30a26df92963be26dfab94f0f02738ff67e055ce3b5d0be2"
+      ],
+      "rank_counts": [
+        0,
+        1,
+        5,
+        2
+      ]
+    }
+  },
+  "strength_claim": "NONE"
+}
