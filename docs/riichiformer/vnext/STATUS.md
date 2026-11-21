@@ -1,7 +1,7 @@
 # RiichiFormer VNext — Status
 
 **Updated**: 2026-11-22
-**HEAD**: `9d9fcbb` (review fixes in `63ffd3b`)
+**HEAD**: `7ed8140` (review fixes in `63ffd3b`)
 **Lead branch**: `rf/vnext-core` (worktree `/home/ygsldr/riichi-ai/worktrees/vnext-core`)
 **Base**: `8a915d1` / tag `rf3.3-w2`
 **Contract hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
