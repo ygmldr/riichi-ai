@@ -36,7 +36,7 @@ Append-only. Times are Asia/Shanghai. Each entry records commands actually run.
   template with `/tmp/b0_500.rfshard` + `/tmp/v33_b_smoke/val100.rfshard` →
   `parameters=5217582`, seeds `[20261121,20261122]`, validation_steps=25,
   candidate_steps=7; `B0_DRY_RUN_OK` with `training_path=multi_decisions`, device `cpu`.
-- Full suite (CUDA disabled) at `e81ed1f`: **841 passed, 6 skipped, 319 subtests**, 313.35 s (P1 isolation fixes; log `docs/riichiformer/v3/logs/V3_3_W2_full_suite_p1fix.log`). The earlier merged-tree run
+- Full suite (CUDA disabled) after `0552809`: **841 passed, 6 skipped, 319 subtests**, 313.35 s (P1 isolation fixes; log `docs/riichiformer/v3/logs/V3_3_W2_full_suite_p1fix.log`). The earlier merged-tree run
   (before the CLI fix) was 839 passed, 6 skipped, 319 subtests, 326.62 s.
 - The earlier 708-test base suite was 708 passed, 2 skipped, 281 subtests, 182.23 s.
 

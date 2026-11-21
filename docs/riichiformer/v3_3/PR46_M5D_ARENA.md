@@ -24,7 +24,7 @@ certified.
 | action guard | native 46-action mask only (`rule_based_agari_guard=false`) |
 | registry hash | `4df5c8251d1e4af4e2fc96cd29deb1d717fdfab427c36cb09cb082da89c75be4` |
 | libriichi git | `0cff2b52982be5b1163aa9a62fb01f03ce91e0d2` |
-| libriichi build SHA-256 | `ceb9287cba5e9f93cd1141ce3395d844af23a1f4cfaf68f19de25424f55a5c86` |
+| libriichi build SHA-256 | `ceb9287cba5e9f93cd1141ce3395d844af23a1f4cfaf68f19de25424f55a5c86` (lane-time 0014-only; merged tree uses `582e367…`, see note above) |
 | patch manifest hash | see `configs/riichiformer/m5d_baseline.yaml` |
 | runtime rules hash | `9580e4929418fb1ec190596f814b3c0cea92aba0c2a6f67ec272a589c74340c8` |
 | permission | `local_research_only` (scope statement, **not** a licence) |

@@ -451,7 +451,7 @@ Until those happen: **full B0 train `NOT_RUN`; arena `NOT_RUN`; strength
 
 The independent reviewer found that the initial B0 gate compared only paths and
 file hashes, so a train-purpose/train-split shard could be supplied as validation.
-Commit `e81ed1f`/follow-up `fix(pr48)` adds **`verify_validation_isolation`**:
+Commit `0552809` adds **`verify_validation_isolation`**:
 
 - validation metadata must be `purpose in {"diagnostic","audit"}`;
 - `train_allowed` and `train_eligible_under_policy` must both be false;

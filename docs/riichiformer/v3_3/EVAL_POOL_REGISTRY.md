@@ -21,7 +21,8 @@ it is train-only and not an evaluation pool.
 - Actual V3.3 smoke/debug windows (all role `smoke`, never confirm):
   `[220000,220004)`, `[221000,221004)`, `[222000,222004)` (A tests),
   `[241000,241004)` and `[241004,241008)` (A smoke),
-  `[250000,250025)` (Lead 100-game A0 self-control; 25 sets),
+  `[250000,250025)` (Lead 100-game A0 self-control; 25 sets; key deliberately
+  pinned to `0x9E3779B97F4A7C15` for this one gate, not a generated/confirm key),
   `[300000,300025)` (B 100-game validation/diagnostic corpus).
 - None of these is a `confirm` pool and none may be relabeled as one.
 - No `confirm` pool is created or consumed in this wave. A future confirm pool must be

@@ -345,6 +345,9 @@ def test_pr47_roundtrip(corpus):
                for loss in result["step_losses"])
     assert result["reload_logit_max_abs"] == 0.0
     assert result["training_loader_refusal"] in ("ShardRightsError", "ShardLoadError")
+    assert result["train_purpose"] == "train"
+    assert result["train_source"] in ("synthetic_allowed", "tenhou_old", "selfplay_own")
+    assert Path(result["train_fixture"]).is_file()
     assert result["gpu_used"] is False
     assert Path(result["checkpoint"]).exists()
     build = result["build"]

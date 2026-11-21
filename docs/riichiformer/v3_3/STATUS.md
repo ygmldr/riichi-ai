@@ -56,7 +56,7 @@ only; Dev-D is CPU Rust build/tests only.
 | Gate | Status |
 |---|---|
 | `G-V33-W2` | **PASS** — reviewer P1 closed, tag `rf3.2-w2`, 708 tests at `e760226` |
-| `G-V33-A0` | **PASS at smoke scale** — M5D-R0 identity, 4-seat rotation, real self-control ΔPT 0.0, RF bridge 2,298 decisions / 0 rejected |
+| `G-V33-A0` | **PASS** — 100-game/25-set self-control ΔPT 0.0; RF bridge 2,298 decisions / 0 rejected |
 | `G-V33-D0` | **PASS for data/pipeline** — 100 native games, 73,841 decisions, disjoint, diagnostic shard, CE 1.937, E2E two walls |
 | `G-V33-B0` | **CODE_PASS / FULL_TRAIN NOT_RUN** — 43 B0 tests, 2 seeds × 2 CPU steps, validation-isolation gate; full 6,191-step epoch not run |
 | `G-V33-C0` | **NOT_RUN** — no confirm pool, no strength claim |

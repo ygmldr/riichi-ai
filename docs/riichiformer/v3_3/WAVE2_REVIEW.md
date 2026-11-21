@@ -49,7 +49,7 @@ not evidence of strength. No arena result is a Tenhou dan/rank.
 
 ## Full suite
 
-- Final suite (CUDA disabled) at the merged tree: **841 passed, 6 skipped, 319 subtests**, 313.35 s after the P1 isolation fixes, exit 0 (`docs/riichiformer/v3/logs/V3_3_W2_full_suite.log`). The 6 skips are the CUDA-only/pre-existing skips; no GPU was used.
+- Final suite (CUDA disabled) at the merged tree: **841 passed, 6 skipped, 319 subtests**, 313.35 s after the P1 isolation fixes, exit 0 (`docs/riichiformer/v3/logs/V3_3_W2_full_suite_p1fix.log`). The 6 skips are the CUDA-only/pre-existing skips; no GPU was used.
 - Earlier full suite at an intermediate merged tree: **804 passed, 3 skipped,
   319 subtests**, 412.32 s. That run accidentally executed the pre-existing tiny
   `rf_test_bench.py::test_gpu_bf16_smoke` because CUDA was visible. It did not
@@ -63,7 +63,7 @@ not evidence of strength. No arena result is a Tenhou dan/rank.
 |---|---|---|
 | G-V33-W2 | tag, base suite, reviewer P1 fix | **PASS** |
 | G-V33-A0 | anchor identity, 4-seat rotation, self-control, hidden-tile tests, 25-set/100-game native smoke | **PASS** |
-| G-V33-D0 | 100-game disjoint validation, read-only diagnostics, E2E with a separate train fixture | **PASS_WITH_P1/P2**; four-riichi/triple-ron NOT observed |
+| G-V33-D0 | 100-game disjoint validation, read-only diagnostics, E2E with a separate train fixture | **PASS** (P2 caveats only); four-riichi/triple-ron NOT observed |
 | G-V33-B0 | protocol/selection/resume code + CPU smoke + validation-isolation gate | **CODE_PASS; full train NOT_RUN** |
 | G-V33-C0 | no confirm pool, no strength | **NOT_RUN** |
 

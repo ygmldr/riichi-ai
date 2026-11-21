@@ -162,7 +162,7 @@ optimizes the validation shard**:
 - checkpoint provenance comes from the train shard, and `extra` records both the
   train and validation shard hashes.
 
-The historical 2-step numbers in §? above were produced before this correction and
+The historical 2-step numbers in §2 above were produced before this correction and
 are retained as pipeline evidence only. `tests/rf_test_validation_e2e.py::test_pr47_roundtrip`
 now exercises the corrected path; full suite after the fix is recorded in
 `WAVE2_REVIEW.md`.
