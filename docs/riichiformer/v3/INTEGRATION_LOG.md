@@ -112,3 +112,12 @@
 - 结论 **PASS_WITH_P1**：policy hash 未配置认证、builder 默认过宽、无 `--policy-config`。报告 `docs/riichiformer/v3_2/ACCEPTANCE_LEAD.md`。
 - 建立四个独立 worktree（`v32-policy/compute/rules/selfplay`）并派发 PR-37 follow-up、PR-38/39、PR-40、PR-41/42；状态见 `docs/riichiformer/v3_2/WAVE1_STATUS.md`。
 - 本轮不运行真实训练/强度/发布；source_rights 仍 11 行 0 ALLOWED。
+
+## 2026-11-21 — V3.2 Wave 1 merged
+
+- 四个 Lane 均从 `cbf166a` 派生并合并到 `rf/v32-integration`：PR-37 `87afe78`、PR-40 `8248496`、PR-38/39 `4e4754b`、PR-41/42 `4e380a3`。
+- 独立 Reviewer：PR-37 `PASS_WITH_P1`、PR-40 `PASS_WITH_P1`；P1 已在 `c426ac7` 修复（bool gate 强转、R02/R26 证据 tautology、R02 continuation 标注 source-read、R25 引用）。
+- 集成全量：**682 passed, 2 skipped, 281 subtests**（198.10 s），日志 `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`。
+- `rf_train.py` 默认改为 6 层 MVP-S（5,217,582 参数），新增 `--tiny-smoke` / `--init-weights-only` / `--model-config`；`rf-shard/3` 私有策略要求显式 policy config/hash + allowlist。
+- PR-43 分项：`CODE_PASS`、`SYNTHETIC_E2E_PASS`、`PRIVATE_H2_TRAIN_SMOKE` PASS；`OWN_SELFPLAY_TRAIN_PASS=NOT_RUN`、`STRENGTH_NOT_RUN`；外部权利仍 11 行 0 ALLOWED。报告 `docs/riichiformer/v3_2/PR43_GATE.md`。
+- 未推送开发分支、未改公开 main、未训练真实 B0；0014 rules patch 只在本 worktree 本地应用，未提交 vendor 指针。

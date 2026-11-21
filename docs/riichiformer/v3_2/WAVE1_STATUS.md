@@ -76,3 +76,23 @@ closed before PR-43 claims any private-research training chain.
   PR-40 native fixture evidence, PR-41/42 0-illegal/score-conservation.
 - PR-43: separate `CODE_PASS`, `SYNTHETIC_E2E_PASS`, `OWN_SELFPLAY_TRAIN_PASS` (only if
   actually run), `EXTERNAL_LICENSE_STATUS` (unchanged facts), `STRENGTH_NOT_RUN`.
+
+## Wave 1 result (2026-11-21)
+
+All four lanes committed and were merged into `rf/v32-integration`; the accepted base
+was not rewritten and no public branch was pushed.
+
+| Lane | Commit | Result |
+|---|---|---|
+| A PR-37 | `87afe78` | PASS_WITH_P1; P1 bool-coercion fixed in `c426ac7`; policy config/hash/allowlist authentication in place |
+| C PR-40 | `8248496` | PASS_WITH_P1; R02/R25/R26 implemented, R29 UNVERIFIED; evidence P1s fixed in `c426ac7` |
+| B PR-38/39 | `4e4754b` | merged; 6-layer CLI, strict resume, `--init-weights-only`, accumulation and multi-decision parity tests |
+| D PR-41/42 | `4e380a3` | merged; real local-engine selfplay and duplicate arena with explicit `tenhou_approx` labels |
+
+Integration full suite after all merges and P1 fixes: **682 passed, 2 skipped, 281
+subtests** (198.10 s), log `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`.
+
+G3/PR-43 split result is in `PR43_GATE.md`: CODE_PASS and private H-02 GPU smoke PASS;
+own-selfplay train and strength are NOT_RUN. Third-party rights remain 11 rows / 0
+ALLOWED. Remaining P1s: R29/continuation evidence, PR-38 loader/trainer wiring,
+selfplay POV→shard conversion, and applying 0014 to a fresh vendor.
