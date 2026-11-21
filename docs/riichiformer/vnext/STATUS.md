@@ -49,7 +49,7 @@ native Arena.
 
 [`REVIEW.md`](REVIEW.md) records the first independent review (verdict FAIL at
 `138a77b`), every P0/P1 disposition, and the post-fix evidence.  A second
-reviewer is still pending; no PASS is claimed here.
+reviewer did not complete; no second-review PASS is claimed here.
 
 ## Gate
 

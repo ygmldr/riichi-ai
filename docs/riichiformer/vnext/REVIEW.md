@@ -71,6 +71,8 @@ committing; it explicitly flagged the stale-tree caveat.
 
 ## Review 2
 
-A second independent reviewer was asked to re-check the post-fix tree.  Its
-verdict is **not yet available**; this document must not be read as a PASS.
-The Lead's own regression evidence is `VNEXT_COMBINED_CPU.log` (120 passing).
+A second independent reviewer was asked to re-check the post-fix tree but did
+not return a verdict before its run was stopped.  There is therefore **no
+second-review PASS**; this document must not be read as a PASS.  The Lead's own
+regression evidence is `VNEXT_COMBINED_CPU.log` (120 passing), and the first
+reviewer's P0/P1 items have explicit dispositions above.
