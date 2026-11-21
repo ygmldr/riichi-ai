@@ -114,8 +114,11 @@ A full-shard run (10,500 steps, target above the shard's partial-batch count)
 completed in 1,310.9 s with `exhausted=true` and a restart of the shard; the
 last validation at step 10,000 was BC CE **1.45696**, rank CE **1.27958**,
 total 1.58492.  Train loss first/last was 2.2397 / 1.5085.  Checkpoints:
-`step_005000.pt`, `step_010000.pt`, `step_010500.pt`.  This is still a loss
-result, not a strength claim.
+`step_005000.pt`, `step_010000.pt`, `step_010500.pt` (`c63be587...`).  A
+500-batch / 32,000-decision re-evaluation of the 10,500-step checkpoint gives
+BC CE **1.4744**, rank CE **1.1562**, total 1.5900, improving on the 5,000-step
+checkpoint's 1.4934 / 1.1744.  This is still a loss result, not a strength
+claim.
 
 Still a loss/optimisation result only; no strength claim.
 
