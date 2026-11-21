@@ -176,6 +176,9 @@ def main(argv=None) -> int:
                         help="real shards use 1..4 ranks; synthetic 0..3")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=20261122)
+    parser.add_argument("--warmup", type=int, default=500)
+    parser.add_argument("--min-lr-ratio", type=float, default=0.1)
+    parser.add_argument("--constant-lr", action="store_true")
     parser.add_argument("--save-every", type=int, default=50)
     parser.add_argument("--val-every", type=int, default=0,
                         help="validate every N optimizer steps (0 disables)")
@@ -183,8 +186,6 @@ def main(argv=None) -> int:
     parser.add_argument("--max-hours", type=float, default=0.0)
     parser.add_argument("--resume", default=None)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--allow-full", action="store_true",
-                        help="allow an unbounded/full request; still no data-licence grant")
     args = parser.parse_args(argv)
 
     if args.steps <= 0:
@@ -285,6 +286,16 @@ def main(argv=None) -> int:
                     rank_base=args.rank_base)
                 batches = adapter.iter_batches()
                 continue
+            if not args.constant_lr:
+                if step < args.warmup:
+                    scale = (step + 1) / max(1, args.warmup)
+                else:
+                    progress = min(1.0, (step - args.warmup)
+                                   / max(1, args.steps - args.warmup))
+                    scale = args.min_lr_ratio + (1.0 - args.min_lr_ratio) * 0.5 * (
+                        1.0 + math.cos(math.pi * progress))
+                for group in optimizer.param_groups:
+                    group["lr"] = args.lr * scale
             batch = item.batch.to(device)
             info = train_step(model, batch, item.targets, optimizer=optimizer,
                               config=train_config, accumulation_step=step)
