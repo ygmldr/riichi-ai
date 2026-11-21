@@ -1,0 +1,56 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock.orig
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 数据集(大文件不进仓库)
+/data/
+datasets/
+
+# 训练产物
+checkpoints/
+*.pth
+runs/
+tensorboard/
+downloads.log
+curl_download.log
+
+# 工具/会话状态(不入库)
+.codegraph
+.omo/
+.superpowers/
+
+# 发布暂存与备份(scripts/publish_public.sh)
+.publish/
+dist/
+
+# 本地嵌套仓库(各自独立 git,不入父仓库)
+mjai-reviewer/
+vendor/akochan/
+
+# 实验配置快照 / Windows 下载残留
+configs/*.bak-*
+configs/*-bak
+*:Zone.Identifier
+
+# RiichiFormer V2 (PR-00): 产物、私有映射与凭据一律不入库
+# artifacts/riichiformer/{manifest,shards,checkpoints,teacher,eval,bench,preflight.json}
+artifacts/riichiformer/
+# 私有账户映射 / 盐 / 密钥 / 本地覆盖(见 00_MASTER_PLAN.md §3.3)
+docs/riichiformer/private/
+*player_map*
+*player_hmac*
+*.salt
+*.key
+.env
+.env.*
+
+# V3.1 parallel worktrees (H-00): shared object store, ignored like other tool state
+/worktrees/

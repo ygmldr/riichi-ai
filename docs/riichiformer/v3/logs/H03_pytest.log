@@ -1,0 +1,348 @@
+# H-03 source-rights gate — full test and CLI evidence log
+
+- task: H-03 (SOURCE RIGHTS)
+- branch: rf/h03-rights
+- base_sha: 59691f57bc7158dcdb2ba98eecd9d102857171f8
+- date: 2026-11-21T04:13:44+08:00
+- python: Python 3.12.3
+- pytest: pytest 9.2.0
+- registry: configs/riichiformer/source_rights.csv
+
+## 1. pytest -vv tests/rf_test_source_rights.py
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -vv tests/rf_test_source_rights.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/ygsldr/riichi-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ygsldr/riichi-ai/worktrees/h03-rights
+collecting ... collected 33 items
+
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_all_production_purposes_are_blocked PASSED [  3%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_every_default_source_is_rejected_for_training PASSED [  6%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_no_production_source_can_train PASSED [  9%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_production_registry_exists_and_has_rows PASSED [ 12%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_provenance_defaults_stay_fail_closed PASSED [ 15%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_default_csv_path_is_used PASSED [ 18%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_json_output PASSED [ 21%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_passes_all_purposes PASSED [ 24%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_passes_only_for_its_stated_purpose PASSED [ 27%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_gate_has_no_write_side_effects PASSED [ 30%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_json_denial_has_reason PASSED [ 33%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_redistribution_rejected PASSED [ 36%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_source_rejected PASSED [ 39%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_unknown_source_rejected PASSED [ 42%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_quote PASSED [ 45%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_url PASSED [ 48%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_human_reviewer PASSED [ 51%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_privacy_notes PASSED [ 54%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_retrieval_date PASSED [ 57%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_terms_url PASSED [ 60%]
+tests/rf_test_source_rights.py::EvidenceTests::test_bad_enum_rejected PASSED [ 63%]
+tests/rf_test_source_rights.py::EvidenceTests::test_duplicate_source_id_rejected PASSED [ 66%]
+tests/rf_test_source_rights.py::EvidenceTests::test_empty_and_header_only_registries_rejected PASSED [ 69%]
+tests/rf_test_source_rights.py::EvidenceTests::test_extra_cells_rejected PASSED [ 72%]
+tests/rf_test_source_rights.py::EvidenceTests::test_legacy_registry_schema_rejected PASSED [ 75%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_registry_file_rejected PASSED [ 78%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_required_column_rejected PASSED [ 81%]
+tests/rf_test_source_rights.py::EvidenceTests::test_non_utf8_registry_rejected PASSED [ 84%]
+tests/rf_test_source_rights.py::EvidenceTests::test_status_must_match_purpose_cells PASSED [ 87%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_allowed_fixture PASSED [ 90%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_rejects_bad_purpose PASSED [ 93%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_unknown_source_raises PASSED [ 96%]
+tests/rf_test_source_rights.py::LibraryTests::test_load_registry_returns_all_rows PASSED [100%]
+
+============================== 33 passed in 0.89s ==============================
+pytest_exit=0
+```
+
+## 2. Gate matrix — every production source × purpose
+```text
+$ python scripts/rf_check_source_rights.py --source tenhou_raw_logs --purpose storage
+DENY source=tenhou_raw_logs purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_raw_logs --purpose train
+DENY source=tenhou_raw_logs purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_raw_logs --purpose redistribute
+DENY source=tenhou_raw_logs purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source tenhou_old --purpose storage
+DENY source=tenhou_old purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_old --purpose train
+DENY source=tenhou_old purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_old --purpose redistribute
+DENY source=tenhou_old purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source tenhou_recent --purpose storage
+DENY source=tenhou_recent purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_recent --purpose train
+DENY source=tenhou_recent purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_recent --purpose redistribute
+DENY source=tenhou_recent purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_dataset --purpose storage
+DENY source=tenhou_to_mjai_dataset purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_dataset --purpose train
+DENY source=tenhou_to_mjai_dataset purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_dataset --purpose redistribute
+DENY source=tenhou_to_mjai_dataset purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_code --purpose storage
+DENY source=tenhou_to_mjai_code purpose=storage status=UNKNOWN reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_code --purpose train
+DENY source=tenhou_to_mjai_code purpose=train status=UNKNOWN reason=train_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source tenhou_to_mjai_code --purpose redistribute
+DENY source=tenhou_to_mjai_code purpose=redistribute status=UNKNOWN reason=redistribute_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source mortal_code --purpose storage
+DENY source=mortal_code purpose=storage status=UNKNOWN reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source mortal_code --purpose train
+DENY source=mortal_code purpose=train status=UNKNOWN reason=train_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source mortal_code --purpose redistribute
+DENY source=mortal_code purpose=redistribute status=UNKNOWN reason=redistribute_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source teacher_local --purpose storage
+DENY source=teacher_local purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source teacher_local --purpose train
+DENY source=teacher_local purpose=train status=RESTRICTED reason=train_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source teacher_local --purpose redistribute
+DENY source=teacher_local purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source akochan_code --purpose storage
+DENY source=akochan_code purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source akochan_code --purpose train
+DENY source=akochan_code purpose=train status=RESTRICTED reason=train_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source akochan_code --purpose redistribute
+DENY source=akochan_code purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source selfplay_own --purpose storage
+DENY source=selfplay_own purpose=storage status=UNKNOWN reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source selfplay_own --purpose train
+DENY source=selfplay_own purpose=train status=UNKNOWN reason=train_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source selfplay_own --purpose redistribute
+DENY source=selfplay_own purpose=redistribute status=UNKNOWN reason=redistribute_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source majsoul_optional --purpose storage
+DENY source=majsoul_optional purpose=storage status=RESTRICTED reason=storage_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source majsoul_optional --purpose train
+DENY source=majsoul_optional purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source majsoul_optional --purpose redistribute
+DENY source=majsoul_optional purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+$ python scripts/rf_check_source_rights.py --source third_party_mirror_hf --purpose storage
+DENY source=third_party_mirror_hf purpose=storage status=RESTRICTED reason=storage_allowed=UNKNOWN (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source third_party_mirror_hf --purpose train
+DENY source=third_party_mirror_hf purpose=train status=RESTRICTED reason=train_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+$ python scripts/rf_check_source_rights.py --source third_party_mirror_hf --purpose redistribute
+DENY source=third_party_mirror_hf purpose=redistribute status=RESTRICTED reason=redistribute_allowed=RESTRICTED (need exactly ALLOWED)
+exit=1
+
+```
+
+## 3. No production training source
+```text
+$ python - <<PY ... print train_allowed ALLOWED rows ... PY
+rows: 11
+train_allowed=ALLOWED: []
+status=ALLOWED: []
+```
+
+## 4. Affected regression (existing provenance/split tests)
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_scan.py tests/rf_test_split.py
+.........................                                                [100%]
+25 passed in 0.15s
+regression_exit=0
+```
+
+## 5. Follow-up review fixes (2026-11-21)
+
+Fixes: AI/LLM/GPT/ChatGPT/bot/automated reviewer tokens; future retrieved_at rejected (UTC);
+check() revalidates hand-built rows/status; exact 11-row/source_id completeness and
+missing-known-default errors. All 11 production rows remain non-ALLOWED.
+
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -vv tests/rf_test_source_rights.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/ygsldr/riichi-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ygsldr/riichi-ai/worktrees/h03-rights
+collecting ... collected 39 items
+
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_all_production_purposes_are_blocked PASSED [  2%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_every_default_source_is_rejected_for_training PASSED [  5%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_missing_known_default_is_an_error PASSED [  7%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_no_production_source_can_train PASSED [ 10%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_production_registry_has_exact_known_source_ids PASSED [ 12%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_provenance_defaults_stay_fail_closed PASSED [ 15%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_default_csv_path_is_used PASSED [ 17%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_json_output PASSED [ 20%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_passes_all_purposes PASSED [ 23%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_passes_only_for_its_stated_purpose PASSED [ 25%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_gate_has_no_write_side_effects PASSED [ 28%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_json_denial_has_reason PASSED [ 30%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_redistribution_rejected PASSED [ 33%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_source_rejected PASSED [ 35%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_unknown_source_rejected PASSED [ 38%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_rejects_ai_automation_reviewer_tokens
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_rejects_ai_automation_reviewer_tokens PASSED [ 41%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_quote PASSED [ 43%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_url PASSED [ 46%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_human_reviewer PASSED [ 48%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_privacy_notes PASSED [ 51%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_retrieval_date PASSED [ 53%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_terms_url PASSED [ 56%]
+tests/rf_test_source_rights.py::EvidenceTests::test_bad_enum_rejected PASSED [ 58%]
+tests/rf_test_source_rights.py::EvidenceTests::test_duplicate_source_id_rejected PASSED [ 61%]
+tests/rf_test_source_rights.py::EvidenceTests::test_empty_and_header_only_registries_rejected PASSED [ 64%]
+tests/rf_test_source_rights.py::EvidenceTests::test_extra_cells_rejected PASSED [ 66%]
+tests/rf_test_source_rights.py::EvidenceTests::test_human_reviewer_with_ai_substring_is_not_rejected PASSED [ 69%]
+tests/rf_test_source_rights.py::EvidenceTests::test_legacy_registry_schema_rejected PASSED [ 71%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_registry_file_rejected PASSED [ 74%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_required_column_rejected PASSED [ 76%]
+tests/rf_test_source_rights.py::EvidenceTests::test_non_utf8_registry_rejected PASSED [ 79%]
+tests/rf_test_source_rights.py::EvidenceTests::test_status_must_match_purpose_cells PASSED [ 82%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_accepts_consistent_allowed_row PASSED [ 84%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_allowed_fixture PASSED [ 87%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_missing_known_source_raises PASSED [ 89%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_rejects_bad_purpose PASSED [ 92%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_revalidates_hand_built_row_status PASSED [ 94%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_unknown_source_raises PASSED [ 97%]
+tests/rf_test_source_rights.py::LibraryTests::test_load_registry_returns_all_rows PASSED [100%]
+
+==================== 39 passed, 13 subtests passed in 1.65s ====================
+followup_pytest_exit=0
+```
+
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_scan.py tests/rf_test_split.py
+.........................                                                [100%]
+25 passed in 0.19s
+followup_regression_exit=0
+```
+
+```text
+$ gate matrix: all 11 production sources --purpose train
+tenhou_raw_logs:1 tenhou_old:1 tenhou_recent:1 tenhou_to_mjai_dataset:1 tenhou_to_mjai_code:1 mortal_code:1 teacher_local:1 akochan_code:1 selfplay_own:1 majsoul_optional:1 third_party_mirror_hf:1
+expected: all 1 (DENY)
+```
+
+```text
+$ python - <<PY ... confirm no ALLOWED production purpose ... PY
+rows: 11
+storage_allowed=ALLOWED: []
+train_allowed=ALLOWED: []
+redistribute_allowed=ALLOWED: []
+status=ALLOWED: []
+```
+
+## 6. Final follow-up re-run (40 tests; supersedes section 5 counts)
+
+Adds global rejection of a partial production registry (some but not all 11 known
+source_ids) and a test that a present source cannot be used from a truncated registry.
+
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -vv tests/rf_test_source_rights.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/ygsldr/riichi-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ygsldr/riichi-ai/worktrees/h03-rights
+collecting ... collected 40 items
+
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_all_production_purposes_are_blocked PASSED [  2%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_every_default_source_is_rejected_for_training PASSED [  5%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_missing_known_default_is_an_error PASSED [  7%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_no_production_source_can_train PASSED [ 10%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_partial_production_registry_rejected_for_any_source PASSED [ 12%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_production_registry_has_exact_known_source_ids PASSED [ 15%]
+tests/rf_test_source_rights.py::ProductionRegistryTests::test_provenance_defaults_stay_fail_closed PASSED [ 17%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_default_csv_path_is_used PASSED [ 20%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_json_output PASSED [ 22%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_allowed_passes_all_purposes PASSED [ 25%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_fixture_passes_only_for_its_stated_purpose PASSED [ 27%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_gate_has_no_write_side_effects PASSED [ 30%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_json_denial_has_reason PASSED [ 32%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_redistribution_rejected PASSED [ 35%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_restricted_source_rejected PASSED [ 37%]
+tests/rf_test_source_rights.py::GateDecisionTests::test_unknown_source_rejected PASSED [ 40%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_rejects_ai_automation_reviewer_tokens
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_rejects_ai_automation_reviewer_tokens PASSED [ 42%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_quote PASSED [ 45%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_evidence_url PASSED [ 47%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_human_reviewer PASSED [ 50%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_privacy_notes PASSED [ 52%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_retrieval_date PASSED [ 55%]
+tests/rf_test_source_rights.py::EvidenceTests::test_allowed_requires_terms_url PASSED [ 57%]
+tests/rf_test_source_rights.py::EvidenceTests::test_bad_enum_rejected PASSED [ 60%]
+tests/rf_test_source_rights.py::EvidenceTests::test_duplicate_source_id_rejected PASSED [ 62%]
+tests/rf_test_source_rights.py::EvidenceTests::test_empty_and_header_only_registries_rejected PASSED [ 65%]
+tests/rf_test_source_rights.py::EvidenceTests::test_extra_cells_rejected PASSED [ 67%]
+tests/rf_test_source_rights.py::EvidenceTests::test_human_reviewer_with_ai_substring_is_not_rejected PASSED [ 70%]
+tests/rf_test_source_rights.py::EvidenceTests::test_legacy_registry_schema_rejected PASSED [ 72%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_registry_file_rejected PASSED [ 75%]
+tests/rf_test_source_rights.py::EvidenceTests::test_missing_required_column_rejected PASSED [ 77%]
+tests/rf_test_source_rights.py::EvidenceTests::test_non_utf8_registry_rejected PASSED [ 80%]
+tests/rf_test_source_rights.py::EvidenceTests::test_status_must_match_purpose_cells PASSED [ 82%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_accepts_consistent_allowed_row PASSED [ 85%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_allowed_fixture PASSED [ 87%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_missing_known_source_raises PASSED [ 90%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_rejects_bad_purpose PASSED [ 92%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_revalidates_hand_built_row_status PASSED [ 95%]
+tests/rf_test_source_rights.py::LibraryTests::test_check_unknown_source_raises PASSED [ 97%]
+tests/rf_test_source_rights.py::LibraryTests::test_load_registry_returns_all_rows PASSED [100%]
+
+==================== 40 passed, 13 subtests passed in 1.30s ====================
+final_pytest_exit=0
+```
+
+```text
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_scan.py tests/rf_test_split.py
+.........................                                                [100%]
+25 passed in 0.15s
+final_regression_exit=0
+```
+
+```text
+$ gate matrix: all 11 production sources --purpose train
+tenhou_raw_logs:1 tenhou_old:1 tenhou_recent:1 tenhou_to_mjai_dataset:1 tenhou_to_mjai_code:1 mortal_code:1 teacher_local:1 akochan_code:1 selfplay_own:1 majsoul_optional:1 third_party_mirror_hf:1
+expected: all 1 (DENY)
+```
+
+```text
+$ python - <<PY ... confirm no ALLOWED production purpose ... PY
+rows: 11
+storage_allowed=ALLOWED: []
+train_allowed=ALLOWED: []
+redistribute_allowed=ALLOWED: []
+status=ALLOWED: []
+```

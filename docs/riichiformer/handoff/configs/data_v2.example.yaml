@@ -1,0 +1,59 @@
+# SCHEMA PROPOSAL ONLY. Agent must implement parser and freeze schema before use.
+version: 2
+project: riichiformer
+source_policy:
+  default_action_when_rights_unknown: block_new_training_or_acquisition
+  allow_automatic_download: false
+  allow_automatic_online_play: false
+  source_rights_file: artifacts/riichiformer/audit/source_rights.csv
+raw_roots:
+  - datasets/
+source_types:
+  tenhou_old:
+    valid_years: [2009, 2022]
+    intended_use: existing_baseline_audit
+  tenhou_recent:
+    valid_years: [2023, 2026]
+    intended_use: source_audit_then_optional_train
+manifest_output: artifacts/riichiformer/manifest/v2.parquet
+format:
+  compression: auto_magic_bytes
+  event_format: mjai_ndjson
+  dedup_keys: [platform_game_key, canonical_sha256]
+  normalize_losslessly: true
+pov:
+  own_seat_relative: 0
+  unknown_tile_id: 34
+  strict_allowlist: true
+  censor_ambiguous_reactions: true
+  forbid_hidden_state_features: true
+split:
+  protocol: L
+  L:
+    train_years: [2009, 2022]
+    val_years: [2023, 2023]
+    ood_years: [2024, 2026]
+    ood_is_pristine_confirm: false
+  R:
+    train_years: [2009, 2024]
+    val_dates: [2025-01-01, 2025-06-30]
+    select_dates: [2025-07-01, 2025-12-31]
+    confirm_dates: [2026-01-01, 2026-12-31]
+    require_timestamp_provenance: true
+    require_confirm_not_used_for_selection: true
+  split_unit: complete_game
+  duplicate_group_is_atomic: true
+quality:
+  required_min_previous_games: 50
+  empirical_bayes_prior_games: 100
+  allow_unknown_quality_in_all_pool: true
+  allow_guess_ai_identity: false
+  forbid_same_game_outcome_for_quality: true
+sampling:
+  default: D0_ALL
+  max_repeat_per_seat_game: 4
+  candidate_mix:
+    all: 0.60
+    quality: 0.25
+    recent_or_rare: 0.15
+  mix_is_hypothesis_not_final_choice: true

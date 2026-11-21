@@ -1,0 +1,13 @@
+# PR-10 decision snapshot test log (P1 tiles_left fix)
+# branch: rf/pr10-decision
+# base SHA: 1daddba4dff70519c62575899acd77ec1ad302a7
+# date (UTC): 2026-11-20T22:52:26Z
+# python: Python 3.12.3
+# command: PYTHONPATH=... .venv/bin/python -m pytest -q -s tests/rf_test_decision.py tests/rf_test_tile_counter.py
+
+....PR10_KAN_WALL kan_games=2 decisions_checked=1238
+......PR10_SAMPLE games=16 decisions=10000 errors=0 double_ron_games=1 riichi_then_discard=57 phases={'SELF_TURN': 8000, 'CALL_RESPONSE': 1990, 'KAN_SELECTION': 10}
+...PR10_LABELS valid=9950 invalid=50 illegal=0 censor={'preempted_by_call': 29, 'preempted_by_ron': 21} actions={30: 368, 31: 331, 1: 204, 28: 374, 26: 311, 10: 236, 4: 103, 3: 124, 7: 205, 17: 353, 9: 319, 18: 344, 22: 111, 0: 305, 27: 375, 23: 133, 5: 136, 37: 123, 15: 156, 36: 18, 16: 222, 2: 162, 33: 351, 21: 143, 12: 114, 32: 354, 24: 172, 25: 213, 29: 399, 19: 233, 13: 98, 14: 124, 43: 140, 8: 303, 11: 131, 20: 153, 6: 114, 34: 13, 42: 10, 35: 19, 44: 4, 45: 1537, 41: 185, 38: 45, 39: 44, 40: 51, None: 37}
+.......
+20 passed in 59.56s
+EXIT CODE: 0

@@ -1,0 +1,249 @@
+--- a/mortal/model.py
++++ b/mortal/model.py
+@@ -383,6 +383,9 @@
+                 nn.init.constant_(self.net.bias, 0)
+ 
+     def forward(self, phi, mask):
++        # [patch 0008] return `(q, v)`: the RL objective (rl_loss.py) needs the
++        # value head for `huber(v, G)`, while every existing caller keeps using
++        # `q`, which is computed exactly as before (bit-for-bit).
+         if self.version == 4:
+             v, a = self.net(phi).split((1, ACTION_SPACE), dim=-1)
+         else:
+@@ -392,7 +395,7 @@
+         mask_sum = mask.sum(-1, keepdim=True)
+         a_mean = a_sum / mask_sum
+         q = (v + a - a_mean).masked_fill(~mask, -torch.inf)
+-        return q
++        return q, v
+ 
+ class GRP(nn.Module):
+     def __init__(self, hidden_size=64, num_layers=2):
+--- a/mortal/rl_loss.py
++++ b/mortal/rl_loss.py
+@@ -0,0 +1,71 @@
++import logging
++from typing import Optional, Tuple
++
++import torch
++from torch import Tensor
++from torch.nn import functional as F
++
++# [patch 0008] RL objective for online self-play (plan todo 23):
++#
++#   loss = dqn_loss + cql_loss * min_q_weight + next_rank_loss * next_rank_weight
++#          + pg_loss + lam_v * huber(v, G) + lam_kl * KL(pi_anchor || pi)
++#
++# `use_pg` is the master switch owned by train.py: while it is false the three
++# terms below are all exactly zero, so the training loss stays bit-for-bit the
++# pre-0008 loss (the parity the earlier arm verdicts depend on). `G` is the
++# Monte-Carlo return `gamma ** steps_to_done * kyoku_rewards`.
++
++def reinforce_loss(q_out: Tensor, actions: Tensor, returns: Tensor, v: Tensor) -> Tensor:
++    logp = torch.log_softmax(q_out, dim=-1)
++    advantage = returns - v.reshape(-1).detach()
++    return -(logp.gather(1, actions.unsqueeze(1)).squeeze(1) * advantage).mean()
++
++def value_huber_loss(v: Tensor, returns: Tensor, lam_v: float) -> Tensor:
++    return lam_v * F.smooth_l1_loss(v.reshape(-1).float(), returns.float())
++
++def forward_kl_loss(
++    anchor_q: Tensor,
++    q_out: Tensor,
++    masks: Tensor,
++    *,
++    anchor_desc: str = '',
++) -> Tensor:
++    logp = torch.log_softmax(q_out, dim=-1)
++    logp_anchor = torch.log_softmax(anchor_q, dim=-1)
++    p_anchor = logp_anchor.exp()
++    kl = (p_anchor * (logp_anchor - logp)).masked_fill(~masks, 0.).sum(-1).mean()
++    if not torch.isfinite(kl):
++        logging.error(
++            f'KL(pi_anchor || pi) is not finite: pi_anchor {tuple(p_anchor.shape)}, '
++            f'pi {tuple(logp.shape)}, anchor {anchor_desc}'
++        )
++        raise SystemExit(1)
++    return kl
++
++def rl_loss_terms(
++    *,
++    q_out: Tensor,
++    v: Tensor,
++    actions: Tensor,
++    returns: Tensor,
++    masks: Tensor,
++    use_pg: bool,
++    lam_v: float,
++    lam_kl: float,
++    anchor_q: Optional[Tensor] = None,
++    anchor_desc: str = '',
++) -> Tuple[Tensor, Tensor, Tensor]:
++    if not use_pg:
++        zero = q_out.new_zeros(())
++        return zero, zero, zero
++    pg_loss = reinforce_loss(q_out, actions, returns, v)
++    v_loss = value_huber_loss(v, returns, lam_v)
++    kl_loss = q_out.new_zeros(())
++    if lam_kl > 0:
++        if anchor_q is None:
++            raise RuntimeError(
++                f'lam_kl={lam_kl} > 0 but anchor_q is None; the KL anchor must be loaded '
++                '(anchor ' + anchor_desc + ')'
++            )
++        kl_loss = lam_kl * forward_kl_loss(anchor_q, q_out, masks, anchor_desc=anchor_desc)
++    return pg_loss, v_loss, kl_loss
+--- a/mortal/engine.py
++++ b/mortal/engine.py
+@@ -67,10 +67,11 @@
+                     latent = Normal(mu, logsig.exp() + 1e-6).sample()
+                 else:
+                     latent = mu
+-                q_out = self.dqn(latent, masks)
++                # [patch 0008] DQN.forward returns (q, v); the engine only scores.
++                q_out, _ = self.dqn(latent, masks)
+             case 2 | 3 | 4:
+                 phi = self.brain(obs, events=events)
+-                q_out = self.dqn(phi, masks)
++                q_out, _ = self.dqn(phi, masks)
+ 
+         if self.boltzmann_epsilon > 0:
+             is_greedy = torch.full((batch_size,), 1-self.boltzmann_epsilon, device=self.device).bernoulli().to(torch.bool)
+--- a/mortal/train.py
++++ b/mortal/train.py
+@@ -24,7 +24,8 @@
+     from dataloader import FileDatasetsIter, collate_batch, worker_init_fn
+     from event_data import cat_event_batches, slice_event_batch
+     from lr_scheduler import LinearWarmUpCosineAnnealingLR
+-    from model import Brain, DQN, AuxNet, load_brain_state_dict
++    from model import Brain, DQN, AuxNet, brain_from_config, load_brain_state_dict
++    from rl_loss import rl_loss_terms
+     from libriichi.consts import obs_shape
+     from config import config
+ 
+@@ -63,6 +64,14 @@
+     val_batches = config['dataset'].get('val_batches', 20)
+     val_num_workers = config['dataset'].get('val_num_workers', 1)
+ 
++    # [patch 0008] RL objective knobs. `use_pg` is the master switch: while it
++    # is false the loss is bit-for-bit the pre-0008 loss, so runs on the live
++    # config keep reproducing the earlier arms' verdicts.
++    rl_cfg = config.get('rl', {})
++    use_pg = bool(rl_cfg.get('use_pg', False))
++    lam_v = float(rl_cfg.get('lam_v', 1.0))
++    lam_kl = float(rl_cfg.get('lam_kl', 0.0))
++
+     # [patch 0007] the live config decides how the *training* model is built;
+     # `[model] use_event_branch` (default false) instantiates the event branch.
+     mortal = Brain(version=version, **config['resnet'], **config.get('model', {})).to(device)
+@@ -81,6 +90,30 @@
+ 
+     mortal.freeze_bn(config['freeze_bn']['mortal'])
+ 
++    # [patch 0008] KL anchor: read-only frozen reference policy, loaded with
++    # the same weights_only pattern the players use. It is deliberately kept
++    # out of `all_models` so it is never optimised or compiled; when
++    # `use_pg` or `lam_kl` is off it is not loaded at all.
++    anchor_mortal = None
++    anchor_dqn = None
++    anchor_desc = '(not loaded)'
++    if use_pg and lam_kl > 0:
++        anchor_state_file = rl_cfg.get('anchor_state_file')
++        if not anchor_state_file or not path.exists(anchor_state_file):
++            raise RuntimeError(
++                f'[rl] lam_kl={lam_kl} > 0 but anchor_state_file is missing: {anchor_state_file!r}'
++            )
++        anchor_state = torch.load(anchor_state_file, weights_only=True, map_location=device)
++        anchor_cfg = anchor_state['config']
++        anchor_version = anchor_cfg['control'].get('version', 1)
++        anchor_mortal = brain_from_config(anchor_cfg).to(device).eval()
++        anchor_dqn = DQN(version=anchor_version).to(device).eval()
++        load_brain_state_dict(anchor_mortal, anchor_state['mortal'], source=anchor_state_file)
++        anchor_dqn.load_state_dict(anchor_state['current_dqn'])
++        anchor_desc = f'{anchor_state_file} (version={anchor_version}, steps={anchor_state.get("steps")})'
++        logging.info(f'[rl] anchor loaded: {anchor_desc}')
++    logging.info(f'[rl] use_pg={use_pg} lam_v={lam_v} lam_kl={lam_kl} anchor={anchor_desc}')
++
+     decay_params = []
+     no_decay_params = []
+     for model in all_models:
+@@ -142,6 +175,12 @@
+         'cql_loss': 0,
+         'next_rank_loss': 0,
+     }
++    if use_pg:
++        stats.update({
++            'pg_loss': 0,
++            'v_loss': 0,
++            'kl_loss': 0,
++        })
+     all_q = torch.zeros((save_every, batch_size), device=device, dtype=torch.float32)
+     all_q_target = torch.zeros((save_every, batch_size), device=device, dtype=torch.float32)
+     idx = 0
+@@ -261,7 +300,7 @@
+                         q_target_mc = (gamma ** steps_to_done * kyoku_rewards).to(torch.float32)
+                         with torch.autocast(device.type, enabled=enable_amp):
+                             phi = mortal(obs, events=events)
+-                            q_out = dqn(phi, masks)
++                            q_out, _ = dqn(phi, masks)
+                             q = q_out[range(obs.shape[0]), actions]
+                             dqn_loss = 0.5 * mse(q, q_target_mc)
+                             cql_loss = q_out.logsumexp(-1).mean() - q.mean()
+@@ -332,7 +371,7 @@
+ 
+             with torch.autocast(device.type, enabled=enable_amp):
+                 phi = mortal(obs, events=events)
+-                q_out = dqn(phi, masks)
++                q_out, v_out = dqn(phi, masks)
+                 q = q_out[range(batch_size), actions]
+                 dqn_loss = 0.5 * mse(q, q_target_mc)
+                 cql_loss = 0
+@@ -347,6 +386,26 @@
+                     cql_loss * min_q_weight,
+                     next_rank_loss * next_rank_weight,
+                 ))
++                if use_pg:
++                    anchor_q = None
++                    if lam_kl > 0:
++                        with torch.no_grad():
++                            anchor_out = anchor_mortal(obs, events=events)
++                            anchor_phi = anchor_out[0] if isinstance(anchor_out, tuple) else anchor_out
++                            anchor_q, _ = anchor_dqn(anchor_phi, masks)
++                    pg_loss, v_loss, kl_loss = rl_loss_terms(
++                        q_out = q_out,
++                        v = v_out,
++                        actions = actions,
++                        returns = q_target_mc,
++                        masks = masks,
++                        use_pg = use_pg,
++                        lam_v = lam_v,
++                        lam_kl = lam_kl,
++                        anchor_q = anchor_q,
++                        anchor_desc = anchor_desc,
++                    )
++                    loss = loss + pg_loss + v_loss + kl_loss
+             scaler.scale(loss / opt_step_every).backward()
+ 
+             with torch.inference_mode():
+@@ -354,6 +413,10 @@
+                 if not online:
+                     stats['cql_loss'] += cql_loss
+                 stats['next_rank_loss'] += next_rank_loss
++                if use_pg:
++                    stats['pg_loss'] += pg_loss
++                    stats['v_loss'] += v_loss
++                    stats['kl_loss'] += kl_loss
+                 all_q[idx] = q
+                 all_q_target[idx] = q_target_mc
+ 
+@@ -385,6 +448,10 @@
+                 if not online:
+                     writer.add_scalar('loss/cql_loss', stats['cql_loss'] / save_every, steps)
+                 writer.add_scalar('loss/next_rank_loss', stats['next_rank_loss'] / save_every, steps)
++                if use_pg:
++                    writer.add_scalar('loss/pg_loss', stats['pg_loss'] / save_every, steps)
++                    writer.add_scalar('loss/value_huber', stats['v_loss'] / save_every, steps)
++                    writer.add_scalar('loss/kl_anchor', stats['kl_loss'] / save_every, steps)
+                 if val_file_list:
+                     holdout_loss, holdout_dqn_loss, holdout_cql_loss, holdout_next_rank_loss = holdout_loss_calc()
+                     logging.info(

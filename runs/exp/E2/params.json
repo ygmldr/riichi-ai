@@ -1,0 +1,281 @@
+{
+  "obs_shape": [
+    1012,
+    34
+  ],
+  "num_blocks": 40,
+  "baseline_cnn": {
+    "conv_channels": 192,
+    "numel": 10787456
+  },
+  "e3a": {
+    "conv_channels": 192,
+    "numel": 11818752,
+    "added": 1031296
+  },
+  "target_total": 11818752,
+  "tolerance": 0.05,
+  "scan": [
+    {
+      "conv_channels": 190,
+      "numel": 10580268,
+      "diff": -1238484,
+      "rel": 0.1047897442978751,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 191,
+      "numel": 10675922,
+      "diff": -1142830,
+      "rel": 0.09669633477375615,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 192,
+      "numel": 10787456,
+      "diff": -1031296,
+      "rel": 0.08725929776680313,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 193,
+      "numel": 10884150,
+      "diff": -934602,
+      "rel": 0.07907789248814089,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 194,
+      "numel": 10981324,
+      "diff": -837428,
+      "rel": 0.0708558737843048,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 195,
+      "numel": 11078978,
+      "diff": -739774,
+      "rel": 0.06259324165529491,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 196,
+      "numel": 11177112,
+      "diff": -641640,
+      "rel": 0.05428999610111118,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 197,
+      "numel": 11275726,
+      "diff": -543026,
+      "rel": 0.04594613712175363,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 198,
+      "numel": 11374820,
+      "diff": -443932,
+      "rel": 0.037561664717222255,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 199,
+      "numel": 11474394,
+      "diff": -344358,
+      "rel": 0.029136578887517056,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 200,
+      "numel": 11574448,
+      "diff": -244304,
+      "rel": 0.020670879632638032,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 201,
+      "numel": 11674982,
+      "diff": -143770,
+      "rel": 0.012164566952585179,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 202,
+      "numel": 11775996,
+      "diff": -42756,
+      "rel": 0.003617640847358503,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 203,
+      "numel": 11877490,
+      "diff": 58738,
+      "rel": 0.004969898683042,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 204,
+      "numel": 11979464,
+      "diff": 160712,
+      "rel": 0.013598051638616328,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 205,
+      "numel": 12081918,
+      "diff": 263166,
+      "rel": 0.02226681801936448,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 206,
+      "numel": 12184852,
+      "diff": 366100,
+      "rel": 0.03097619782528646,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 207,
+      "numel": 12288266,
+      "diff": 469514,
+      "rel": 0.03972619105638226,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 208,
+      "numel": 12408840,
+      "diff": 590088,
+      "rel": 0.04992811423744233,
+      "within_5pct": true
+    },
+    {
+      "conv_channels": 209,
+      "numel": 12513294,
+      "diff": 694542,
+      "rel": 0.05876610322308142,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 210,
+      "numel": 12618228,
+      "diff": 799476,
+      "rel": 0.06764470563389434,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 211,
+      "numel": 12723642,
+      "diff": 904890,
+      "rel": 0.07656392146988109,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 212,
+      "numel": 12829536,
+      "diff": 1010784,
+      "rel": 0.08552375073104165,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 213,
+      "numel": 12935910,
+      "diff": 1117158,
+      "rel": 0.09452419341737604,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 214,
+      "numel": 13042764,
+      "diff": 1224012,
+      "rel": 0.10356524952888427,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 215,
+      "numel": 13150098,
+      "diff": 1331346,
+      "rel": 0.11264691906556631,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 216,
+      "numel": 13257912,
+      "diff": 1439160,
+      "rel": 0.12176920202742218,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 217,
+      "numel": 13366206,
+      "diff": 1547454,
+      "rel": 0.1309320984144519,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 218,
+      "numel": 13474980,
+      "diff": 1656228,
+      "rel": 0.1401356082266554,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 219,
+      "numel": 13584234,
+      "diff": 1765482,
+      "rel": 0.14937973146403274,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 220,
+      "numel": 13693968,
+      "diff": 1875216,
+      "rel": 0.1586644681265839,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 221,
+      "numel": 13804182,
+      "diff": 1985430,
+      "rel": 0.16798981821430892,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 222,
+      "numel": 13914876,
+      "diff": 2096124,
+      "rel": 0.17735578172720776,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 223,
+      "numel": 14026050,
+      "diff": 2207298,
+      "rel": 0.1867623586652804,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 224,
+      "numel": 14155664,
+      "diff": 2336912,
+      "rel": 0.19772916802044752,
+      "within_5pct": false
+    },
+    {
+      "conv_channels": 225,
+      "numel": 14267878,
+      "diff": 2449126,
+      "rel": 0.20722374071306343,
+      "within_5pct": false
+    }
+  ],
+  "chosen": {
+    "conv_channels": 202,
+    "total_e2": 11775996,
+    "analytic_cnn": 11775996,
+    "diff_vs_e3a": -42756,
+    "rel": 0.003617640847358503,
+    "branch_is_none": true,
+    "event_branch_tensors": 0
+  }
+}

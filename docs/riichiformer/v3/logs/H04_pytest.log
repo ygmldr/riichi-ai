@@ -1,0 +1,86 @@
+# H-04 ruleset-parity pytest log
+# generated: 2026-11-21T05:08:46+08:00
+# worktree: /home/ygsldr/riichi-ai/worktrees/h04-rules
+# branch: rf/h04-rules
+# base:   1cf7f0446f89c371034c4acd96aa917fbcb77d62
+# python: Python 3.12.3
+# pytest: pytest 9.2.0
+# libriichi.so sha256: fc05371f8035283ce61147e440c82eac16506cbb45584410607746afcbd91eba
+#
+# command:
+#   PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_ruleset_parity.py
+
+........................................ [ 76%]
+......s.. [ 94%]
+...                                        [100%]
+51 passed, 1 skipped, 197 subtests passed in 0.08s
+
+# ---------------------------------------------------------------------------
+# verbose per-test run (same command with -v), for auditability
+# ---------------------------------------------------------------------------
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/ygsldr/riichi-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ygsldr/riichi-ai/worktrees/h04-rules
+collecting ... collected 52 items
+
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_anchor_lines_are_exact 
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_anchor_lines_are_exact PASSED [  1%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r01_hanchan_start_and_return_points PASSED [  3%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r02_triple_ron_is_settled_not_aborted PASSED [  5%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r03_multi_ron_uses_kamicha_priority_and_resets_counters PASSED [  7%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r05_kan_dora_timing_matches_tenhou PASSED [  9%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r06_last_dealer_agari_and_tenpai_stop PASSED [ 11%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r07_tobi_threshold_is_strictly_negative PASSED [ 13%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r08_west_round_entry_and_maximum PASSED [ 15%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r09_r10_renchan_and_honba_accounting PASSED [ 17%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r11_riichi_stake_is_paid_only_when_accepted PASSED [ 19%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r12_furiten_is_river_only_and_same_cycle PASSED [ 21%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r13_riichi_ankan_uses_the_non_strict_tenhou_rule PASSED [ 23%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r14_equal_scores_use_e1_wind_order PASSED [ 25%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r15_leftover_kyotaku_goes_to_the_first_max PASSED [ 26%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r16_r17_r18_r19_all_four_abortive_draws_exist PASSED [ 28%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r20_riichi_preconditions PASSED [ 30%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r21_haitei_blocks_calls_and_kans PASSED [ 32%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r22_kuikae_is_forbidden PASSED [ 34%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r23_exhaustive_draw_tenpai_payments PASSED [ 36%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r24_nagashi_mangan_payments PASSED [ 38%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r25_s4_stop_uses_kyotaku_inclusive_scores PASSED [ 40%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r26_four_riichi_check_runs_after_the_next_draw PASSED [ 42%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r27_pao_exists_for_daisangen_and_daisuushi_only PASSED [ 44%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r28_riichi_discard_must_be_tsumogiri PASSED [ 46%]
+tests/rf_test_ruleset_parity.py::SourceContractTests::test_r29_ippatsu_window_is_wired PASSED [ 48%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r04_aka_dora_is_one_per_suit PASSED [ 50%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r12_minogashi_furiten_blocks_ron PASSED [ 51%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r12_same_cycle_furiten_clears_on_own_discard PASSED [ 53%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r13_riichi_ankan_allowed_when_wait_is_unchanged PASSED [ 55%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r13_riichi_ankan_forbidden_when_wait_changes PASSED [ 57%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r17_a_fifth_kan_is_never_offered PASSED [ 59%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r18_nine_terminals_only_on_first_uncalled_draw PASSED [ 61%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r20_riichi_needs_1000_points 
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r20_riichi_needs_1000_points PASSED [ 63%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r20_riichi_needs_a_draw_turn PASSED [ 65%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r21_haitei_is_a_yaku_for_an_open_no_yaku_hand PASSED [ 67%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r21_last_discard_cannot_be_ponned PASSED [ 69%]
+tests/rf_test_ruleset_parity.py::NativePlayerStateTests::test_r30_fifth_tile_wait_is_tenpai_but_not_a_wait PASSED [ 71%]
+tests/rf_test_ruleset_parity.py::NativeRankingTests::test_r14_equal_scores_rank_by_e1_wind_order PASSED [ 73%]
+tests/rf_test_ruleset_parity.py::NativeRankingTests::test_r15_leftover_kyotaku_does_not_change_rank PASSED [ 75%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r02_tenhou_would_abort_instead PASSED [ 76%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r02_triple_ron_is_settled_by_the_arena PASSED [ 78%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r03_allocation_matches_recorded_tenhou_double_ron PASSED [ 80%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r03_double_ron_matches_recorded_arena_log PASSED [ 82%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r03_single_ron_and_tsumo_are_unaffected PASSED [ 84%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r23_noten_payment_matches_recorded_tenhou_draw PASSED [ 86%]
+tests/rf_test_ruleset_parity.py::MultiRonSettlementTests::test_r24_nagashi_payment_matches_recorded_tenhou_draw PASSED [ 88%]
+tests/rf_test_ruleset_parity.py::NativeBoardCapabilityTests::test_r02_native_triple_ron_aborts SKIPPED [ 90%]
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_every_reported_file_line_is_anchored 
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_every_reported_file_line_is_anchored PASSED [ 92%]
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_known_differences_cite_source_and_are_not_marked_match 
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_known_differences_cite_source_and_are_not_marked_match PASSED [ 94%]
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_report_exists_and_covers_every_audited_rule 
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_report_exists_and_covers_every_audited_rule PASSED [ 96%]
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_report_states_the_tenhou_basis_and_blocking_rules PASSED [ 98%]
+tests/rf_test_ruleset_parity.py::ReportSyncTests::test_triple_ron_is_not_claimed_equivalent PASSED [100%]
+
+============== 51 passed, 1 skipped, 197 subtests passed in 0.06s ==============

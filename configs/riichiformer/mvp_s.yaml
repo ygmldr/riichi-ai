@@ -1,0 +1,40 @@
+# PR-13 MVP-S — Local Transformer, synthetic-only forward/backward deliverable.
+#
+# This config describes architecture + train-time runtime settings only. It is NOT a
+# training recipe and does not enable training on any dataset (PR-12/PR-14 own that).
+# The `contract` block deliberately does NOT pin a literal schema version/hash: the
+# frozen version and all three hashes are resolved at runtime from
+# riichiformer.schemas.action_v3 / schema_v3.load_schema(), so a schema-version bump
+# (e.g. rf-schema-v3/1 -> v3/2 with an unchanged action map) cannot silently drift
+# this model config or turn it into a stale hardcoded hash.
+
+model:
+  name: mvp_s
+  architecture: local_causal
+  hidden: 256
+  layers: 6
+  heads: 4
+  ffn: 704
+  state_encoder: mlp
+  state_hidden: 512
+  policy_head: linear46
+  memory: false
+  dropout: 0.0
+  rope_base: 10000.0
+  rmsnorm_eps: 1.0e-6
+  max_positions: 4096
+
+train:
+  precision: bf16
+  attention: sdpa
+  optimizer: adamw
+  grad_accumulation: auto_by_valid_decisions
+  activation_checkpointing: auto_on_memory_pressure
+  max_sequence_policy: dynamic_bucket_no_silent_truncate
+  source_rights_gate: required
+  dataset_training: false          # PR-13 is synthetic forward/backward only
+
+contract:
+  action_space: 46
+  schema_version_source: riichiformer.schemas.action_v3.SCHEMA_VERSION
+  schema_hashes_source: configs/riichiformer/schema_v3.json  # load_schema() verifies

@@ -1,0 +1,10 @@
+# PR-09 POV projector test log (schema v3/2 delta-order + header fixes)
+# branch: rf/pr09-pov
+# base SHA: 78065b98931480ef36c3719a39856e47013a2f3e
+# date (UTC): 2026-11-20T21:44:31Z
+# python: Python 3.12.3
+# command: /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_pov.py
+
+............................                                             [100%]
+28 passed in 2.45s
+EXIT CODE: 0

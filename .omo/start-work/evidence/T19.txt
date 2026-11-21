@@ -1,0 +1,224 @@
+===== T19 evidence - E3a fusion arm: CNN + residual zero-init event Transformer (todo 19) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 19 (lines 194-199)
+Submodule pin: 0cff2b5 + patches 0002/0003/0004/0005/0006/0010/0012 + **0007** (this task; nothing committed inside the submodule)
+
+Artifacts:
+  patches/0007-model-event-branch.patch       (new; model + 5 load points + guards)
+  vendor/mortal/mortal/model.py               (EventBranch + Brain toggle + load helpers)
+  vendor/mortal/mortal/{train,one_vs_three,player,mortal,client}.py   (load points)
+  configs/config.toml                         (+ [model] use_event_branch=true; backup .bak-19)
+  scripts/exp_e3a_{selfcheck,verify_load,make_configs,feed_smoke,check_feed}.py
+  runs/exp/E3a/{PREREG.md,train.toml,eval.toml,selfcheck.json,train.log,state.pth,report.csv,...}
+
+### [1] Patch hygiene (dirty-file snapshot recipe; earlier patches not re-introduced)
+Method: model.py/train.py/player.py/one_vs_three.py are dirty (patches 0010/0002+0005/0004/0012),
+so each was copied to /tmp/opencode/t19/<name>.base0007 BEFORE editing and diffed with
+`diff -u --label a/<path> --label b/<path>`; mortal.py/client.py are pristine (base from
+`git -C vendor/mortal show HEAD:<path>`). Hashes/headers:
+$ sha256sum patches/0007-model-event-branch.patch
+f6017db8224497189f5e25c7b1e396355091999601988692c339cbe4ac1692ca  patches/0007-model-event-branch.patch
+$ wc -l patches/0007-model-event-branch.patch
+392 patches/0007-model-event-branch.patch
+Files in 0007 (6): mortal/model.py, mortal/train.py, mortal/one_vs_three.py, mortal/player.py,
+  mortal/mortal.py, mortal/client.py
+Added-line overlap with earlier patches (python set intersection of '+'-lines):
+  0002: 1 line (empty string only), 0003: 0, 0004: 0, 0005: 3 (only '' / ')' / ')' generic
+  closure lines), 0006: 2 ('' / ')'), 0010: 1 (''), 0012: 1 ('')
+Keyword scan of 0007's changed lines: non_blocking / holdout / enable_rule_based_agari_guard /
+  seed_interval / apply_gamma / 'patch 0002' / 'patch 0005' / 'patch 0012' ALL absent.
+=> no earlier patch's hunk is carried; only generic syntactic lines coincide.
+
+### [2] 0007 applies in sequence onto a fresh archive and reproduces the live tree
+$ mkdir /tmp/opencode/t19/tree; git -C vendor/mortal archive HEAD | tar -x -C /tmp/opencode/t19/tree
+$ for p in 0002 0003 0004 0005 0012 0006 0010 0007; do git apply -p1 patches/$p-*.patch; done
+APPLIED 0002-train-remove-per-step-cuda-sync
+APPLIED 0003-gamma-discount-labels
+APPLIED 0004-agari-guard-consistency
+APPLIED 0005-train-holdout-val-loss
+APPLIED 0012-1v3-seed-start
+APPLIED 0006-event-stream-tokens
+APPLIED 0010-arena-event-tokens
+APPLIED 0007-model-event-branch
+$ cmp <tree file> <live file> for all six files
+IDENTICAL mortal/model.py / train.py / one_vs_three.py / player.py / mortal.py / client.py
+$ git -C vendor/mortal apply -R --check -p1 "$(pwd)/patches/0007-model-event-branch.patch"
+REVERSE_APPLY_CHECK_OK        # patch == current tree minus its own changes, exactly
+
+### [3] Model-definition self-check (todo 19a acceptance)
+$ python3 scripts/exp_e3a_selfcheck.py         # -> runs/exp/E3a/selfcheck.json, all PASS
+PASS zero_init_identity: max|phi_out - phi_base| zero_tokens=0.000e+00 real_tokens=0.000e+00
+     cnn_vs_direct=0.000e+00 (threshold 1e-5)          <-- ACCEPT item: < 1e-5 elementwise
+PASS proj_zero_init: max|W_zero|=0.0
+PASS residual_wired: max|phi_out - phi_base| after perturb = 6.381e-01
+PASS causal_mask: changing pos>=4 leaves pos<4 unchanged (0.000e+00); changing pos 3 moves pos>=4 (2.017e+00)
+PASS padding_ignored: max|h - h(junk padding)| = 0.000e+00
+PASS toggle_off_no_branch: use_event_branch=false -> event_branch is None
+PASS toggle_on_branch: use_event_branch=true -> branch instantiated
+PASS branch_needs_events: event branch is enabled but `events` is None; ... degrade E3a to E2
+PASS guard_branch_weights_into_cnn: ... refusing to drop them silently (strict=False would degrade E3a into E2)
+PASS e3a_load_clean: missing=[] unexpected=[]
+PASS cnn_load_clean: missing=[] unexpected=[]
+PASS cnn_into_e3a_missing_branch: missing=55 keys (all event_branch), unexpected=[]
+PASS numel_consistency: baseline=10,787,456 e3a=11,818,752 added=1,031,296 (9.560% of baseline)
+CUDA timing (batch 1024, T=153, autocast, forward only): baseline 0.0409 s vs e3a 0.0555 s (1.36x)
+Step-cost synthetic benchmark (forward+backward+optimizer, batch 1024, T=143): CNN 133 ms vs E3a 220 ms
+  => raw ratio 1.65x < 2x, so the documented fallback (2 layers d=64) is NOT triggered.
+
+### [4] Five load points verified individually (four scenarios; scripts/exp_e3a_verify_load.py)
+Real entry points executed in-process with a recorder wrapped around model.load_brain_state_dict:
+  train :: train.train()            (8-file tiny dataset, real 32+ steps, save_every=8)
+  one_vs_three :: one_vs_three.main()   (4-game arena; champion AND challenger loads)
+  player :: player.TestPlayer() + player.TrainPlayer()
+  mortal :: mortal.main()           (empty stdin; stops right after the load point)
+  client :: client.main()           (stubbed socket/recv_msg/TrainPlayer)
+$ python3 scripts/exp_e3a_verify_load.py prepare
+  e3a   state sha256 f8ddfda4...ab45db  steps=6   has_event_branch_weights=true  config_use_event_branch=true
+  old   state sha256 f0a611b9...93a9    steps=175200 has_event_branch_weights=false config_use_event_branch=false
+  guard state sha256 92fb8436...6bb73   steps=6   has_event_branch_weights=true  config_use_event_branch=false  (tampered copy)
+  guard2 = same file as guard
+$ MORTAL_CFG=/tmp/opencode/t19/verify_e3a.toml   ... --scenario e3a
+VALIDATE OK e3a: 8 loads across 5 sites
+  every load: status=loaded, missing_keys=[], unexpected_keys=[], branch_present=true, branch |W| sum > 0
+  (train=2 loads [TestPlayer baseline + resume], one_vs_three=2, player=2, mortal=1, client=1)
+$ MORTAL_CFG=/tmp/opencode/t19/verify_old.toml   ... --scenario old
+VALIDATE OK old: 8 loads across 5 sites
+  every load: status=loaded, missing_keys=[], unexpected_keys=[], branch_present=false, 0 branch params
+  (use_event_branch resolves false for old checkpoints -> ACCEPT item (b))
+$ MORTAL_CFG=/tmp/opencode/t19/verify_guard.toml ... --scenario guard
+VALIDATE OK guard: 7 loads across 5 sites   (1 loaded [champion PINNED] + 6 raised)
+  every raised message: "checkpoint contains event-branch weights but the constructed Brain has
+  use_event_branch=false; refusing to drop them silently (strict=False would degrade E3a into E2)"
+$ MORTAL_CFG=/tmp/opencode/t19/verify_guard2.toml ... --scenario guard2
+VALIDATE OK guard2: 7 loads across 5 sites  (3 loaded + 4 raised)
+  train: TestPlayer loads PINNED cleanly, then the resume load (control.state_file = tampered
+  guard copy) RAISES; player loads PINNED cleanly; mortal/client/one_vs_three raise.
+=> all five load points covered by (a) E3a-clean / (b) old-clean / (c) loud guard.
+
+### [5] Config [model] + live-path safety assertions
+$ cp configs/config.toml configs/config.toml.bak-19   (before the [model] edit)
+$ grep -A6 '^\[model\]' configs/config.toml
+[model]
+use_event_branch = true
+event_dim = 128
+event_heads = 4
+event_layers = 4
+event_ffn = 512
+$ python3 scripts/exp_e3a_make_configs.py train --out runs/exp/E3a/train.toml
+OK train -> ... (use_event_branch=True, seed_start=10000, state_file=.../runs/exp/E3a/state.pth)
+$ immediate pre-launch assertion (tomllib read-back of runs/exp/E3a/train.toml)
+CONFIG SAFETY OK
+ state_file = /home/ygsldr/riichi-ai/runs/exp/E3a/state.pth
+ best_state_file = /home/ygsldr/riichi-ai/runs/exp/E3a/best.pth
+ tensorboard_dir = /home/ygsldr/riichi-ai/runs/exp/E3a/tb
+ test_play.log_dir = /home/ygsldr/riichi-ai/runs/exp/E3a/test_play
+ train_play.log_dir = /home/ygsldr/riichi-ai/runs/exp/E3a/train_play
+ 1v3.log_dir = /home/ygsldr/riichi-ai/runs/exp/E3a/games
+=> none of the four live paths; live checkpoints never written.
+LIVE-CP-MTIME-BEFORE: 2026-09-17 02:03:09.718844843 +0800 checkpoints/mortal.pth
+                      2026-09-16 02:59:45.582238799 +0800 checkpoints/best.pth
+
+### [6] Patch-0007 does not touch Rust; release build re-done anyway
+$ touch vendor/mortal/libriichi/src/lib.rs; bash scripts/build_libriichi.sh
+>>> libriichi OK: /home/ygsldr/riichi-ai/vendor/mortal/target/release/libriichi.so
+$ python3 -c "import libriichi; print(libriichi.__file__)"
+/home/ygsldr/riichi-ai/vendor/mortal/target/release/libriichi.so
+$ stat -c '%y %n' vendor/mortal/target/release/libriichi.so
+2026-09-17 23:21:08.974830561 +0800  (fresh, after the patch)
+
+### [7] PREREG + training (todo 19b)
+$ sha256sum runs/exp/E3a/PREREG.md
+94d9d4525b744080b0e587cd9e5c3b65e0ed7ecd2632372f8a1c4ae69016e5a  runs/exp/E3a/PREREG.md
+Declared budget (before launch): 20,000 optimizer steps, batch 1024 (= 20.48M samples),
+from scratch; E2/A7/A8/A9 must reuse 20,000. Config: runs/exp/E3a/train.toml (enable_compile=false,
+save_every=2000, test_every=100000, num_workers=3, 2009-2022 train + 2023 holdout).
+Launch: (setsid nohup env MORTAL_CFG=.../runs/exp/E3a/train.toml python3 train.py > runs/exp/E3a/train.log 2>&1 &)
+        pid 91707 (watchdog /tmp/opencode/t19/watchdog.sh stops it after the step-20,000 save)
+First segment (pid 91707): 2026-09-17 23:22:35 -> external kill during the agent-session
+interruption at ~step 13,027 (last save step 12,000 @ 2026-09-18 01:09:31). Save markers:
+  2,000 @ 23:35:21 | 4,000 @ 23:50:12 | 6,000 | 8,000 | 10,000 @ 01:00:24 | 12,000 @ 01:09:31
+  holdout_loss: 4.004824, 3.793341, 3.618526, 3.643839, 3.458495, 3.465353 (steps 2k..12k)
+Resume (pid 1965, `train.log.resume`): launched 01:18:15, "loaded: 2026-09-18 01:09:31" (its own
+  state.pth; optimizer/scheduler/scaler/best_perf from the checkpoint), PREREG addendum §8 records
+  the interruption + the non-continued DataLoader shuffle order. Save markers:
+  12,000 @ 01:18:19 (loaded) | 14,000 @ 01:28:51 | 16,000 @ 01:39:19 | 18,000 @ 01:49:25 |
+  20,000 @ 02:00:06 (holdout_loss 3.224427) -> watchdog_resume killed pid 1965 at 02:01:34,
+  after state.pth mtime 2026-09-18 02:00:07. Declared 20,000-step budget met.
+Full holdout curve (10 points, steps 2k..20k):
+  4.004824 3.793341 3.618526 3.643839 3.458495 3.465353 3.354935 3.374656 3.308043 3.224427
+Wall/throughput: segment 1 = 6,416 s for 12,000 steps (1.87 steps/s avg; early cycles dipped to
+  ~1.8-2.2 steps/s, later cycles 3.1-3.8 steps/s); resume = 2,599 s for 8,000 steps (3.08 steps/s);
+  total training wall ~2h39m excluding the 9-min relaunch gap. Synthetic step benchmark (same code,
+  batch 1024): CNN 133 ms vs E3a 220 ms => the E3a branch costs 1.65x raw (fallback not triggered).
+Resources observed: training RSS 5.0 GB (top), system MemAvailable >= 6 GB throughout; GPU total
+  used 15.2-15.5 / 16.3 GB on the shared box (3.7-6 GB of that is a pre-existing non-process
+  context), so the arm's own VRAM delta is ~9 GB. No OOM, no fallback used.
+Final checkpoint: runs/exp/E3a/state.pth steps=20000, config.model.use_event_branch=true,
+  55 event_branch.* tensors, branch |W| sum 115,890.88, proj |W| max 0.09306;
+  sha256 034ace1d94a59db4a3492674765eb6640786368545f7445ed5a2438e5f857056
+LIVE-CP-MTIME-AFTER (both segments): checkpoints/mortal.pth 2026-09-17 02:03:09.718844843,
+  checkpoints/best.pth 2026-09-16 02:59:45.582238799 -- unchanged.
+Contention note: todo 17's E2 training (pid 1484) started at ~20:34 on 2026-09-18, overlapping
+  the E3a arm eval; MemAvailable stayed >= 6 GB and no OOM was observed for either job.
+
+### [8] Arm evaluation (pool A, 12k, seed_start=10000) + branch-fed proof
+First attempt launched 2026-09-18 02:02:13 was killed by the machine reboot (~02:40) before
+the arena dumped any game logs (`runs/exp/E3a/eval.log.killed-reboot` keeps its opening line;
+an empty `games/` mid-run is expected -- the arena dumps only at the very end).
+Relaunch after the reboot (eval config re-asserted safe first):
+$ cd vendor/mortal/mortal
+$ (setsid nohup env MORTAL_CFG=/home/ygsldr/riichi-ai/runs/exp/E3a/eval.toml \
+    MORTAL_EVT_DEBUG=/tmp/opencode/t19_e3a_evt_debug.jsonl python3 one_vs_three.py \
+    > /home/ygsldr/riichi-ai/runs/exp/E3a/eval.log 2>&1 & echo $!)
+  pid 1063, started 2026-09-18 20:32:39, log: 'seed: [10000, 13000) w/ 0x5dfaa4cef265cd7,
+  start 3000 sets, 12000 hanchans'; 'dumping game logs' 21:40:22 -> wall 67m43s (4,063 s).
+  Final: 'challenger rankings: [2860 2958 2897 3285] (2.5505833333333334, -4.41375pt)'.
+$ ls runs/exp/E3a/games/*.json.gz | wc -l
+12000          # seeds 10000..12999, key 423244137402621143, splits a-d; no foreign files
+$ python3 scripts/eval_report.py --games-dir runs/exp/E3a/games --seed-key 0x5dfaa4cef265cd7 \
+    --seed-range 10000-13000 --checkpoint state.pth --source-dir runs/exp/E3a \
+    --out runs/exp/E3a/report.csv
+games_dir=runs/exp/E3a/games  source_dir=runs/exp/E3a  checkpoint=state.pth
+candidates(*.json.gz)=12000 matched=12000 ignored_files=0 non-game files skipped=0
+sets=3000 games=12000 incomplete_sets=0 seed_key_groups=1
+dist(1/2/3/4)=[2860 2958 2897 3285] avg_rank=2.5506 pt=-4.4138
+bootstrap B=2000 (resample sets): avg_rank 95%CI=[2.5327, 2.5685] pt 95%CI=[-5.8351, -3.1012]
+assertions: self-consistency OK
+CSV -> runs/exp/E3a/report.csv
+Resolution context (must accompany these numbers): 12k games => 80%-power MDD ~= 0.0239
+avg_rank / 1.86 pt (runs/variance/README.md). Pool A is selection data; the paired
+E3a-vs-E2 verdict belongs to todo 22 (single-shot pool B=50000, NOT consumed here:
+`grep -c 'seed_start = 50000' runs/exp/E3a/{train,eval}.toml` = 0).
+Orientation only (NOT a verdict): the c=192 baseline arm on the same [30000,33000) window
+scored avg_rank 2.50525 and the pool-A window [10000,13000) baseline scored 2.4768, so this
+from-scratch 20k-step E3a sits at 2.5506 (higher = worse than both); windows differ, so this
+is not a direct comparison -- only todo 22's paired run decides.
+
+Branch-fed proof during THIS eval (`scripts/exp_e3a_check_feed.py`, streamed line-by-line):
+$ python3 scripts/exp_e3a_check_feed.py --debug /tmp/opencode/t19_e3a_evt_debug.jsonl \
+    --out runs/exp/E3a/EVAL_FEED_E3A.json
+  evaluate_calls=2,964  entries(engine-evaluated decisions)=7,225,501  n_min=2  n_max=158
+  assertion_1_nonempty (no entry with n<1 or zero tokens) = PASS (0 failures)
+  assertion_2_first_token_is_start_kyoku = PASS (all 7,225,501)
+  assertion_3_last_token_is_valid_event_type = PASS ({3: 5,386,716; 4: 1,570,652;
+    5: 83,519; 6: 146,746; 8: 20; 11: 37,848})
+  A branch-enabled Brain raises on `events=None`, so the completed run itself proves the
+  branch was not bypassed; the debug counts prove every engine decision got a non-empty
+  stream. Trained-branch liveness (CPU, no GPU job): runs/exp/E3a/branch_active_trained.json
+  -- state@20000 loads with unexpected_keys=[] / missing_keys=[], and
+  max|brain(obs, events) - cnn_only(obs)| = 0.6949 > 0 (the branch is live, not a dead path).
+
+### [9] Frozen corpus + no-write invariants
+$ ls runs/1v3/*.json.gz | wc -l
+2004   (before the eval, and 2004 again after; no game logs were ever written there)
+$ stat -c '%y %n' checkpoints/mortal.pth checkpoints/best.pth
+2026-09-17 02:03:09.718844843 +0800 checkpoints/mortal.pth
+2026-09-16 02:59:45.582238799 +0800 checkpoints/best.pth
+   (both unchanged across the whole todo: original run, resume, reboot, eval)
+$ ls runs/exp/E3a/games | wc -l -> 12000 ; all names match
+   ^[0-9]+_423244137402621143_[abcd]\.json\.gz$ ; seed min 10000 max 12999
+Eval writes were confined to runs/exp/E3a/{games,eval.log,report.csv,EVAL_FEED_E3A.json};
+no writes to configs/datasets/checkpoints/runs/variance/runs/exp/{PINNED,A1,A2,A2b,EVT,...}.
+Contention: todo 17's E2 training (pid 1484) ran concurrently with this eval from ~20:34;
+MemAvailable stayed >= 6 GB, no OOM for either job, and no GPU job was launched by this
+closure pass (E2 training left undisturbed).

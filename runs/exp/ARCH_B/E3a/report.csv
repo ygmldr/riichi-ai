@@ -1,0 +1,2 @@
+source_dir,checkpoint,seed_key,seed_start,sets,games,incomplete_sets,rank1,rank2,rank3,rank4,rank_dist,avg_rank,avg_rank_ci_lo,avg_rank_ci_hi,pt,pt_ci_lo,pt_ci_hi,ignored_files
+runs/exp/ARCH_B/E3a,state.pth,423244137402621143,50000,3000,12000,0,2775,2943,2985,3297,[2775 2943 2985 3297],2.567000,2.54983125,2.584835416666667,-5.242500,-6.61125,-3.89625,0

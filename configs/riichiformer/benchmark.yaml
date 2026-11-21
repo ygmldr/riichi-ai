@@ -1,0 +1,38 @@
+# RiichiFormer V2 — PR-01 synthetic SDPA benchmark config
+# 只测算力/显存（与麻将数据完全解耦），不是模型定义，也不是结果承诺。
+schema: rf-bench/1
+device: auto            # auto | cuda | cpu（auto: 有 CUDA 用 CUDA）
+dtype: bfloat16         # CUDA 上强制 BF16 autocast；CPU 忽略
+seed: 20261121
+
+warmup_steps: 10        # 每组 shape 的每个 phase 先 warmup（不计入测量）
+measure_steps: 30       # 测量步数；OOM 时记录错误而不是记为 0 ms
+
+model:
+  n_layers: 2
+  n_heads: 4
+  ffn_multiplier: 4
+  dropout: 0.0
+  causal: true
+
+optimizer:
+  name: adamw
+  lr: 0.0001
+  weight_decay: 0.01
+
+# 目标 shape：MVP-S / Main-H 的 (B,L,d) 候选，PR-13/23 之前只做容量规划
+shapes:
+  - {batch: 8, seq: 512,  d_model: 256}
+  - {batch: 4, seq: 1024, d_model: 384}
+  - {batch: 2, seq: 2048, d_model: 384}
+  - {batch: 1, seq: 4096, d_model: 384}
+
+phases: [forward, train, step]
+
+# 磁盘预算：只扫这些路径（避免扫 17 GB 的 runs/）；不删除任何 zip
+disk:
+  scan_paths:
+    - datasets
+    - checkpoints
+    - artifacts/riichiformer
+  zip_suffixes: [".zip"]

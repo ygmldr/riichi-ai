@@ -1,0 +1,16 @@
+CFG ASSERT OK: no state_file targets a live path
+  challenger=/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-328000
+  champion  =/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200
+  log_dir   =/home/ygsldr/riichi-ai/runs/exp/M328/vs175200/games
+  seed_key  =423244137402621143  seed_start=10000 games_per_iter=12000 iters=1
+[2026-09-20 01:34:03] INVARIANT[start] runs/1v3/*.json.gz=2004 (want 2004)
+[2026-09-20 01:34:03] INVARIANT[start] mortal.pth mtime='2026-09-17 02:03:09' (want 2026-09-17 02:03:09)
+[2026-09-20 01:34:03] INVARIANT[start] best.pth   mtime='2026-09-16 02:59:45' (want 2026-09-16 02:59:45)
+[2026-09-20 01:34:03] INVARIANT[start] pinned at-328000 sha256=b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511 (want b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511)
+[2026-09-20 01:34:03] INVARIANT[start] this run games/=0 *.json.gz
+[2026-09-20 01:34:03] LAUNCH: MORTAL_CFG=/tmp/opencode/m328/vs175200.toml PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release /home/ygsldr/riichi-ai/.venv/bin/python one_vs_three.py
+[2026-09-20 01:34:28] ARENA: launcher_pid=83441 arena_pid=83398
+[2026-09-20 01:34:28] ARENA log head: 2026-09-20 01:34:07,643     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans 
+[2026-09-20 01:35:03] ARENA DONE: pid=83398 wall=60s (1m00s)
+2026-09-20 01:34:07,643     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans
+[2026-09-20 01:35:03] FAIL: no 'challenger rankings' in eval.log

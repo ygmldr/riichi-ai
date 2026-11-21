@@ -1,0 +1,33 @@
+{
+  "arms": {
+    "A9": "runs/exp/A9/games",
+    "E3a": "runs/exp/E3a/games"
+  },
+  "key": "0x5dfaa4cef265cd7",
+  "seed_range": [
+    10000,
+    13000
+  ],
+  "sets": 3000,
+  "A9": {
+    "avg_rank": 2.60225,
+    "pt": -8.19375
+  },
+  "E3a": {
+    "avg_rank": 2.5505833333333334,
+    "pt": -4.41375
+  },
+  "delta_A9_minus_E3a": {
+    "avg_rank": 0.051666666666666666,
+    "avg_rank_ci95": [
+      0.027914583333333333,
+      0.0750895833333333
+    ],
+    "pt": -3.78,
+    "pt_ci95": [
+      -5.56584375,
+      -1.905
+    ]
+  },
+  "method": "paired per-set bootstrap B=2000 rng seed 0 (same procedure as scripts/exp_a1_delta.py)"
+}

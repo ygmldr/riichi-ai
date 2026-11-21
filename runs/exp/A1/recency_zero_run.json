@@ -1,0 +1,113 @@
+{
+  "arm": "recency_zero",
+  "avg_pt": 1.2825,
+  "avg_rank": 2.490666666666667,
+  "config": "/home/ygsldr/riichi-ai/configs/config.toml",
+  "finished_at": "2026-09-17T19:45:39+0800",
+  "game_log_files": 12000,
+  "games": 12000,
+  "layout_json": "/home/ygsldr/riichi-ai/runs/analysis/obs_layout.json",
+  "layout_sha256": "a9b2df28dabdf8e69cf977b02a04f18a3d802262ef40f2869180dfbaac55999f",
+  "log_dir": "/home/ygsldr/riichi-ai/runs/exp/A1/games_recency_zero",
+  "patch_stats": {
+    "arm": "recency_zero",
+    "blocks_changed": 0,
+    "blocks_checked": 0,
+    "blocks_uniform": 0,
+    "obs_changed": 1786102,
+    "obs_patched": 1817565,
+    "path_counts": {
+      "binary": 0,
+      "fallback": 0
+    },
+    "perm_seed": null,
+    "react_batch_calls": 1370,
+    "recency_planes_zeroed_obs": 1786102
+  },
+  "perm_seed": null,
+  "prereg_sha256": "71f91196661ecef5c7f29240da044bc7d34603721fab9c98d6816c76ccaadf88",
+  "rankings": [
+    2977,
+    3043,
+    3095,
+    2885
+  ],
+  "recency_planes": [
+    {
+      "count": 1,
+      "name": "self_kawa_recency",
+      "offset": 131
+    },
+    {
+      "count": 3,
+      "name": "opp1_shimocha_kawa_recency",
+      "offset": 324
+    },
+    {
+      "count": 3,
+      "name": "opp2_toimen_kawa_recency",
+      "offset": 519
+    },
+    {
+      "count": 3,
+      "name": "opp3_kamicha_kawa_recency",
+      "offset": 714
+    }
+  ],
+  "seed_count": 3000,
+  "seed_key": 423244137402621143,
+  "seed_start": 30000,
+  "smoke_seeds": null,
+  "started_at": "2026-09-17T19:08:33+0800",
+  "wall_seconds": 2222.9,
+  "windows": [
+    {
+      "item_channels": 4,
+      "items": 6,
+      "name": "self_kawa_recent6",
+      "offset": 35
+    },
+    {
+      "item_channels": 4,
+      "items": 18,
+      "name": "self_kawa_old18",
+      "offset": 59
+    },
+    {
+      "item_channels": 8,
+      "items": 6,
+      "name": "opp1_shimocha_kawa_recent6",
+      "offset": 132
+    },
+    {
+      "item_channels": 8,
+      "items": 18,
+      "name": "opp1_shimocha_kawa_old18",
+      "offset": 180
+    },
+    {
+      "item_channels": 8,
+      "items": 6,
+      "name": "opp2_toimen_kawa_recent6",
+      "offset": 327
+    },
+    {
+      "item_channels": 8,
+      "items": 18,
+      "name": "opp2_toimen_kawa_old18",
+      "offset": 375
+    },
+    {
+      "item_channels": 8,
+      "items": 6,
+      "name": "opp3_kamicha_kawa_recent6",
+      "offset": 522
+    },
+    {
+      "item_channels": 8,
+      "items": 18,
+      "name": "opp3_kamicha_kawa_old18",
+      "offset": 570
+    }
+  ]
+}

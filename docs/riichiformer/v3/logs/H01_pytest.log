@@ -1,0 +1,345 @@
+# H-01 SCORE test log
+# branch: rf/h01-score
+# base SHA: 59691f57bc7158dcdb2ba98eecd9d102857171f8
+# date (UTC): 2026-11-20T20:25:59Z
+# python: Python 3.12.3
+# PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release
+
+==================================================================================
+BEFORE FIX: tests/rf_test_replay.py against riichiformer/data/replay.py at BASE
+$ PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release .venv/bin/python -m pytest -q tests/rf_test_replay.py
+==================================================================================
+FFFFFFFFF.FF.F..FF                                                       [100%]
+=================================== FAILURES ===================================
+_______ ScoreSettlementTests.test_absolute_scores_protocol_fails_closed ________
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_absolute_scores_protocol_fails_closed>
+
+    def test_absolute_scores_protocol_fails_closed(self):
+>       with self.assertRaises(replay.ScoreProtocolError):
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'ScoreProtocolError'
+
+tests/rf_test_replay.py:258: AttributeError
+____ ScoreSettlementTests.test_double_ron_kyotaku_paid_to_first_winner_only ____
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_double_ron_kyotaku_paid_to_first_winner_only>
+
+    def test_double_ron_kyotaku_paid_to_first_winner_only(self):
+        # End before the next start_kyoku so the legacy entry point must settle it.
+>       self.assertEqual(
+            replay.final_scores_from_events(DOUBLE_RON_EVENTS),
+            [15400, 20100, 32500, 32000],
+        )
+E       AssertionError: Lists differ: [15400, 22100, 32500, 32000] != [15400, 20100, 32500, 32000]
+E       
+E       First differing element 1:
+E       22100
+E       20100
+E       
+E       - [15400, 22100, 32500, 32000]
+E       ?          ^
+E       
+E       + [15400, 20100, 32500, 32000]
+E       ?          ^
+
+tests/rf_test_replay.py:206: AssertionError
+_____ ScoreSettlementTests.test_double_ron_transition_and_second_delta_sum _____
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_double_ron_transition_and_second_delta_sum>
+
+    def test_double_ron_transition_and_second_delta_sum(self):
+>       result = replay.replay_scores(DOUBLE_RON_CHAIN)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:212: AttributeError
+______ ScoreSettlementTests.test_four_riichi_abort_charges_pending_reach _______
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_four_riichi_abort_charges_pending_reach>
+
+    def test_four_riichi_abort_charges_pending_reach(self):
+        # The fourth riichi has no reach_accepted but is still deducted (real Tenhou log).
+>       result = replay.replay_scores(FOUR_RIICHI_EVENTS)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:225: AttributeError
+__________ ScoreSettlementTests.test_four_riichi_legacy_final_scores ___________
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_four_riichi_legacy_final_scores>
+
+    def test_four_riichi_legacy_final_scores(self):
+>       self.assertEqual(
+            replay.final_scores_from_events(FOUR_RIICHI_EVENTS),
+            [30000, 22000, 22000, 22000],
+        )
+E       AssertionError: Lists differ: [31000, 22000, 22000, 22000] != [30000, 22000, 22000, 22000]
+E       
+E       First differing element 0:
+E       31000
+E       30000
+E       
+E       - [31000, 22000, 22000, 22000]
+E       ?   ^
+E       
+E       + [30000, 22000, 22000, 22000]
+E       ?   ^
+
+tests/rf_test_replay.py:236: AssertionError
+________ ScoreSettlementTests.test_inconsistent_hora_deltas_fail_closed ________
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_inconsistent_hora_deltas_fail_closed>
+
+    def test_inconsistent_hora_deltas_fail_closed(self):
+        # Old fixture: deltas sum -1000 while one kyotaku (1000) is live -> unverified.
+        bad = [
+            START_GAME,
+            {"type": "start_kyoku", "scores": [25000] * 4, "kyotaku": 0},
+            {"type": "reach_accepted", "actor": 0},
+            {"type": "hora", "actor": 0, "target": 0, "deltas": [-1000, 0, 0, 0]},
+            {"type": "end_game"},
+        ]
+>       result = replay.replay_scores(bad, strict_protocol=False)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:272: AttributeError
+__________ ScoreSettlementTests.test_kyoku_count_uses_raw_boundaries ___________
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_kyoku_count_uses_raw_boundaries>
+
+    def test_kyoku_count_uses_raw_boundaries(self):
+        events = [
+            START_GAME,
+            {"type": "start_kyoku", "bakaze": "E", "kyoku": 1, "honba": 0,
+             "kyotaku": 0, "scores": [25000] * 4},
+            # abortive draw with zero decisions, restarted as honba 1 of the same kyoku
+            {"type": "ryukyoku", "deltas": [0, 0, 0, 0]},
+            {"type": "end_kyoku"},
+            {"type": "start_kyoku", "bakaze": "E", "kyoku": 1, "honba": 1,
+             "kyotaku": 0, "scores": [25000] * 4},
+            {"type": "reach_accepted", "actor": 0},
+            {"type": "ryukyoku", "deltas": [-1500, 1500, 1500, -1500]},
+            {"type": "end_kyoku"},
+            {"type": "start_kyoku", "bakaze": "E", "kyoku": 2, "honba": 0,
+             "kyotaku": 1, "scores": [22500, 26500, 26500, 23500]},
+            {"type": "ryukyoku", "deltas": [0, 0, 0, 0]},
+            {"type": "end_kyoku"},
+            {"type": "end_game"},
+        ]
+>       result = replay.replay_scores(events)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:297: AttributeError
+___ ScoreSettlementTests.test_kyotaku_carries_through_ryukyoku_to_next_kyoku ___
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_kyotaku_carries_through_ryukyoku_to_next_kyoku>
+
+    def test_kyotaku_carries_through_ryukyoku_to_next_kyoku(self):
+>       result = replay.replay_scores(CARRY_HORA_CHAIN)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:190: AttributeError
+_ ScoreSettlementTests.test_last_kyoku_leftover_kyotaku_matches_native_anchor __
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_last_kyoku_leftover_kyotaku_matches_native_anchor>
+
+    def test_last_kyoku_leftover_kyotaku_matches_native_anchor(self):
+        # Legacy entry point must include the native end-of-game allocation too.
+>       self.assertEqual(
+            replay.final_scores_from_events(NATIVE_LEFTOVER_EVENTS),
+            NATIVE_LEFTOVER_FINAL,
+        )
+E       AssertionError: Lists differ: [25000, 25000, 24000, 25000] != [26000, 25000, 24000, 25000]
+E       
+E       First differing element 0:
+E       25000
+E       26000
+E       
+E       - [25000, 25000, 24000, 25000]
+E       ?         -------
+E       
+E       + [26000, 25000, 24000, 25000]
+E       ?  +++++++
+
+tests/rf_test_replay.py:243: AssertionError
+_____ ScoreSettlementTests.test_reach_hora_deltas_already_include_kyotaku ______
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_reach_hora_deltas_already_include_kyotaku>
+
+    def test_reach_hora_deltas_already_include_kyotaku(self):
+        # delta sum is +1000 == 1 kyotaku; the old code added another +1000.
+>       self.assertEqual(
+            replay.final_scores_from_events(CARRY_HORA_EVENTS),
+            [23300, 29400, 28100, 19200],
+        )
+E       AssertionError: Lists differ: [23300, 30400, 28100, 19200] != [23300, 29400, 28100, 19200]
+E       
+E       First differing element 1:
+E       30400
+E       29400
+E       
+E       - [23300, 30400, 28100, 19200]
+E       ?         ^^
+E       
+E       + [23300, 29400, 28100, 19200]
+E       ?         ^^
+
+tests/rf_test_replay.py:184: AssertionError
+__________ ScoreSettlementTests.test_transition_mismatch_is_reported ___________
+
+self = <rf_test_replay.ScoreSettlementTests testMethod=test_transition_mismatch_is_reported>
+
+    def test_transition_mismatch_is_reported(self):
+        events = [
+            START_GAME,
+            {"type": "start_kyoku", "scores": [25000] * 4, "kyotaku": 0},
+            {"type": "hora", "actor": 0, "target": 1, "deltas": [-1000, 1000, 0, 0]},
+            {"type": "end_kyoku"},
+            # deliberately wrong anchor: the real log would say [24000, 26000, 25000, 25000]
+            {"type": "start_kyoku", "scores": [24500, 25500, 25000, 25000], "kyotaku": 0},
+            {"type": "ryukyoku", "deltas": [0, 0, 0, 0]},
+            {"type": "end_kyoku"},
+            {"type": "end_game"},
+        ]
+>       result = replay.replay_scores(events)
+                 ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:316: AttributeError
+___ ReplayIntegrationTests.test_kyoku_count_matches_raw_boundaries_not_seat0 ___
+
+self = <rf_test_replay.ReplayIntegrationTests testMethod=test_kyoku_count_matches_raw_boundaries_not_seat0>
+
+    def test_kyoku_count_matches_raw_boundaries_not_seat0(self):
+        """Real log where seat 0 skipped one kyoku (abortive draw after zero actions)."""
+        path = None
+        directory = dataset_year_dir()
+        if directory is not None:
+            candidate = directory / "2025061404gm-00a9-0000-c5b3fa50.mjson"
+            if candidate.is_file():
+                path = candidate
+        if path is None:
+            self.skipTest("boundary fixture log not present")
+        text = read_text(path)
+        result = replay.replay_game(text, oracle=False)
+        raw_count = sum(1 for line in text.splitlines()
+                        if line.strip() and json.loads(line).get("type") == "start_kyoku")
+        self.assertTrue(result.ok, result.error)
+>       self.assertEqual(result.kyoku_count, 12)
+E       AssertionError: 0 != 12
+
+tests/rf_test_replay.py:395: AssertionError
+________________ ReplayIntegrationTests.test_zero_seat_rejected ________________
+
+self = <rf_test_replay.ReplayIntegrationTests testMethod=test_zero_seat_rejected>
+
+    def test_zero_seat_rejected(self):
+        """A loader that returns 0 seats must not be accepted as a valid game."""
+        class EmptyLoader:
+            def __init__(self, *args, **kwargs):
+                pass
+    
+            def load_log(self, raw_log):
+                return []
+    
+        fake = types.SimpleNamespace(
+            dataset=types.SimpleNamespace(GameplayLoader=EmptyLoader)
+        )
+        with mock.patch.object(replay, "load_libriichi", return_value=fake):
+            result = replay.replay_game(
+                '{"type":"start_game","names":["a","b","c","d"]}\n'
+            )
+>       self.assertFalse(result.ok)
+E       AssertionError: True is not false
+
+tests/rf_test_replay.py:376: AssertionError
+___ RealCorpusCrossCheckTests.test_200_games_with_kyotaku_transitions_match ____
+
+self = <rf_test_replay.RealCorpusCrossCheckTests testMethod=test_200_games_with_kyotaku_transitions_match>
+
+    def test_200_games_with_kyotaku_transitions_match(self):
+        directory = dataset_year_dir("2025")
+        if directory is None:
+            self.skipTest("no local 2025 dataset")
+        files = sorted(directory.glob("*.mjson"))
+        if len(files) < 400:
+            self.skipTest("short local corpus")
+        checked = 0
+        transitions = 0
+        hora_with_kyotaku = 0
+        leftovers = 0
+        failures = []
+        for path in files[:400]:
+            events = load_events(path)
+            has_kyotaku = any(int(e.get("kyotaku", 0) or 0) > 0
+                              for e in events if e.get("type") == "start_kyoku")
+            if not has_kyotaku:
+                continue
+            try:
+>               result = replay.replay_scores(events)
+                         ^^^^^^^^^^^^^^^^^^^^
+E               AttributeError: module 'riichiformer.data.replay' has no attribute 'replay_scores'
+
+tests/rf_test_replay.py:425: AttributeError
+
+During handling of the above exception, another exception occurred:
+
+self = <rf_test_replay.RealCorpusCrossCheckTests testMethod=test_200_games_with_kyotaku_transitions_match>
+
+    def test_200_games_with_kyotaku_transitions_match(self):
+        directory = dataset_year_dir("2025")
+        if directory is None:
+            self.skipTest("no local 2025 dataset")
+        files = sorted(directory.glob("*.mjson"))
+        if len(files) < 400:
+            self.skipTest("short local corpus")
+        checked = 0
+        transitions = 0
+        hora_with_kyotaku = 0
+        leftovers = 0
+        failures = []
+        for path in files[:400]:
+            events = load_events(path)
+            has_kyotaku = any(int(e.get("kyotaku", 0) or 0) > 0
+                              for e in events if e.get("type") == "start_kyoku")
+            if not has_kyotaku:
+                continue
+            try:
+                result = replay.replay_scores(events)
+>           except replay.ScoreProtocolError as exc:  # pragma: no cover - evidence
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'riichiformer.data.replay' has no attribute 'ScoreProtocolError'
+
+tests/rf_test_replay.py:426: AttributeError
+=========================== short test summary info ============================
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_absolute_scores_protocol_fails_closed
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_double_ron_kyotaku_paid_to_first_winner_only
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_double_ron_transition_and_second_delta_sum
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_four_riichi_abort_charges_pending_reach
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_four_riichi_legacy_final_scores
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_inconsistent_hora_deltas_fail_closed
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_kyoku_count_uses_raw_boundaries
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_kyotaku_carries_through_ryukyoku_to_next_kyoku
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_last_kyoku_leftover_kyotaku_matches_native_anchor
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_reach_hora_deltas_already_include_kyotaku
+FAILED tests/rf_test_replay.py::ScoreSettlementTests::test_transition_mismatch_is_reported
+FAILED tests/rf_test_replay.py::ReplayIntegrationTests::test_kyoku_count_matches_raw_boundaries_not_seat0
+FAILED tests/rf_test_replay.py::ReplayIntegrationTests::test_zero_seat_rejected
+FAILED tests/rf_test_replay.py::RealCorpusCrossCheckTests::test_200_games_with_kyotaku_transitions_match
+14 failed, 4 passed in 3.25s
+
+EXIT CODE (before fix): 1
+
+==================================================================================
+AFTER FIX: tests/rf_test_replay.py + tests/rf_test_quality.py
+$ PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release .venv/bin/python -m pytest -q -s tests/rf_test_replay.py tests/rf_test_quality.py
+==================================================================================
+.................
+[real-corpus] games=234 transitions=2461 hora_with_kyotaku=1392 games_with_leftover=8
+..............s
+31 passed, 1 skipped in 3.44s
+EXIT CODE (after fix): 0

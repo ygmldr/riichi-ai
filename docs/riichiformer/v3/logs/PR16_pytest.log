@@ -1,0 +1,25 @@
+# PR-16 arena adapter + mock loop test log
+# branch: rf/pr16-arena
+# base SHA: de8504046a7e679e9982431bca6e33dcd74f7877
+# date (UTC): 2026-11-20T23:12:04Z
+# python: Python 3.12.3
+# PYTHONPATH: /home/ygsldr/riichi-ai/vendor/mortal/target/release
+# command: PYTHONPATH=... .venv/bin/python -m pytest -q -p no:cacheprovider tests/rf_test_arena.py
+
+.................                                       [100%]
+17 passed, 17 subtests passed in 3.51s
+EXIT CODE: 0
+
+# Mock CLI smoke (encoder on; no dataset/checkpoint/libriichi/frozen pool)
+# commands:
+#   .venv/bin/python scripts/rf_eval.py --hands 10   --seed 10000 --key 987654321 --out /tmp/rf16_smoke2/10   --quiet
+#   .venv/bin/python scripts/rf_eval.py --hands 100  --seed 10000 --key 987654321 --out /tmp/rf16_smoke2/100  --quiet
+#   .venv/bin/python scripts/rf_eval.py --hands 1000 --seed 10000 --key 987654321 --out /tmp/rf16_smoke2/1000 --quiet
+hands=10   decisions=80    illegal=0 none=0 truncated=0 failures=0 phases={'SELF_TURN': 40, 'CALL_RESPONSE': 40} seat_starts={'0': 3, '1': 3, '2': 2, '3': 2} digest=e2bf6b54bab6650a3fa57ee9e7c68cde29acf3a88fdba0e588bd7e3397601546 exit=0
+hands=100  decisions=800   illegal=0 none=0 truncated=0 failures=0 phases={'SELF_TURN': 400, 'CALL_RESPONSE': 400} seat_starts={'0': 25, '1': 25, '2': 25, '3': 25} digest=d61a597baec163327ba5931c6c629875cb70b1d64b648f5aec1f742c16cebced exit=0
+hands=1000 decisions=8000 illegal=0 none=0 truncated=0 failures=0 phases={'SELF_TURN': 4000, 'CALL_RESPONSE': 4000} seat_starts={'0': 250, '1': 250, '2': 250, '3': 250} digest=99713fdb44ed71e28988a278a9f2b8b900655e96a27ba68341d4b65eb485d824 exit=0
+
+# With --decisions-per-seat 3 (KAN_SELECTION every third hand):
+# hands=1000 decisions=9336 illegal=0 none=0 truncated=0 failures=0 (tests cover this path)
+# No real rules engine, model, dataset, frozen evaluation pool, network or training write was used.
+# Mock rank histograms are synthetic plumbing labels, not strength evidence.

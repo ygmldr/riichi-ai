@@ -1,0 +1,21 @@
+# Comparison control, not assumed to fit 16GB on every hanchan.
+run_id: RF-FLAT-F-PILOT
+arch:
+  name: FlatFullHanchan
+  d_model: 384
+  layers: 12
+  heads: 6
+  ffn_hidden: 1024
+  attention: sdpa_causal
+  output_action_dim: 46
+  input: chronological_full_hanchan_pov
+train:
+  bf16: true
+  activation_checkpoint_if_needed: true
+  microbatch_initial: 1
+  no_silent_truncation: true
+  overflow_policy: report_then_adjust_batch_or_arch
+  equal_budget_comparisons:
+    - equal_labeled_decisions
+    - equal_optimizer_updates
+    - equal_gpu_hours

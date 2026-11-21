@@ -1,0 +1,13 @@
+pooled exact sigma rank=0.475096  pt=36.355413
+n_coef rank=31.40*sigma^2 -> 7.0865/Delta^2
+n_coef pt  =31.40*sigma^2 -> 41495.9556/Delta^2
+exact n=6100: SE_rank=0.01217 half95=0.02384 mdd=0.03408
+exact n=12000: SE_rank=0.00867 half95=0.01700 mdd=0.02430
+exact n=24000: SE_rank=0.00613 half95=0.01202 mdd=0.01718
+exact n=6100: SE_pt=0.93097 half95=1.82466 mdd=2.60818
+exact n=12000: SE_pt=0.66376 half95=1.30094 mdd=1.85957
+exact n=24000: SE_pt=0.46935 half95=0.91990 mdd=1.31491
+between-pool rank: mean=2.492889 sd=0.014564 predicted_SE=0.008674 ratio=1.679 chi2=5.638 p=0.0597
+between-pool pt: mean=0.760000 sd=1.022412 predicted_SE=0.663756 ratio=1.540 chi2=4.745 p=0.0932
+spread rank max-min=0.028417 pt max-min=2.021250
+pool1 CI halfwidth rank=0.016921 pt=1.318172

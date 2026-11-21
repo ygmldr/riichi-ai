@@ -1,0 +1,15 @@
+# PR-14 BC trainer/checkpoint test log
+# branch: rf/pr14-trainer
+# base SHA: af7cfbea6aa578c67bf62324485b2bbf830fb4d7
+# date (UTC): 2026-11-20T23:07:14Z
+# python: Python 3.12.3
+# PYTHONPATH: /home/ygsldr/riichi-ai/vendor/mortal/target/release
+# command: PYTHONPATH=... .venv/bin/python -m pytest -q -s tests/rf_test_training.py
+
+.....PR14_LOSS first=2.379641 last=0.000445 params=464142
+...PR14_REFUSED: rights gate refused shard: training loader refuses purpose='audit' shard
+.PR14_DRY_RUN shard=/tmp/tmphhrx32__/train.rfshard batches=1 decisions=4 purpose=train source=synthetic_allowed
+.PR14_REFUSED: refusing to write frozen path /home/ygsldr/riichi-ai/worktrees/trainer/checkpoints/forbidden.pt
+.
+11 passed in 2.22s
+EXIT CODE: 0

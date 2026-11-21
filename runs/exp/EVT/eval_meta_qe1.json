@@ -1,0 +1,37 @@
+{
+  "tag": "qe1",
+  "sets": 1,
+  "games": 4,
+  "seed_start": 51000,
+  "seed_key": 423244137402621143,
+  "log_dir": "/home/ygsldr/riichi-ai/runs/exp/EVT/smoke_games",
+  "rankings": [
+    0,
+    1,
+    1,
+    2
+  ],
+  "elapsed_s": 34.093512773513794,
+  "challenger_player_ids": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "champion_player_ids": [
+    1,
+    2,
+    3,
+    0,
+    2,
+    3,
+    0,
+    1,
+    3,
+    0,
+    1,
+    2
+  ],
+  "chal_calls": 431,
+  "champ_calls": 776
+}

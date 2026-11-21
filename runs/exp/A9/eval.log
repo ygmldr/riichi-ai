@@ -1,0 +1,6 @@
+[A9 eval] start 2026-09-19T14:40:27+08:00 cfg=/home/ygsldr/riichi-ai/runs/exp/A9/eval.toml games_dir=/home/ygsldr/riichi-ai/runs/exp/A9/games debug=/tmp/opencode/a9_evt_debug.jsonl
+2026-09-19 14:40:29,405     INFO one_vs_three.rs:131  seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans
+2026-09-19 15:12:24,519     INFO one_vs_three.rs:196  dumping game logs
+--------------------------------------------------
+# 0
+challenger rankings: [2672 2908 2941 3479] (2.60225, -8.19375pt)

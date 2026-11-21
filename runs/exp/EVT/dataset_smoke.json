@@ -1,0 +1,122 @@
+{
+  "files": [
+    {
+      "file": "2022080515gm-00a9-0000-7c8f554b.mjson",
+      "players": 4,
+      "decisions": 1471
+    },
+    {
+      "file": "2022072309gm-00a9-0000-4233595e.mjson",
+      "players": 4,
+      "decisions": 1448
+    },
+    {
+      "file": "2022092923gm-00a9-0000-7d17561b.mjson",
+      "players": 4,
+      "decisions": 1475
+    },
+    {
+      "file": "2022082115gm-00a9-0000-9790dd69.mjson",
+      "players": 4,
+      "decisions": 1498
+    },
+    {
+      "file": "2022122810gm-00a9-0000-67f69ab0.mjson",
+      "players": 4,
+      "decisions": 1455
+    },
+    {
+      "file": "2022032718gm-00a9-0000-1cf1753c.mjson",
+      "players": 4,
+      "decisions": 1504
+    },
+    {
+      "file": "2022051718gm-00a9-0000-f748b39f.mjson",
+      "players": 4,
+      "decisions": 1479
+    },
+    {
+      "file": "2022050803gm-00a9-0000-aea862c4.mjson",
+      "players": 4,
+      "decisions": 1533
+    },
+    {
+      "file": "2022041213gm-00a9-0000-2627b640.mjson",
+      "players": 4,
+      "decisions": 1495
+    },
+    {
+      "file": "2022101001gm-00a9-0000-c61303f5.mjson",
+      "players": 4,
+      "decisions": 1452
+    },
+    {
+      "file": "2022071123gm-00a9-0000-1fc4dac5.mjson",
+      "players": 4,
+      "decisions": 1693
+    },
+    {
+      "file": "2022101316gm-00a9-0000-51fae68b.mjson",
+      "players": 4,
+      "decisions": 1764
+    }
+  ],
+  "collate": {
+    "tokens_shape": [
+      2,
+      7,
+      5
+    ],
+    "tokens_dtype": "torch.int16",
+    "lengths": [
+      7,
+      3
+    ],
+    "mask_counts": [
+      7,
+      3
+    ],
+    "causal_shape": [
+      7,
+      7
+    ]
+  },
+  "assertions": {
+    "len(events) == len(obs) == len(actions)": true,
+    "len(at_kyoku) == len(obs)": true,
+    "no per-decision failures": true,
+    "max T <= 384": true,
+    "synthetic ankan-aka tokens match independent encoder": true,
+    "synthetic ankan-aka flags == aka|consumed_aka": true,
+    "collate pad shape": true,
+    "collate dtype int16": true,
+    "collate lengths": true,
+    "collate padding zero": true,
+    "collate mask": true,
+    "collate causal tril": true,
+    "collate causal strict upper false": true,
+    "collate tokens roundtrip": true
+  },
+  "synthetic": {
+    "ankan_flags": [
+      5
+    ],
+    "decisions": 3
+  },
+  "totals": {
+    "decisions": 18267,
+    "kan_select_duplicates": 40,
+    "max_T": 154,
+    "dataset_decision_points": 18238,
+    "arena_ground_truth_points": 18298,
+    "skipped_preempted_points": 60,
+    "skipped_by_next_event_type": {
+      "pon": 34,
+      "hora": 26
+    },
+    "total_events": 29926,
+    "aka_representative_tokens": 14645,
+    "consumed_aka_tokens": 981,
+    "failures": []
+  }
+}

@@ -1,0 +1,11 @@
+# PR-07R real drift run
+# started: 2026-11-20T21:03:22Z
+# command: PYTHONPATH=/home/ygsldr/riichi-ai/vendor/mortal/target/release /home/ygsldr/riichi-ai/.venv/bin/python scripts/rf_drift.py --manifest /home/ygsldr/riichi-ai/artifacts/riichiformer/audit/source_audit.parquet --out /home/ygsldr/riichi-ai/artifacts/riichiformer/drift --report docs/riichiformer/DRIFT_REPORT.md --per-year 400 --seed 20261121 --workers 8 --years 2019-2026
+rf_drift: games=3200/3200 failed=0 errors={} replay_errors={}
+rf_drift: windows={'2019_2022': 1600, '2023_2024': 800, '2025': 400, '2026': 400}
+rf_drift: elapsed=812.9s cohorts=/home/ygsldr/riichi-ai/artifacts/riichiformer/drift/drift_cohorts.csv (97 rows, sha256=ef81de28e7d47923ca4e5422cd3612905d4af8bcecf2f83b5175f8240af1f138)
+rf_drift: strata=/home/ygsldr/riichi-ai/artifacts/riichiformer/drift/drift_strata.csv (64 rows, sha256=3b68e3a49033c0bd55df92e89866e285f14c9d21a4fc5c2f4e1d4c6ffbb8e80f)
+rf_drift: summary=/home/ygsldr/riichi-ai/artifacts/riichiformer/drift/drift_summary.json report=/home/ygsldr/riichi-ai/worktrees/h05-drift/docs/riichiformer/DRIFT_REPORT.md (sha256=2a4986d7efdb0193a8e1eefa627ad6927fb83941c6c31a75f8cfd13702fdfe3c)
+# exit_code: 0
+# wall_seconds: 874
+# finished: 2026-11-20T21:17:56Z

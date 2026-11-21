@@ -1,0 +1,234 @@
+PR-13 MVP-S model — pytest / benchmark evidence log (post-review P1 fix)
+date: 2026-11-21T06:05:56+08:00
+worktree: /home/ygsldr/riichi-ai/worktrees/model
+branch: rf/pr13-model
+base: 885b14f
+HEAD before follow-up commit: a4be4a9bb4b7f6bf37436d19842af818addafbb3
+python: Python 3.12.3
+torch: 2.11.0+cu128 cuda_available= True
+
+=== 1. compileall ===
+$ /home/ygsldr/riichi-ai/.venv/bin/python -m compileall -q riichiformer/models tests/rf_test_models.py
+exit=0
+
+=== 2. PR-13 test suite on this BASE (schema v3/1; pytest -q -s, GPU smoke prints peak VRAM) ===
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q -s tests/rf_test_models.py
+.....................uuuuuuu.......uuuuuuuu......................PR13 GPU smoke peak allocated VRAM: 33.0 MiB
+.
+51 passed, 15 subtests passed in 26.34s
+exit=0
+
+=== 3. CPU benchmark (B=32, L=256, N=128) + synthetic overfit curve ===
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python tests/rf_test_models.py bench --device cpu --batch-size 32 --seq-len 256 --decisions-per-row 4 --iters 5
+PR13_BENCH_JSON {"benchmark_batch": {"batch_size": 32, "n_decisions": 128, "seq_len": 256}, "config": {"architecture": "local_causal", "dropout": 0.0, "ffn": 704, "heads": 4, "hidden": 256, "layers": 6, "max_positions": 4096, "memory": false, "name": "mvp_s", "policy_head": "linear46", "rmsnorm_eps": 1e-06, "rope_base": 10000.0, "state_encoder": "mlp", "state_hidden": 512}, "device": "cpu", "device_name": "cpu", "forward": {"decisions": 128, "decisions_per_second": 367.75225608026733, "seconds_per_forward": 0.34806040719995507, "tokens": 8192, "tokens_per_second": 23536.14438913711}, "overfit": {"curve": [{"argmax_accuracy": 0.8333333134651184, "loss": 1.1409159898757935, "step": 0}, {"argmax_accuracy": 1.0, "loss": 1.6152713214978576e-05, "step": 20}, {"argmax_accuracy": 1.0, "loss": 7.768436262267642e-06, "step": 40}, {"argmax_accuracy": 1.0, "loss": 5.433937985799275e-06, "step": 60}, {"argmax_accuracy": 1.0, "loss": 4.410731435200432e-06, "step": 80}, {"argmax_accuracy": 1.0, "loss": 3.7948195767967263e-06, "step": 100}, {"argmax_accuracy": 1.0, "loss": 3.317984919704031e-06, "step": 120}, {"argmax_accuracy": 1.0, "loss": 2.9702921438001795e-06, "step": 140}, {"argmax_accuracy": 1.0, "loss": 2.6524023724050494e-06, "step": 160}, {"argmax_accuracy": 1.0, "loss": 2.473588665452553e-06, "step": 180}, {"argmax_accuracy": 1.0, "loss": 2.2550391349795973e-06, "step": 199}], "initial_loss": 1.1409159898757935, "steps": 200}, "parameter_breakdown": {"event_embedding": 148992, "policy_head": 11822, "state_encoder": 220416, "total": 5217582, "transformer": 4836352}, "parameters": 5217582, "torch_version": "2.11.0+cu128", "train_step": {"decisions_per_second": 131.426674610206, "seconds_per_train_step": 0.9739270994996332, "tokens_per_second": 8411.307175053184}}
+{
+  "benchmark_batch": {
+    "batch_size": 32,
+    "n_decisions": 128,
+    "seq_len": 256
+  },
+  "config": {
+    "architecture": "local_causal",
+    "dropout": 0.0,
+    "ffn": 704,
+    "heads": 4,
+    "hidden": 256,
+    "layers": 6,
+    "max_positions": 4096,
+    "memory": false,
+    "name": "mvp_s",
+    "policy_head": "linear46",
+    "rmsnorm_eps": 1e-06,
+    "rope_base": 10000.0,
+    "state_encoder": "mlp",
+    "state_hidden": 512
+  },
+  "device": "cpu",
+  "device_name": "cpu",
+  "forward": {
+    "decisions": 128,
+    "decisions_per_second": 367.75225608026733,
+    "seconds_per_forward": 0.34806040719995507,
+    "tokens": 8192,
+    "tokens_per_second": 23536.14438913711
+  },
+  "overfit": {
+    "curve": [
+      {
+        "argmax_accuracy": 0.8333333134651184,
+        "loss": 1.1409159898757935,
+        "step": 0
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 1.6152713214978576e-05,
+        "step": 20
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 7.768436262267642e-06,
+        "step": 40
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 5.433937985799275e-06,
+        "step": 60
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 4.410731435200432e-06,
+        "step": 80
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 3.7948195767967263e-06,
+        "step": 100
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 3.317984919704031e-06,
+        "step": 120
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 2.9702921438001795e-06,
+        "step": 140
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 2.6524023724050494e-06,
+        "step": 160
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 2.473588665452553e-06,
+        "step": 180
+      },
+      {
+        "argmax_accuracy": 1.0,
+        "loss": 2.2550391349795973e-06,
+        "step": 199
+      }
+    ],
+    "initial_loss": 1.1409159898757935,
+    "steps": 200
+  },
+  "parameters": 5217582,
+  "torch_version": "2.11.0+cu128",
+  "train_step": {
+    "decisions_per_second": 131.426674610206,
+    "seconds_per_train_step": 0.9739270994996332,
+    "tokens_per_second": 8411.307175053184
+  }
+}
+exit=0
+
+=== 4. short BF16 GPU benchmark (B=32, L=256, N=128; no overfit) ===
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python tests/rf_test_models.py bench --device cuda --batch-size 32 --seq-len 256 --decisions-per-row 4 --iters 5 --skip-overfit
+PR13_BENCH_JSON {"benchmark_batch": {"batch_size": 32, "n_decisions": 128, "seq_len": 256}, "config": {"architecture": "local_causal", "dropout": 0.0, "ffn": 704, "heads": 4, "hidden": 256, "layers": 6, "max_positions": 4096, "memory": false, "name": "mvp_s", "policy_head": "linear46", "rmsnorm_eps": 1e-06, "rope_base": 10000.0, "state_encoder": "mlp", "state_hidden": 512}, "device": "cuda", "device_name": "NVIDIA GeForce RTX 5070 Ti", "forward": {"decisions": 128, "decisions_per_second": 14514.438181565072, "seconds_per_forward": 0.008818804999464191, "tokens": 8192, "tokens_per_second": 928924.0436201646}, "parameter_breakdown": {"event_embedding": 148992, "policy_head": 11822, "state_encoder": 220416, "total": 5217582, "transformer": 4836352}, "parameters": 5217582, "peak_vram_mib": 863.51806640625, "peak_vram_reserved_mib": 1032.0, "torch_version": "2.11.0+cu128", "train_step": {"decisions_per_second": 1566.2090782666621, "seconds_per_train_step": 0.081725998001275, "tokens_per_second": 100237.38100906638}}
+{
+  "benchmark_batch": {
+    "batch_size": 32,
+    "n_decisions": 128,
+    "seq_len": 256
+  },
+  "config": {
+    "architecture": "local_causal",
+    "dropout": 0.0,
+    "ffn": 704,
+    "heads": 4,
+    "hidden": 256,
+    "layers": 6,
+    "max_positions": 4096,
+    "memory": false,
+    "name": "mvp_s",
+    "policy_head": "linear46",
+    "rmsnorm_eps": 1e-06,
+    "rope_base": 10000.0,
+    "state_encoder": "mlp",
+    "state_hidden": 512
+  },
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "forward": {
+    "decisions": 128,
+    "decisions_per_second": 14514.438181565072,
+    "seconds_per_forward": 0.008818804999464191,
+    "tokens": 8192,
+    "tokens_per_second": 928924.0436201646
+  },
+  "parameters": 5217582,
+  "peak_vram_mib": 863.51806640625,
+  "peak_vram_reserved_mib": 1032.0,
+  "torch_version": "2.11.0+cu128",
+  "train_step": {
+    "decisions_per_second": 1566.2090782666621,
+    "seconds_per_train_step": 0.081725998001275,
+    "tokens_per_second": 100237.38100906638
+  }
+}
+exit=0
+
+=== 5. merged schema v3/2 verification ===
+Tree: git archive cc699f1 (rf/v3 = merged PR-08 schema v3/2 + PR-09 POV + integrated PR-13)
+      with this branch's riichiformer/models, tests/rf_test_models.py and mvp_s.yaml copied in.
+$ cd /tmp/pr13-v32
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python -c "from riichiformer.schemas import action_v3, schema_v3; s=schema_v3.load_schema(); print(s; print(action_v3.SCHEMA_VERSION)"
+merged schema_version: rf-schema-v3/2
+merged schema_hash: 12503d36e2571449d4e4bdd4c8780e00f285d3a2ec81f9e26af184d24c8ef43c
+merged action_map_hash: 6cf1efc5ba99533ec4844f38184ef51a7941174164f9588f21d33ca70a873a2e
+code SCHEMA_VERSION: rf-schema-v3/2
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_models.py
+...................................................       [100%]
+51 passed, 15 subtests passed in 26.74s
+v32_pytest_exit=0
+
+=== 6. regression: all rf_test_*.py (this BASE) ===
+$ PYTHONPATH= /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_*.py
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/ygsldr/riichi-ai/worktrees/model/vendor/mortal/libriichi/src/state/update.rs'
+
+/usr/lib/python3.12/pathlib.py:1015: FileNotFoundError
+=========================== short test summary info ============================
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_anchor_lines_are_exact
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r01_hanchan_start_and_return_points
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r02_triple_ron_is_settled_not_aborted
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r03_multi_ron_uses_kamicha_priority_and_resets_counters
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r05_kan_dora_timing_matches_tenhou
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r06_last_dealer_agari_and_tenpai_stop
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r07_tobi_threshold_is_strictly_negative
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r08_west_round_entry_and_maximum
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r09_r10_renchan_and_honba_accounting
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r11_riichi_stake_is_paid_only_when_accepted
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r12_furiten_is_river_only_and_same_cycle
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r13_riichi_ankan_uses_the_non_strict_tenhou_rule
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r14_equal_scores_use_e1_wind_order
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r15_leftover_kyotaku_goes_to_the_first_max
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r16_r17_r18_r19_all_four_abortive_draws_exist
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r20_riichi_preconditions
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r21_haitei_blocks_calls_and_kans
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r22_kuikae_is_forbidden
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r23_exhaustive_draw_tenpai_payments
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r24_nagashi_mangan_payments
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r25_s4_stop_uses_kyotaku_inclusive_scores
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r26_four_riichi_check_runs_after_the_next_draw
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r27_pao_exists_for_daisangen_and_daisuushi_only
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r28_riichi_discard_must_be_tsumogiri
+FAILED tests/rf_test_ruleset_parity.py::SourceContractTests::test_r29_ippatsu_window_is_wired
+25 failed, 311 passed, 21 skipped, 121 subtests passed in 38.42s
+pipeline_exit=1
+
+NOTE: the 25 failures are all tests/rf_test_ruleset_parity.py SourceContractTests,
+which read vendor/mortal/libriichi/src/arena/board.rs. This worktree has the
+vendor/mortal submodule directory uninitialised (no source files), so those tests
+fail at BASE as well; PR-13 adds only riichiformer/models/**, configs/riichiformer/mvp_s.yaml,
+tests/rf_test_models.py and docs, and does not touch vendor/.

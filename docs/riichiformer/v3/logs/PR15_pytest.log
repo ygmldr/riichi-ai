@@ -1,0 +1,158 @@
+# PR-15 offline diagnostics test log
+# branch: rf/pr15-offline
+# base SHA: 88479f97834687819c9652dd77179bab48b04855
+# date (UTC): 2026-11-20T23:11:55Z
+# python: Python 3.12.3
+# PYTHONPATH: /home/ygsldr/riichi-ai/vendor/mortal/target/release
+# command: PYTHONPATH=... .venv/bin/python -m pytest -q -s tests/rf_test_offline.py
+
+.....PR15_REFUSED: shard source is not train_allowed; pass --allow-blocked-audit only for an H-03-permitted diagnostic read
+PR15_MODEL random-init (synthetic smoke only; no strength claim)
+PR15_WROTE /tmp/tmpjd4kkzeg/metrics.json format=json
+PR15_MODEL random-init (synthetic smoke only; no strength claim)
+{
+  "action_family_buckets": {
+    "discard": {
+      "count": 4,
+      "nll": 2.786284327507019,
+      "nll_ci": [
+        2.2200532955378467,
+        3.3525153594761914
+      ],
+      "top1": 0.0,
+      "top1_ci": [
+        0.0,
+        0.48990002040399916
+      ],
+      "top3": 0.25,
+      "top3_ci": [
+        0.045586062644636216,
+        0.6993639475573634
+      ]
+    }
+  },
+  "action_family_sum": 4,
+  "excluded": 0,
+  "nll": 2.786284327507019,
+  "nll_ci": [
+    2.2200532955378467,
+    3.3525153594761914
+  ],
+  "overlap": {
+    "involved_call": {
+      "count": 0,
+      "nll": null,
+      "nll_ci": null,
+      "top1": null,
+      "top1_ci": null,
+      "top3": null,
+      "top3_ci": null
+    },
+    "kan": {
+      "count": 0,
+      "nll": null,
+      "nll_ci": null,
+      "top1": null,
+      "top1_ci": null,
+      "top3": null,
+      "top3_ci": null
+    },
+    "riichi": {
+      "count": 0,
+      "nll": null,
+      "nll_ci": null,
+      "top1": null,
+      "top1_ci": null,
+      "top3": null,
+      "top3_ci": null
+    },
+    "score_diff": {
+      "count": 4,
+      "nll": 2.786284327507019,
+      "nll_ci": [
+        2.2200532955378467,
+        3.3525153594761914
+      ],
+      "top1": 0.0,
+      "top1_ci": [
+        0.0,
+        0.48990002040399916
+      ],
+      "top3": 0.25,
+      "top3_ci": [
+        0.045586062644636216,
+        0.6993639475573634
+      ]
+    },
+    "shanten": {
+      "count": 4,
+      "nll": 2.786284327507019,
+      "nll_ci": [
+        2.2200532955378467,
+        3.3525153594761914
+      ],
+      "top1": 0.0,
+      "top1_ci": [
+        0.0,
+        0.48990002040399916
+      ],
+      "top3": 0.25,
+      "top3_ci": [
+        0.045586062644636216,
+        0.6993639475573634
+      ]
+    },
+    "south": {
+      "count": 0,
+      "nll": null,
+      "nll_ci": null,
+      "top1": null,
+      "top1_ci": null,
+      "top3": null,
+      "top3_ci": null
+    }
+  },
+  "overlap_is_exclusive": false,
+  "phase_buckets": {
+    "SELF_TURN": {
+      "count": 4,
+      "nll": 2.786284327507019,
+      "nll_ci": [
+        2.2200532955378467,
+        3.3525153594761914
+      ],
+      "top1": 0.0,
+      "top1_ci": [
+        0.0,
+        0.48990002040399916
+      ],
+      "top3": 0.25,
+      "top3_ci": [
+        0.045586062644636216,
+        0.6993639475573634
+      ]
+    }
+  },
+  "phase_sum": 4,
+  "projection_version": "rf-pov-v3/2",
+  "purpose": "audit",
+  "shard": "/tmp/tmpjd4kkzeg/audit.rfshard",
+  "source_id": "synthetic_allowed",
+  "supervised": 4,
+  "top1": 0.0,
+  "top1_ci": [
+    0.0,
+    0.48990002040399916
+  ],
+  "top3": 0.25,
+  "top3_ci": [
+    0.045586062644636216,
+    0.6993639475573634
+  ],
+  "total_decisions": 4,
+  "train_allowed": false,
+  "warning": "NLL/Top1 are offline imitation metrics, NOT arena strength or Tenhou rank."
+}
+..
+7 passed in 1.28s
+EXIT CODE: 0

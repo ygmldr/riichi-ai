@@ -1,0 +1,12 @@
+# PR-12 shard/loader test log (P1 follow-up)
+# branch: rf/pr12-shards
+# base commit: 8ff21f0eaa99ee8b270063f6f4e36b10124ca225
+# date (UTC): 2026-11-20T23:35:30Z
+# python: Python 3.12.3
+# PYTHONPATH: /home/ygsldr/riichi-ai/vendor/mortal/target/release
+# command: PYTHONPATH=... .venv/bin/pytest -q tests/rf_test_shards.py
+
+.......................                                                  [100%]
+23 passed in 10.26s
+
+EXIT CODE: 0

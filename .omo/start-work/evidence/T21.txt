@@ -1,0 +1,189 @@
+===== T21 evidence — A7 equal-frame CNN arm + A8 phi-zeroed event-only arm (todo 21) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 21 (lines 208-213)
+Roadmap: docs/FORK_ROADMAP.md step 8 ("A7 等算力/等帧数"; A8 = Transformer-only role)
+Submodule pin: 0cff2b5 + patches 0002/0003/0004/0005/0006/0010/0012 + 0007.
+**Todo 21 adds NO vendor patch** (A8's phi-zeroing is launcher-level: scripts/exp_a8_phi_zero.py);
+vendor/** untouched, so the F2 cumulative-patch audit is unaffected.
+Two host reboots and one WSL restart occurred during this todo (see [F]/[H]); all recoveries were
+from each arm's own checkpoint and each segment is recorded.
+
+[A] A7 interpretation (documented in runs/exp/A7/PREREG.md §1, with rejected alternatives)
+---------------------------------------------------------------------------------------------
+Sources: roadmap step 8 "A7 等算力：给两组相同的计算量（帧数）预算"; plan todo 21 "A7 = 与 E3a
+同帧数预算"; cross-review table A7 = "等算力/等帧数" vs the A5 baseline. Because E2/E3a already
+share the identical 20,000-step (20.48 M frame) budget, a literal "same frames" re-run of E2
+would duplicate todo 17. Chosen interpretation (maximally informative for the architecture
+verdict): **A7 = E3a's exact CNN trunk (conv_channels=192, num_blocks=40) with
+use_event_branch=false, trained from scratch for 20,000 optimizer steps under E3a's otherwise
+bit-identical conditions.** This yields the decomposition E3a−A7 = event branch at identical CNN
+and frames (+1,031,296 params), E2−A7 = CNN width (c=202 vs c=192), E3a−E2 = combined effect.
+Rejected: (1) E2 re-run (duplicate, no new contrast); (2) longer training for wall-clock parity
+(violates the 20k-step mandate; synthetic 1.65x fwd+bwd ratio is not the real loop ratio, and
+would confound architecture with budget); (3) widening the CNN for per-step FLOP parity (E2
+covers param parity; FLOP parity ill-defined here; breaks the single-variable CNN-trunk
+contrast); (4) mirroring A8 (an event-only arm, not a CNN reference).
+
+[B] Configs — provenance and safety (scripts/exp_a7a8_make_configs.py)
+----------------------------------------------------------------------
+Generator reads E3a's own train.toml/eval.toml (the authoritative "matched conditions" source)
+and rewrites only paths + the arm-specific keys, then asserts:
+  - none of the five live paths (state_file/best_state_file/tensorboard_dir/test_play.log_dir/
+    train_play.log_dir) is used; all writable paths under runs/exp/<ARM>/;
+  - 1v3.log_dir = runs/exp/<ARM>/games; seed_start=10000 (pool A), seed_key=0x5dfaa4cef265cd7,
+    games_per_iter=12000, iters=1; akochan disabled; champion=checkpoints/mortal.pth.at-148800;
+  - dataset.file_index=checkpoints/file_index.pth (read-only shared), globs 2009-2022 + 2023
+    holdout; batch_size=1024, opt_step_every=1, save_every=2000, test_every=100000,
+    enable_compile=false, enable_amp=true, num_workers=3, scheduler peak=final=1e-4.
+$ python3 scripts/exp_a7a8_make_configs.py
+  A7/train: DIFF vs E3a = paths + model.use_event_branch False (event_* keys removed, E2
+            convention) + resnet.conv_channels 192 (same as E3a); everything else bit-identical
+  A7/eval : DIFF = paths + 1v3.challenger.state_file + model section (branch off)
+  A8/train: DIFF = paths only; [model] use_event_branch=true, event_dim=128, heads=4, layers=4,
+            ffn=512 (E3a verbatim)
+  A8/eval : DIFF = paths + 1v3.challenger.state_file only
+Pre-launch re-assertion (tomllib read-back, check_safe('A7','train'|'eval'), ('A8','train'|'eval')): OK
+A7 training log prints exactly `mortal params: 10,787,456` (= E2 PREREG's analytic CNN(192,1012)).
+A8 launcher re-asserts its config at process start (see [F]).
+
+[C] A7 training (runs/exp/A7)
+-----------------------------
+Launch 1 (pid 30171): 2026-09-18 23:19:35
+  (setsid nohup env MORTAL_CFG=.../runs/exp/A7/train.toml python3 train.py > runs/exp/A7/train.log)
+  `mortal params: 10,787,456`, `event tokens: (1024, 145, 5) nonzero=1501423` (tokens built and
+  fed by the loader; Brain ignores them — branch not instantiated, 0 event_branch.* keys).
+  Save markers: 2,000 @ 23:28:07 | 4,000 @ 23:35:58 | 6,000 @ 23:44:17 | 8,000 | 10,000 @
+  00:02:20 | 12,000 | 14,000 @ 00:20:15 | 16,000 @ 00:28:24.
+Host reboot #1 at ~00:37 (state.pth = 16,000; the 18,000 boundary was not reached).
+Resume (pid 955): 2026-09-19 10:51:06 -> `loaded: 2026-09-19 00:28:24` (own checkpoint;
+  optimizer/scheduler/scaler from state) | 18,000 @ 11:01:54 | **20,000 @ 11:12:33**
+  (holdout_loss 3.450485). Watchdog `scripts/exp_a7a8_watchdog.py` stopped pgid 955 at 11:13:37;
+  runs/exp/A7/watchdog.json: {"state_steps": 20000, "state_mtime": "2026-09-19T11:12:33+08:00"}.
+Holdout curve (steps 2k..20k): 4.106447 3.895275 3.763070 3.621482 3.612935 3.556684 3.458721
+  3.474910 3.442542 3.450485.
+Rates: segment 1 = 3.87 steps/s (16,000 steps / 4,129 s); resume = 3.11 steps/s incl. ~10 s load.
+PREREG §7 addendum records the reboot, the resume-from-own-state and the DataLoader-order caveat
+(same wording as E2 §6 / E3a §8).
+state.pth check: steps=20000, conv_channels=192, use_event_branch=False, 0 event_branch.* keys,
+optimizer/scheduler/scaler present.
+
+[D] A7 pool-A evaluation (runs/exp/A7/games, 12,000 games)
+----------------------------------------------------------
+First launch 11:15:43 (pid 5343) was killed by the WSL restart (~11:28) with `games/` empty
+(the arena dumps only at the end) — log kept as runs/exp/A7/eval.log.killed-wsl-restart.
+Relaunch 2026-09-19 11:40:05 (pid 1150, pgid 1150), arena `dumping game logs` 12:12:52,
+final line `challenger rankings: [2928 2930 2910 3232] (2.537166666666667, -3.4125pt)`,
+wall ~36 min. 12,000 new files, all `(seed in [10000,13000), key 0x5dfaa4cef265cd7)`;
+no game log written to runs/1v3/.
+$ python3 scripts/eval_report.py --games-dir runs/exp/A7/games --seed-key 0x5dfaa4cef265cd7 \
+    --seed-range 10000-13000 --checkpoint state.pth --source-dir runs/exp/A7 \
+    --out runs/exp/A7/report.csv
+  candidates=12000 matched=12000 ignored_files=0; sets=3000 games=12000 incomplete_sets=0
+  dist(1/2/3/4)=[2928 2930 2910 3232] avg_rank=2.5372 CI[2.5191,2.5552]
+  pt=-3.4125 CI[-4.7369,-2.0474]; challenger='mortal' x12000 vs champion 'old148800'
+  self-consistency OK; exact gate not applicable
+Orientation only (NOT a paired comparison; pool A is selection data): baseline at-175200 2.4768;
+E3a 2.5506; E2 2.5631; A7 2.5372 sits between the baseline and the two event/wide arms.
+A7−E3a = −0.0134 rank and E3a−E2 = −0.0125 rank are both below the 12k 80%-power MDD
+(0.0239 rank / 1.86 pt) -> pool A cannot decide the architecture question; that is todo 22's
+single pool-B shot.
+Invariants after eval: runs/1v3 = 2004 *.json.gz; checkpoints/mortal.pth mtime 2026-09-17
+02:03:09 and best.pth 2026-09-16 02:59:45 unchanged. Commit: 7122880
+`feat(exp): A7 equal-compute arm` (per-arm commit, deliberate deviation from the plan's single
+combined message for reboot durability — recorded in the notepad).
+
+[E] A8 model-definition self-check + eval-path smoke (pre-training)
+-------------------------------------------------------------------
+$ python3 scripts/exp_a8_selfcheck.py -> runs/exp/A8/selfcheck.json (all_pass=true)
+  numel: brain 11,818,752 = encoder 10,787,456 + event_branch 1,031,296 (E3a exactly)
+  check_1 hook ran, non-vacuous (max|phi_before_zero| = 0.3129 > 0)
+  check_2a zero-init W_zero: hooked output == actv(0), maxdiff 0.0
+  check_2b randomized W_zero: hooked output == actv(W_zero(h_event)), maxdiff 0.0;
+           vs the identity path (phi + W_zero(h)) maxdiff 0.284 -> phi really is zeroed
+  check_3  obs-invariance: two different obs, same events -> hooked outputs bit-identical (0.0);
+           un-hooked control moves by 0.0105 (check_3b) -> A8 acts from the event branch alone
+  check_4  after backward: 407/407 encoder params have NO grad; proj.weight.grad norm 337.7
+  check_5  events=None still raises the patch-0007 guard message (no silent branch-less path)
+  check_6  branch-less Brains are not hooked (A8 eval's frozen champion is unaffected)
+Smoke of the exact eval launcher on a synthetic untrained A8 checkpoint, 4 games, seed 40000
+(/tmp only, pools A/B untouched), log /tmp/opencode/a8_smoke/eval.log:
+  A8 CONFIG SAFETY OK (SMOKE); MORTAL_EVT_DEBUG feed assertions all true
+  (1450 evaluate calls, 2858 entries, n_min=2, n_max=150, first token always start_kyoku(2),
+  failure_count=0); hook proof: hooked_brains=1, calls=506, max|phi_before_zero|=0.1193, armed=true.
+
+[F] A8 training (runs/exp/A8) — E3a architecture + phi-zero hook, from scratch
+--------------------------------------------------------------------------------
+Lock protocol: A9 (sibling worker) held /tmp/opencode/train.lock from 12:22:20; an accidental
+first A8 launch at 12:22:26 found BUSY, its process (pgid 3743) was killed 8 s later and its log
+kept as runs/exp/A8/train.log.killed-lock-race; the A9 owner record was restored with a
+transparency note (T21 worker) — A9's lock ownership was never contested. A9 trained 12:22:45 ->
+14:32:38 (20,000 steps) and ran its pool-A eval 14:40:27 -> ~15:30, then released the lock.
+T21 re-acquired the lock at 15:31:15 and launched A8.
+Launch (pid 21397, pgid 21397, workers 21425-21427):
+  (setsid nohup env MORTAL_CFG=.../runs/exp/A8/train.toml \
+     A8_PHI_ZERO_PROOF=.../runs/exp/A8/phi_zero_proof_train.json \
+     python3 scripts/exp_a8_launch.py train > runs/exp/A8/train.log)
+  `mortal params: 11,818,752` (E3a exactly); `event tokens: (1024, 147, 5) nonzero=1742164`;
+  `A8 CONFIG SAFETY OK` (five writable paths under runs/exp/A8/, seed_start=10000,
+  model.use_event_branch=true).
+  **Hook armed in the real training**: `A8_PHI_ZERO_ASSERT first_call: zeroed_shape=(1024, 1024)
+  max|phi_before_zero|=1.21777 -> returned tensor all-zero`; then periodic asserts every 512
+  forwards (calls=512…19968, hooked_brains=1, all-zero every time).
+  Save markers 2,000 … 20,000; **20,000 @ 2026-09-19 16:49:24** (holdout_loss 6.853789);
+  watchdog stopped pgid 21397 at 16:50:27; watchdog.json: state_steps=20000, mtime 16:49:24.
+  Wall 79 min for 20,000 steps (≈4.2 steps/s solo).
+Holdout curve (2k..20k): 7.491114 7.201467 7.066765 6.953716 6.844241 6.866154 6.745021
+  6.761817 6.790801 6.853789 — drops for the first 10k steps, then plateaus (6.75–6.87) with
+  cql 1.18–1.21 / next_rank 1.37–1.38 (E3a at 20k: 3.224 total, cql ≈0.57, next_rank ≈0.84).
+  Recorded as the mild form of the pre-declared QA scenario: not "completely flat", but clearly
+  capacity-limited by the event-only path. state.pth: steps=20000, use_event_branch=true,
+  55 event_branch.* tensors, proj |W| sum 2115.5 (nonzero -> the branch is what learned).
+phi_zero_proof_train.json (periodic snapshot at call 19,968 = 39x512; SIGTERM means no atexit
+  write — the hook rewrites the proof every 512 forwards by design):
+  hooked_brains=1, calls=19968, assert_all_zero_after_zeroing=true,
+  max_abs_phi_before_zero=2.3027, total_zeroed_elements=20,937,965,568, armed=true.
+
+[G] A8 pool-A evaluation + event-feed gate (runs/exp/A8/games, 12,000 games)
+----------------------------------------------------------------------------
+Launch 2026-09-19 16:51:58 (pid 22447, pgid 22447) through the same launcher in `eval` mode:
+  MORTAL_EVT_DEBUG=/tmp/opencode/a8_evt_debug.jsonl, A8_PHI_ZERO_PROOF=.../phi_zero_proof_eval.json.
+  `A8 EVAL FEED GATE: ...` printed; `A8_PHI_ZERO_ASSERT first_call: zeroed_shape=(3000, 1024)
+  max|phi_before_zero|=0.838867 -> returned tensor all-zero`.
+  Arena `dumping game logs` 17:31:44; final `challenger rankings: [144 730 2820 8306]
+  (3.6073333333333335, -89.625pt)`; wall ≈49 min. 12,000 new game files, none in runs/1v3/.
+Feed gate (reused mechanism, scripts/exp_e3a_check_feed.py --out runs/exp/A8/EVAL_FEED_A8.json):
+  evaluate_calls=2757, entries=7,489,737, n_min=2, n_max=157, first token always start_kyoku(2),
+  last token in {3,4,5,6,8,11}, failure_count=0, all three assertions true.
+  A8's own share of the feed (hook proof): 1,359 zeroed forwards = 1,946,531,840/1024 decision
+  rows ≈ 1.9 M A8 decisions, i.e. its quarter of the 7.49 M engine-evaluated decisions.
+  Because a branch-enabled Brain raises on events=None, a branch-less A8 eval cannot complete;
+  the debug stream + hook counter make the feed observable and attributed.
+$ python3 scripts/eval_report.py --games-dir runs/exp/A8/games --seed-key 0x5dfaa4cef265cd7 \
+    --seed-range 10000-13000 --checkpoint state.pth --source-dir runs/exp/A8 \
+    --out runs/exp/A8/report.csv
+  candidates=12000 matched=12000 ignored_files=0; sets=3000 games=12000 incomplete_sets=0
+  dist(1/2/3/4)=[144 730 2820 8306] avg_rank=3.6073 CI[3.5957,3.6192]
+  pt=-89.6250 CI[-90.8852,-88.3800]; self-consistency OK.
+Reading (pool A = selection data only; the verdict is todo 22's pool-B single shot): A8 is
+  dramatically weaker than every CNN-bearing arm (baseline 2.4768, A7 2.5372, E3a 2.5506,
+  E2 2.5631) — rank 1 rate 144/12000 ≈ 1.2 %, rank 4 rate ≈ 69 %. Its CI is far above all of
+  them, consistent with the plateaued holdout loss: **the event branch alone is not a viable
+  substitute for the CNN path at this architecture/budget** (the roadmap's A8 question
+  "CNN 是否可被替代" -> no, for this instantiation).
+
+[H] Invariants, cleanup, commits
+--------------------------------
+runs/1v3/*.json.gz = 2004 before and after every training/eval (A7 train, A7 eval, A8 train,
+  A8 eval). checkpoints/mortal.pth mtime 2026-09-17 02:03:09 and checkpoints/best.pth
+  2026-09-16 02:59:45 unchanged throughout. No .pth/.json.gz/tb/** staged; no vendor/config.toml
+  modification by todo 21.
+Lock: released at 11:15:34 (after A7 training), 12:21:38 (after A7 eval), and 17:43:16 (after A8
+  eval); A8 training held it 15:31:15 -> 17:43:16 inclusive of its eval. One accidental
+  concurrent launch (12:22:26, 32 steps, no save) was self-killed within 8 s and is documented
+  in [F]; all other jobs ran one at a time (new WSL memory rule).
+Commits: 7122880 `feat(exp): A7 equal-compute arm`; 2d53c65 `feat(exp): A8 phi-zeroed
+  event-only arm`. DELIBERATE DEVIATION from the plan's single combined message
+  `feat(exp): A7 equal-compute and A8 phi-zeroed arms`: per-arm commits were chosen for
+  reboot durability after two host reboots and one WSL restart (recorded in the notepad).
+A7 final pool-A ranking context (all sub-MDD, for todo 22's table):
+  baseline at-175200 2.4768 | A7 2.5372 | E3a 2.5506 | E2 2.5631 | A8 3.6073.

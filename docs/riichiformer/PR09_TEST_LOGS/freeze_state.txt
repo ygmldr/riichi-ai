@@ -1,0 +1,45 @@
+UTC=2026-11-20T19:07:53Z
+BRANCH=main
+HEAD=aceb281602fb2703a1ed2067a006992cd9ddb680
+SUBMODULE= 0cff2b52982be5b1163aa9a62fb01f03ce91e0d2 vendor/mortal (heads/main)
+--- git status --porcelain ---
+ M .gitignore
+ M .omo/notepads/fork-roadmap-steps-1-10/decisions.md
+ M .omo/notepads/fork-roadmap-steps-1-10/learnings.md
+ M vendor/mortal
+?? .zcode/
+?? AGENTS.md
+?? configs/AGENTS.md
+?? configs/riichiformer/
+?? docs/AGENTS.md
+?? docs/riichiformer/
+?? "docs/\347\253\213\347\233\264\351\272\273\345\260\206 AI \344\270\213\344\270\200\344\273\243\350\256\255\347\273\203\350\267\257\347\272\277\346\216\242\347\264\242.md"
+?? "docs/\351\272\273\345\260\206 AI \347\240\224\347\251\266\350\267\257\347\272\277\344\272\244\345\217\211\350\257\204\345\256\241 Prompt.md"
+?? package-lock.json
+?? package.json
+?? patches/AGENTS.md
+?? riichiformer/
+?? scripts/AGENTS.md
+?? scripts/rf_bench.py
+?? scripts/rf_build_canonical.py
+?? scripts/rf_build_split.py
+?? scripts/rf_data_audit.py
+?? scripts/rf_drift.py
+?? scripts/rf_preflight.py
+?? scripts/rf_quality.py
+?? scripts/rf_validate_replays.py
+?? tests/rf_test_bench.py
+?? tests/rf_test_canonicalize.py
+?? tests/rf_test_drift.py
+?? tests/rf_test_preflight.py
+?? tests/rf_test_quality.py
+?? tests/rf_test_replay.py
+?? tests/rf_test_scan.py
+?? tests/rf_test_split.py
+?? vendor/AGENTS.md
+--- diff --stat (tracked) ---
+ .gitignore                                         |  12 ++
+ .omo/notepads/fork-roadmap-steps-1-10/decisions.md |  39 +++++++
+ .omo/notepads/fork-roadmap-steps-1-10/learnings.md | 124 +++++++++++++++++++++
+ vendor/mortal                                      |   0
+ 4 files changed, 175 insertions(+)

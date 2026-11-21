@@ -1,0 +1,13 @@
+# PR-11 encoder parity/causal test log (fixed PR-10 tiles_left)
+# branch: rf/pr11-encoder
+# base SHA: ef50c1e70e60f8f33f8b64ce84b3ff6ebca67b1a
+# date (UTC): 2026-11-20T22:56:02Z
+# python: Python 3.12.3
+# PYTHONPATH: /home/ygsldr/riichi-ai/vendor/mortal/target/release
+# command: PYTHONPATH=... .venv/bin/python -m pytest -q -s tests/rf_test_encoder_parity.py tests/rf_test_causal.py
+
+......PR11_PARITY logs=12 comparisons=144 povs=[0, 1, 2, 3]
+.........PR11_KAN_WALL kan_games=2 decisions_checked=1238
+.
+16 passed in 34.28s
+EXIT CODE: 0

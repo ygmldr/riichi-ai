@@ -1,0 +1,17 @@
+{
+  "method": "Decisions counted only when they reach the Python engine: both engines were constructed with enable_quick_eval=False, so no decision is bypassed. Ground truth per (game, pov) = PlayerState replay of the arena-written game log, can_act points whose trigger is not hora/ryukyoku/end_kyoku. Alignment of the live Rust feed to those points uses the env-gated MORTAL_EVT_DEBUG record (game slot, seat, kan flag, n, first/last type) which is written per evaluate() call in the same order as the react_batch argument list; every recorded sample is additionally content-checked by md5 of the token bytes.",
+  "tag": "smoke40",
+  "games": 40,
+  "engine_calls": {
+    "chal": 845,
+    "champ": 926
+  },
+  "engine_samples": 25177,
+  "decisions_matched_to_ground_truth": 25177,
+  "assertion_1_nonempty_nonzero": true,
+  "assertion_2_length_equals_public_events": true,
+  "assertion_3_monotonic_within_kyoku": true,
+  "all_assertions_pass": true,
+  "failures": [],
+  "failure_count": 0
+}

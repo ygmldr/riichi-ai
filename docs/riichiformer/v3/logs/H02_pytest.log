@@ -1,0 +1,67 @@
+$ .venv/bin/python -m pytest tests/rf_test_canonicalize.py tests/rf_test_split.py -v
+# date: 2026-11-20T21:06:17Z  branch: rf/h02-dedup  commit: c8fd6b1
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/ygsldr/riichi-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ygsldr/riichi-ai/worktrees/h02-dedup
+collecting ... collected 48 items
+
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_bad_json_is_rejected_with_line PASSED [  2%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_canonicalize_file PASSED [  4%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_changing_a_public_event_changes_canonical_hash PASSED [  6%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_empty_and_unknown_compression PASSED [  8%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_gzip_and_plain_have_same_canonical_hash PASSED [ 10%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_invalid_record_preserves_reason PASSED [ 12%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_missing_end_game_is_rejected PASSED [ 14%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_platform_key_and_game_id PASSED [ 16%]
+tests/rf_test_canonicalize.py::CanonicalizeTests::test_unpaired_kyoku_is_rejected PASSED [ 18%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_artificial_hash_collision_links_component_without_silent_pick PASSED [ 20%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_failed_shard_transaction_rolls_back PASSED [ 22%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_incomplete_component_is_quarantined PASSED [ 25%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_index_parquet_roundtrip_and_schema PASSED [ 27%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_invalid_row_is_quarantined_but_not_grouped_with_content_duplicate PASSED [ 29%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_same_content_different_tenhou_id_is_one_component PASSED [ 31%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_same_game_different_filename_compression_source_is_one_component PASSED [ 33%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_same_id_different_content_is_conflict_and_quarantined PASSED [ 35%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_same_id_same_content_has_exactly_one_representative PASSED [ 37%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_stratified_sample_is_deterministic PASSED [ 39%]
+tests/rf_test_canonicalize.py::DedupComponentTests::test_streamed_sample_matches_in_memory_sample PASSED [ 41%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_changed_inventory_refuses_resume PASSED [ 43%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_cli_sample_pipeline_and_new_schema PASSED [ 45%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_conflict_is_quarantined_by_cli PASSED [ 47%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_interrupted_resume_is_byte_identical_and_idempotent PASSED [ 50%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_refuses_protected_dirs_from_other_checkouts PASSED [ 52%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_refuses_protected_output_directory PASSED [ 54%]
+tests/rf_test_canonicalize.py::BuildCanonicalCliTests::test_same_game_under_two_names_is_deduplicated_by_cli PASSED [ 56%]
+tests/rf_test_split.py::AssignmentTests::test_hash_fallback_is_deterministic_and_marked PASSED [ 58%]
+tests/rf_test_split.py::AssignmentTests::test_month_and_game_id_parsing PASSED [ 60%]
+tests/rf_test_split.py::AssignmentTests::test_protocol_L_boundaries PASSED [ 62%]
+tests/rf_test_split.py::AssignmentTests::test_protocol_R_months PASSED   [ 64%]
+tests/rf_test_split.py::RegistryTests::test_duplicate_game_id_is_counted PASSED [ 66%]
+tests/rf_test_split.py::RegistryTests::test_manifest_roundtrip PASSED    [ 68%]
+tests/rf_test_split.py::RegistryTests::test_no_overlap_detection PASSED  [ 70%]
+tests/rf_test_split.py::RegistryTests::test_registry_hash_is_stable_and_config_sensitive PASSED [ 72%]
+tests/rf_test_split.py::RegistryTests::test_rows_have_rights_and_previous_use_flags PASSED [ 75%]
+tests/rf_test_split.py::RegistryTests::test_unknown_id_fails_closed PASSED [ 77%]
+tests/rf_test_split.py::CliTests::test_assert_detects_fabricated_overlap PASSED [ 79%]
+tests/rf_test_split.py::CliTests::test_build_and_assert PASSED           [ 81%]
+tests/rf_test_split.py::SplitV2Tests::test_cli_build_and_verify PASSED   [ 83%]
+tests/rf_test_split.py::SplitV2Tests::test_component_straddle_is_detected PASSED [ 85%]
+tests/rf_test_split.py::SplitV2Tests::test_conflict_component_is_quarantine_and_never_representative PASSED [ 87%]
+tests/rf_test_split.py::SplitV2Tests::test_cross_year_duplicate_stays_in_one_split PASSED [ 89%]
+tests/rf_test_split.py::SplitV2Tests::test_old_vs_new_diff_reports_moved_duplicate PASSED [ 91%]
+tests/rf_test_split.py::SplitV2Tests::test_protected_dir_from_main_checkout_is_refused PASSED [ 93%]
+tests/rf_test_split.py::SplitV2Tests::test_quarantine_cannot_leak_into_split PASSED [ 95%]
+tests/rf_test_split.py::SplitV2Tests::test_registry_is_deterministic_and_does_not_touch_old_registry PASSED [ 97%]
+tests/rf_test_split.py::SplitV2Tests::test_verify_rejects_blocked_source_or_non_representative_train PASSED [100%]
+
+============================== 48 passed in 2.12s ==============================
+
+$ .venv/bin/python -m pytest -q tests/rf_test_*.py
+........................................................................ [ 57%]
+.............s...sss..................................                   [100%]
+122 passed, 4 skipped in 25.88s
+
+$ .venv/bin/python -m compileall -q riichiformer/data/canonicalize.py riichiformer/data/dedup.py riichiformer/data/split.py scripts/rf_build_canonical.py
+compileall exit=0

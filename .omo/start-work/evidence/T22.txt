@@ -1,0 +1,133 @@
+===== T22 evidence — architecture verdict: five-arm pool-A ranking + single pool-B confirm (todo 22) =====
+Repo: /home/ygsldr/riichi-ai
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 22 (lines 215-220)
+Verdict: runs/exp/ARCH_VERDICT.md (written 2026-09-19 ~19:2x)
+Host: WSL, RAM 15 GB, RTX 5070 Ti 16 GB, .venv Python 3.12.3 / torch 2.11.0+cu128.
+**Todo 22 adds NO vendor patch** (no vendor/config edits; new scripts only under scripts/).
+Exactly ONE GPU job at any time; pool-B evals strictly sequential under /tmp/opencode/train.lock.
+
+[A] Precondition gate (blocking, checked BEFORE any pool-B run)
+----------------------------------------------------------------
+Re-read all four records and asserted (script in one python3 heredoc, 17:47):
+  runs/exp/EVT/EVAL_FEED.json      -> all_assertions_pass=True, failure_count=0
+    (smoke40, games=40, engine_samples=25177, decisions_matched=25177, both engines
+     enable_quick_eval=False, assertions 1/2/3 true)
+  runs/exp/E3a/EVAL_FEED_E3A.json  -> evaluate_calls=2964, entries=7225501, n_min=2, n_max=158,
+    assertion_1_nonempty=true, assertion_2_first_is_start_kyoku=true,
+    assertion_3_last_is_valid_event_type=true, failure_count=0
+  runs/exp/A8/EVAL_FEED_A8.json    -> evaluate_calls=2757, entries=7489737, n_min=2, n_max=157,
+    assertions 1/2/3 true, failure_count=0
+  runs/exp/A9/EVAL_FEED_A9.json    -> evaluate_calls=2682, entries=7214959, n_min=2, n_max=160,
+    assertions 1/2/3 true, failure_count=0
+Output line: "FEED GATES: ALL PASS". => verdict NOT blocked; no补齐 commands needed.
+Mechanism (why passing the gate + finishing 12k each proves no silent branch-less run):
+a branch-enabled Brain raises on events=None, and MORTAL_EVT_DEBUG counts entries queued to
+react_batch; all three event arms' pool-A corpora were produced after their gate records.
+
+[B] Pool-A reports re-read and pairwise-distinct source dirs (acceptance item)
+------------------------------------------------------------------------------
+Script re-read the five runs/exp/<arm>/report.csv (all seed_key=423244137402621143,
+seed_start=10000, sets=3000, games=12000, incomplete=0, ignored=0):
+  A7  2.537167 [2.5190791666666663,2.5551729166666663]  pt -3.412500 [-4.73690625,-2.0474062500000003]
+  A8  3.607333 [3.5956625,3.6191666666666666]          pt -89.625000 [-90.8851875,-88.38]
+  A9  2.602250 [2.5849124999999997,2.6200104166666667] pt -8.193750 [-9.5818125,-6.8775]
+  E2  2.563083 [2.5449979166666665,2.5796666666666668] pt -4.016250 [-5.340093749999999,-2.62875]
+  E3a 2.550583 [2.532664583333333,2.568502083333333]   pt -4.413750 [-5.8350937499999995,-3.1011562500000003]
+source_dir list = [runs/exp/A7, runs/exp/A8, runs/exp/A9, runs/exp/E2, runs/exp/E3a];
+assert len(set)==5 -> "PAIRWISE DISTINCT source_dir: OK".
+games dirs also pairwise distinct (runs/exp/<arm>/games).
+
+[C] Pool-B virginity audit + PREREG ordering (single-shot discipline)
+---------------------------------------------------------------------
+$ grep -rn "50000" runs/ --include="*.toml"          -> no hits
+$ grep -rn "50000" runs/exp/EVT/eval_feed_smoke.*    -> seed_start=50000, 10 sets / 40 games
+$ ls runs/exp/EVT/smoke_games | wc -l                -> 44 (seeds [50000,50010))
+Disclosed in PREREG §2: those 11 seeds were a todo-18 feed-gate smoke with a different
+challenger (E3a/E2 did not exist on 2026-09-17); no 12k/verdict run had ever used pool B.
+Ordering proof (stat):
+  runs/exp/ARCH_B/PREREG.md        2026-09-19 17:49:27.299965520 +0800
+  runs/exp/ARCH_B/E3a/eval.toml    2026-09-19 17:49:41.306630981 +0800
+  E3a arena INFO line              2026-09-19 17:49:58,929  seed: [50000, 53000) ...
+  E2 arena INFO line               2026-09-19 18:32:39,117  seed: [50000, 53000) ...
+=> PREREG (17:49:27) precedes the first pool-B arena start (17:49:58) by ~31 s.
+
+[D] Per-arm configs (scripts/exp_arch_b_make_configs.py) — safety assertions
+---------------------------------------------------------------------------
+Generator deep-copies each arm's own eval.toml, redirects paths, sets seed_start=50000,
+restores challenger.state_file to the arm's real state.pth, then asserts:
+  - control.state_file/best_state_file/tensorboard_dir, test_play.log_dir,
+    train_play.default.log_dir ALL start with runs/exp/ARCH_B/<arm>/ and NONE equals the
+    live paths (checkpoints/mortal.pth, checkpoints/best.pth, runs, runs/test_play,
+    runs/train_play) -> printed "LIVE-PATH ASSERTION: none of ... points at {...}";
+  - seed_key=0x5dfaa4cef265cd7, seed_start=50000, games_per_iter=12000, iters=1;
+  - champion=checkpoints/mortal.pth.at-148800 (name old148800); challenger.state_file
+    exists and is the arm's own state.pth; akochan disabled; use_event_branch/resnet
+    conv_channels unchanged (E3a true/192; E2 false/202);
+  - log dirs distinct -> "DISTINCT LOG DIRS: OK".
+diff src-vs-ARCH_B (only expected lines change): paths under runs/exp/E3a->ARCH_B/E3a and
+seed_start 10000->50000 for E3a; same for E2. Nothing else differs.
+
+[E] Runs — sequential, one GPU job, lock held
+---------------------------------------------
+Lock protocol (atomic mkdir):
+  17:49:2x  mkdir /tmp/opencode/train.lock OK (owner.txt: T22 E3a then E2)
+  18:31:5x  release: rm owner.txt && rmdir (first attempt `rmdir` alone failed: dir not empty;
+            corrected in the same minute — no run overlapped: no one_vs_three alive at release)
+  18:32:0x  re-acquired for E2; 19:1x release OK (lock dir absent at end)
+Pre-launch free -g: MemAvailable 13 GB (>= 6 GB rule); during runs >= 7 GB, no OOM.
+E3a: launched (setsid nohup bash scripts/run_eval.sh /abs/runs/exp/ARCH_B/E3a/eval.toml
+     > runs/exp/ARCH_B/E3a/nohup.log) launcher pid 26289, real arena PID 26325
+     17:49:55 -> 18:25:44 (35m49s), INFO seed [50000,53000) 3000 sets / 12000 hanchans,
+     "dumping game logs", rankings [2775 2943 2985 3297] (2.567, -5.2425pt)
+E2:  arena PID 28304, 18:32:35 -> 19:12:43 (40m08s), INFO seed [50000,53000),
+     rankings [2642 3188 3104 3066] (2.5495, -2.7225pt)
+Mid-run: games/ stayed 0 for both (arena dumps only at batch end) — liveness judged by
+PID + log, as planned.
+
+[F] Invariants (before and after EACH run)
+------------------------------------------
+$ ls runs/1v3/*.json.gz | wc -l   -> 2004 pre-run, 2004 post-E3a, 2004 post-E2, 2004 final
+$ stat -c '%n %y' checkpoints/mortal.pth checkpoints/best.pth
+  mortal.pth 2026-09-17 02:03:09.718844843 +0800  (unchanged)
+  best.pth   2026-09-16 02:59:45.582238799 +0800  (unchanged)
+No *.json.gz written outside runs/exp/ARCH_B/*/games; run_eval.sh only appended .log files
+to runs/1v3 (non-game files, same as prior pool runs).
+
+[G] Reports (scripts/eval_report.py, B=2000, rng seed 0)
+--------------------------------------------------------
+E3a: sets=3000 games=12000 incomplete_sets=0 ignored_files=0 candidates=12000 matched=12000
+     seed_start=50000 dist=[2775 2943 2985 3297] avg_rank=2.5670 [2.5498,2.5848]
+     pt=-5.2425 [-6.6113,-3.8963]; challenger='mortal' x12000 vs champion all 'old148800'
+E2:  sets=3000 games=12000 incomplete_sets=0 ignored_files=0
+     dist=[2642 3188 3104 3066] avg_rank=2.5495 [2.5318,2.5668]
+     pt=-2.7225 [-4.0501,-1.3759]; challenger='e2' x12000
+Reports saved: runs/exp/ARCH_B/{E3a,E2}/report.csv + report_stdout.txt.
+
+[H] Paired confirm (scripts/exp_arch_b_delta.py; same procedure as exp_a1_delta/eval_report)
+--------------------------------------------------------------------------------------------
+3000 paired sets, both dirs seed window [50000,52999] (script-asserted), seed_key asserted:
+  d_rank = +0.017500  CI [-0.005919, +0.040917]  (crosses 0)
+  d_pt   = -2.520000  CI [-4.342688, -0.644625]  (entirely < 0)
+  PRIMARY (pre-registered): Δpt 95% CI lower bound > 0 ? -> -4.3427 <= 0 -> NOT met
+  decision string: "NO CONFIRMATION: Δpt 95% CI lower bound <= 0 -> CLOSE the
+  river-transformer line"
+Output JSON: runs/exp/ARCH_B/delta_e3a_vs_e2.json; stdout: delta_stdout.txt.
+
+[I] Verdict
+-----------
+runs/exp/ARCH_VERDICT.md: pool-A table with all five arms' CIs, pool-B standalone + paired
+CIs, MDD context (12k => 0.0239 rank / 1.86 pt; paired CI width quoted), side-by-side A/B,
+and the explicit statement: CLOSE the river-transformer line under the current loss and 20k
+budget, with re-open conditions (materially different objective e.g. todo 23, or different
+scale; new prereg + param-matched control on an unconsumed pool required).
+Honesty notes recorded: pool-A vs pool-B disagree in rank sign; pt direction consistent
+(E3a worse); A8 collapse far beyond MDD; A9 confound (shuffle-train/natural-eval); single
+shot => CI width quoted; E2 param-match != FLOP-match (~1.02x).
+
+[J] Artifacts / hygiene
+-----------------------
+New: scripts/exp_arch_b_make_configs.py, scripts/exp_arch_b_delta.py (no existing script
+modified; none of vendor/**, configs/config.toml, RUNBOOK.md, scripts/parse_eval.py touched).
+git status before commit showed the usual pre-existing dirty files (RUNBOOK.md,
+scripts/parse_eval.py, vendor/README.md, configs/config.toml.bak-*) — NOT staged.
+Commit message (exact): docs(exp): architecture verdict (per-arm dirs, eval-feed gate, pool B)

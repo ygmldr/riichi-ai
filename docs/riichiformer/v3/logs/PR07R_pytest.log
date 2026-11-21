@@ -1,0 +1,7 @@
+# PR-07R pytest log
+# started: 2026-11-20T21:03:14Z
+# command: /home/ygsldr/riichi-ai/.venv/bin/python -m pytest -q tests/rf_test_drift.py
+................                                                         [100%]
+16 passed in 0.14s
+# exit_code: 0
+# finished: 2026-11-20T21:03:15Z

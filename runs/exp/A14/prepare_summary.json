@@ -1,0 +1,16 @@
+{
+  "prepared_at": "2026-09-19T21:02:38+08:00",
+  "cycle": 1,
+  "k": 2,
+  "games_per_session": 2000,
+  "waves": [
+    0,
+    1
+  ],
+  "init_state": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+  "init_state_sha256": "73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e",
+  "trainer_state": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer/state.pth",
+  "trainer_state_sha256": "73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e",
+  "prereg_sha256": "4f3032d731ea6b22954c105c1760ed8f156d1a7bae21d9b7712d1a16d44f3d01",
+  "pool_sha256": "96f54472028d9219268d6ecb91cb6e44bc64012d8f78ac6f15e4a900a7df943a"
+}

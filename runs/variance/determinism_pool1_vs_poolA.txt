@@ -1,0 +1,8 @@
+comparing 12000 files (normalized: drop ['eval_time_ns'])
+  2000/12000 identical=2000 differ=0
+  4000/12000 identical=4000 differ=0
+  6000/12000 identical=6000 differ=0
+  8000/12000 identical=8000 differ=0
+  10000/12000 identical=10000 differ=0
+  12000/12000 identical=12000 differ=0
+RESULT: files=12000 identical=12000 differ=0

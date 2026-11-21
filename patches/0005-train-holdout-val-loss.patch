@@ -1,0 +1,124 @@
+--- a/mortal/train.py
++++ b/mortal/train.py
+@@ -58,6 +58,9 @@
+     betas = config['optim']['betas']
+     weight_decay = config['optim']['weight_decay']
+     max_grad_norm = config['optim']['max_grad_norm']
++    val_globs = config['dataset'].get('val_globs', [])
++    val_batches = config['dataset'].get('val_batches', 20)
++    val_num_workers = config['dataset'].get('val_num_workers', 1)
+ 
+     mortal = Brain(version=version, **config['resnet']).to(device)
+     dqn = DQN(version=version).to(device)
+@@ -144,6 +147,7 @@
+         nonlocal steps
+         nonlocal idx
+ 
++        val_file_list = []
+         player_names = []
+         if online:
+             player_names = ['trainee']
+@@ -176,6 +180,16 @@
+                     file_list = filtered
+                 file_list.sort(reverse=True)
+                 torch.save({'file_list': file_list}, file_index)
++
++            for pat in val_globs:
++                val_file_list.extend(glob(pat, recursive=True))
++            if val_globs and not val_file_list:
++                raise RuntimeError(
++                    f'holdout val_globs resolved to no files: {val_globs!r}; '
++                    'refusing to train without a holdout, fix [dataset].val_globs'
++                )
++            val_file_list.sort(reverse=True)
++            logging.info(f'holdout file list size: {len(val_file_list):,}')
+         logging.info(f'file list size: {len(file_list):,}')
+ 
+         before_next_test_play = (test_every - steps % test_every) % test_every
+@@ -203,6 +217,68 @@
+             worker_init_fn = worker_init_fn,
+         ))
+ 
++        def holdout_loss_calc():
++            data = FileDatasetsIter(
++                version = version,
++                file_list = list(val_file_list),
++                pts = pts,
++                file_batch_size = file_batch_size,
++                reserve_ratio = 0.0,
++                player_names = [],
++                num_epochs = 1,
++                enable_augmentation = False,
++                augmented_first = False,
++            )
++            loader = DataLoader(
++                dataset = data,
++                batch_size = batch_size,
++                drop_last = False,
++                num_workers = val_num_workers,
++                pin_memory = True,
++                worker_init_fn = worker_init_fn,
++            )
++            # holdout batches must not update BN running stats, hence eval()
++            modes = [m.training for m in all_models]
++            for m in all_models:
++                m.eval()
++            totals = [0., 0., 0., 0.]
++            n = 0
++            try:
++                with torch.inference_mode():
++                    for obs, actions, masks, steps_to_done, kyoku_rewards, player_ranks in loader:
++                        obs = obs.to(dtype=torch.float32, device=device)
++                        actions = actions.to(dtype=torch.int64, device=device)
++                        masks = masks.to(dtype=torch.bool, device=device)
++                        steps_to_done = steps_to_done.to(dtype=torch.int64, device=device)
++                        kyoku_rewards = kyoku_rewards.to(dtype=torch.float64, device=device)
++                        player_ranks = player_ranks.to(dtype=torch.int64, device=device)
++                        q_target_mc = (gamma ** steps_to_done * kyoku_rewards).to(torch.float32)
++                        with torch.autocast(device.type, enabled=enable_amp):
++                            phi = mortal(obs)
++                            q_out = dqn(phi, masks)
++                            q = q_out[range(obs.shape[0]), actions]
++                            dqn_loss = 0.5 * mse(q, q_target_mc)
++                            cql_loss = q_out.logsumexp(-1).mean() - q.mean()
++                            next_rank_logits, = aux_net(phi)
++                            next_rank_loss = ce(next_rank_logits, player_ranks)
++                            loss = sum((
++                                dqn_loss,
++                                cql_loss * min_q_weight,
++                                next_rank_loss * next_rank_weight,
++                            ))
++                        totals[0] += loss.item()
++                        totals[1] += dqn_loss.item()
++                        totals[2] += cql_loss.item()
++                        totals[3] += next_rank_loss.item()
++                        n += 1
++                        if n >= val_batches:
++                            break
++            finally:
++                for m, mode in zip(all_models, modes):
++                    m.train(mode)
++            n = max(n, 1)
++            return tuple(total / n for total in totals)
++
+         remaining_obs = []
+         remaining_actions = []
+         remaining_masks = []
+@@ -291,6 +367,17 @@
+                 if not online:
+                     writer.add_scalar('loss/cql_loss', stats['cql_loss'] / save_every, steps)
+                 writer.add_scalar('loss/next_rank_loss', stats['next_rank_loss'] / save_every, steps)
++                if val_file_list:
++                    holdout_loss, holdout_dqn_loss, holdout_cql_loss, holdout_next_rank_loss = holdout_loss_calc()
++                    logging.info(
++                        f'holdout_loss: {holdout_loss:.6f} '
++                        f'(dqn: {holdout_dqn_loss:.6f}, cql: {holdout_cql_loss:.6f}, '
++                        f'next_rank: {holdout_next_rank_loss:.6f})'
++                    )
++                    writer.add_scalar('loss/holdout_loss', holdout_loss, steps)
++                    writer.add_scalar('loss/holdout_dqn_loss', holdout_dqn_loss, steps)
++                    writer.add_scalar('loss/holdout_cql_loss', holdout_cql_loss, steps)
++                    writer.add_scalar('loss/holdout_next_rank_loss', holdout_next_rank_loss, steps)
+                 writer.add_scalar('hparam/lr', scheduler.get_last_lr()[0], steps)
+                 writer.add_histogram('q_predicted', all_q_1d, steps)
+                 writer.add_histogram('q_target', all_q_target_1d, steps)

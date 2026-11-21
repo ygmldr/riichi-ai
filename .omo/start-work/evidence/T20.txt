@@ -1,0 +1,109 @@
+T20 — A9: training-time shuffled history (fixed permutation) — EVIDENCE
+=======================================================================
+Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 20. Date: 2026-09-19.
+Status: training complete (20,000/20,000 steps); evaluation result appended below.
+
+1. ARM DEFINITION (pre-registered in runs/exp/A9/PREREG.md BEFORE launch)
+   - Same fixed permutation seed as A1: 0xA15EED (10575597).
+     * river window blocks: draw default_rng([0xA15EED, 0, 0]) = A1's (call0, obs0)
+       stream, one rng.permutation(items) per block in layout order, reused for every
+       sample. Blocks (offset,items,channels): (35,6,4)(59,18,4)(132,6,8)(180,18,8)
+       (327,6,8)(375,18,8)(522,6,8)(570,18,8) — read from runs/analysis/obs_layout.json.
+     * event-token order: pi = default_rng([0xA15EED, 1]).permutation(384), normalised
+       pi[0] > pi[1]; stream of length L reordered by argsort(pi[:L]); lengths/mask/
+       causal/padding untouched.
+   - Permutation fingerprint sha256: bf16f51cbea1b8a52f02351d29f3843814090ff97b2df72ee03caf60c5a88027
+     (matches runs/exp/A9/selftest.json and the launch banner in train.log).
+   - Implementation is launcher-level (scripts/exp_a9_shuffle.py +
+     scripts/exp_a9_train.py monkey-patch `dataloader.collate_batch` in-process before
+     train.train() imports it). vendor/** untouched; no vendor patch.
+
+2. PRE-RUN VALIDATION (all pass)
+   - scripts/exp_a9_shuffle.py --selftest -> runs/exp/A9/selftest.json: ok=true, 8 checks.
+     Includes: layout offsets match A1; 8 river perms + pi fixed non-identity; multiset +
+     per-element counts preserved (binary and non-binary); negative controls (bit flip and
+     value bump) caught; event row-multiset preserved, padding kept; collate wrapper keeps
+     shapes/dtypes.
+   - Real-data A/B -> runs/exp/A9/pipecheck.json: 64 real gz-log entries, original vs
+     patched collate on identical inputs: obs differ (294 planes, all inside the window
+     region), every block slot multiset + counts preserved, event tokens differ with
+     row-multiset preserved and lengths/mask/causal unchanged, first token still
+     start_kyoku; DataLoader integration at num_workers=2 (fork) and num_workers=0.
+   - runs/exp/A9/PVALID.txt: human-readable summary of the above + config safety.
+   - Training smoke (destroyed by WSL restart; captured in PREREG §7): 100 steps,
+     `mortal params: 11,818,752`, `event tokens: (256,148,5) nonzero=412831`,
+     `holdout_loss: 8.913287 / 9.064880` (finite), saves at steps 50/100.
+
+3. TRAINING (run 2; run 1 killed by WSL restart before any checkpoint)
+   - Lock: acquired atomically 2026-09-19T12:22:32+08:00 after the sibling's A7 pool-A
+     eval released it (lock free, no train.py/one_vs_three alive; recorded in lock
+     owner.txt). Held continuously through training and the pool-A eval.
+   - Launch: main pid 3582, watchdog pid 3614, 3 DataLoader workers (3641-3643).
+     `train.log` banner: perms JSON + fingerprint, `dataloader.collate_batch patched
+     (vendor tree untouched)`, safety lines (state/best/tb/test_play/train_play all under
+     /tmp or runs/exp/A9). `mortal params: 11,818,752`; `event tokens: (1024,146,5)
+     nonzero=1477869` at step 0.
+   - Saves (steps -> holdout_loss): 2000 4.198254; 4000 3.823162; 6000 3.699666;
+     8000 3.500787; 10000 3.535427; 12000 3.568966; 14000 3.305532; 16000 3.334394;
+     18000 3.349849; 20000 3.319372. Finite throughout, no fallback.
+   - Watchdog: `log reached 20000; state.pth steps=20000` 14:32:38 -> SIGTERM pid 3582 ->
+     `done: pid alive=False` 14:32:43. Wall: 12:22:38 -> 14:32:24 = 7,786 s (2.57 steps/s).
+   - Final checkpoint: steps=20000, use_event_branch=true, conv 192, 55 event_branch.*
+     tensors, branch |W| sum 117,186.375 (not the zero identity).
+
+4. IN-PIPELINE INPUT-COUNT SELF-CHECK (asserted every collated batch; worker counters)
+   - 19,950 collate batches; 20,428,800 obs samples.
+   - river blocks: checked 159,600 / changed 159,600 / uniform 0 -> every block
+     permutation measurably changed the batch (no no-op arm), slot multiset + per-element
+     counts asserted preserved on every block.
+   - events: samples 20,428,800, checked 20,428,800, changed 20,428,800 -> every stream
+     reordered with row multiset asserted preserved.
+   - Raw lines: `grep "\[A9 pipe" runs/exp/A9/train.log` (399 reports, 3 workers x 6,650
+     batches each).
+
+5. EVALUATION — pool A (appended after the run)
+   - see section below.
+
+6. INVARIANTS
+   - checkpoints/mortal.pth mtime 2026-09-17 02:03:09.718844843 (unchanged);
+     checkpoints/best.pth mtime 2026-09-16 02:59:45.582238799 (unchanged).
+   - runs/1v3/*.json.gz = 2004 before and after (game logs only in runs/exp/A9/games/).
+   - No vendor/** modification (git -C vendor/mortal status clean of new files).
+
+5. EVALUATION — pool A (12,000 games; key 0x5dfaa4cef265cd7; seed_start=10000)
+   - eval.toml: challenger runs/exp/A9/state.pth (engine name a9); champion
+     checkpoints/mortal.pth.at-148800; own log_dir runs/exp/A9/games/;
+     MORTAL_EVT_DEBUG=/tmp/opencode/a9_evt_debug.jsonl; no permutation at eval (PREREG §5).
+   - eval.log: `seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans`
+     14:40:29 -> `dumping game logs` 15:12:24 -> `challenger rankings: [2672 2908 2941 3479]
+     (2.60225, -8.19375pt)`; 12,000 `*.json.gz` in runs/exp/A9/games/.
+   - runs/exp/A9/report.csv: sets=3000 games=12000 incomplete_sets=0 ignored_files=0;
+     avg_rank 2.602250 CI95 [2.584912, 2.620010]; pt -8.193750 CI95 [-9.581813, -6.877500].
+   - Event-feed gate: runs/exp/A9/EVAL_FEED_A9.json -> 2,682 evaluate calls,
+     7,214,959 entries, n_min=2, n_max=160, assertion_1 (non-empty) / assertion_2
+     (first token start_kyoku) / assertion_3 (valid last type) all true, failure_count=0;
+     debug JSONL 609,984,468 B (kept at /tmp/opencode/a9_evt_debug.jsonl).
+   - Paired delta vs E3a (same key/window/champion; per-set paired bootstrap B=2000,
+     rng seed 0, same procedure as scripts/exp_a1_delta.py) in runs/exp/A9/delta_vs_E3a.json:
+     Δavg_rank A9−E3a = +0.051667 CI95 [+0.027915, +0.075090];
+     Δpt = -3.780000 CI95 [-5.565844, -1.905000].
+     Both CIs exclude 0; ≈2.2x / ≈2x the 12k 80%-power MDD (0.0239 rank / 1.86 pt).
+     Cross-check: both arms' recomputed means equal their report.csv exactly
+     (E3a 2.550583 / -4.413750; A9 2.602250 / -8.193750).
+   - READING (roadmap D5 table; PREREG §5 caveat): A1 worse (inference) AND A9 degraded
+     (training on a fixed permutation transfers worse to natural-order eval) is consistent
+     with "history order is used and useful" (sequence-model line), but A9 alone cannot
+     separate "order needed during learning" from "the learned arrangement does not
+     transfer to natural order" — the eval applies natural order. Pool A is selection data;
+     the architecture verdict (E3a vs E2) stays with todo 22's single pool-B shot. A9's
+     pool-A number must not be read as a verdict.
+
+7. LOCK / CLEANUP
+   - Lock acquired atomically 2026-09-19T12:22:32+08:00 (free; no train.py/one_vs_three
+     alive; sibling's A7 pool-A eval had finished 12:13 with 12,000 games). Owner log kept
+     at runs/exp/A9/lock_owner.txt, including the T21 note that an accidental A8 launch at
+     12:22:26 saw BUSY and killed its own process (no overlap; A9 ran alone).
+   - Released 2026-09-19T15:13:20+08:00 (owner.txt copied out, removed, rmdir OK; dir gone).
+   - PIDs: train main 3582 dead (watchdog SIGTERM 14:32:38-43, steps=20000 confirmed);
+     workers 3641-3643 dead; watchdog 3614 exited; eval 20005 exited. No A9 GPU job alive.
+   - Debug JSONL kept at /tmp/opencode/a9_evt_debug.jsonl (609,984,468 B; transient /tmp).

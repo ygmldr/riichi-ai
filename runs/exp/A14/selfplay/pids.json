@@ -1,0 +1,21 @@
+{
+  "started_at": "2026-09-19T21:04:17+08:00",
+  "run": {
+    "cycle": 1,
+    "wave": 0
+  },
+  "pool_source": "/home/ygsldr/riichi-ai/runs/exp/SELFPLAY/pool.json",
+  "configs": {
+    "server": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/server.toml",
+    "trainer": "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/trainer.toml",
+    "workers": [
+      "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_0.toml",
+      "/home/ygsldr/riichi-ai/runs/exp/A14/selfplay/cycle_1/wave_0/worker_1.toml"
+    ]
+  },
+  "server": 69577,
+  "trainer": 69592,
+  "worker_0": 70061,
+  "worker_1": 70062,
+  "stopped_at": "2026-09-19T21:32:03+08:00"
+}

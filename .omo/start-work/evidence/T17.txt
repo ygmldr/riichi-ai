@@ -1,0 +1,162 @@
+T17 — todo 17: E2 对照臂(参数精确匹配的更大 CNN)  (completed 2026-09-18)
+=====================================================================
+
+Plan: `.omo/plans/fork-roadmap-steps-1-10.md` todo 17 (lines 180-185).
+Accept: runs/exp/E2/{PREREG.md,train.log,train.log.resume,report.csv};
+        total-parameter diff <= 5%; branch-absent assertion.
+
+### [0] Pre-conditions and invariants (before prep)
+
+$ ls runs/1v3/*.json.gz | wc -l
+2004
+$ ls -l --time-style=full-iso checkpoints/mortal.pth checkpoints/best.pth
+  mortal.pth 2026-09-17 02:03:09.718844843 +0800
+  best.pth   2026-09-16 02:59:45.582238799 +0800
+At prep time E3a's resume (todo 19b, 12k->20k) was training; E2's training was launched
+only after it hit 20,000 and its watchdog killed it:
+  runs/exp/E3a/train.log.resume: "2026-09-18 02:00:06 total steps: 20,000"
+  /tmp/opencode/t19/watchdog_resume.log: "02:01:34 killed train.py pid=1965 after target"
+  GPU free at 02:01:49; runs/exp/E3a/state.pth mtime 02:00:07.
+
+### [1] Measured parameters (todo 19a model definition, patch 0007 applied)
+
+$ source scripts/activate_env.sh
+$ python3 runs/exp/E2/measure_params.py --out runs/exp/E2/params.json
+obs_shape(4) = (1012, 34)
+measured with sum(p.numel()):
+  baseline CNN (c=192, b=40) : 10,787,456
+  E3a added by the event branch          : 1,031,296
+  E3a total                              : 11,818,752
+  analytic CNN(c=192)                    : 10,787,456  (== measured)
+
+target total_E2 = total_E3a = 11,818,752  (tolerance 5%)
+    c        numel       diff      rel  <=5%
+  196   11,177,112   -641,640  5.4290%  no
+  197   11,275,726   -543,026  4.5946%  yes
+  198   11,374,820   -443,932  3.7562%  yes
+  199   11,474,394   -344,358  2.9137%  yes
+  200   11,574,448   -244,304  2.0671%  yes
+  201   11,674,982   -143,770  1.2165%  yes
+  202   11,775,996    -42,756  0.3618%  yes   <- chosen
+  203   11,877,490    +58,738  0.4970%  yes
+  204   11,979,464   +160,712  1.3598%  yes
+  205   12,081,918   +263,166  2.2267%  yes
+  206   12,184,852   +366,100  3.0976%  yes
+  207   12,288,266   +469,514  3.9726%  yes
+  208   12,408,840   +590,088  4.9928%  yes
+  209   12,513,294   +694,542  5.8766%  no
+
+chosen conv_channels = 202  (analytic estimate was 201, not 210)
+  total_E2            = 11,775,996
+  diff vs E3a total   = -42,756 (-0.3618%)   => |diff|/total_E3a = 0.003618 <= 0.05 PASS
+  added params, E2    = 0 (no event branch)
+  added params, E3a   = 1,031,296
+  added-parameter difference (E3a - E2) = 1,031,296
+
+BRANCH-ABSENT ASSERTION (E2 must be a pure CNN; mandatory):
+  Brain(use_event_branch=False).event_branch is None : True
+  measured numel == analytic CNN numel               : 11,775,996 == 11,775,996
+  event_branch.* tensors in state_dict               : 0
+  toggle-on control (E3a) event_branch is not None   : True
+RESULT conv_channels=202 total_E2=11775996 total_E3a=11818752 rel=0.003618 within_5pct=True
+json: runs/exp/E2/params.json ("chosen.event_branch_tensors": 0, "chosen.branch_is_none": true)
+sha256 params.json = 420354341640632e19e8aa5d9e76300b88803dcb93287b1719703b31a591c676
+
+### [2] Configs (generated, safety read-back)
+
+$ python3 runs/exp/E2/make_configs.py
+OK train -> configs/exp_e2.toml + runs/exp/E2/train.toml (conv_channels=202,
+   use_event_branch=False, state_file=/home/ygsldr/riichi-ai/runs/exp/E2/state.pth)
+OK eval -> runs/exp/E2/eval.toml (seed_key=0x5dfaa4cef265cd7, seed_start=10000,
+   games=12000, challenger=/home/ygsldr/riichi-ai/runs/exp/E2/state.pth,
+   champion=/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800,
+   log_dir=/home/ygsldr/riichi-ai/runs/exp/E2/games)
+
+$ configs/exp_e2.toml == runs/exp/E2/train.toml  (sha256 256f3cfc..., byte-identical)
+tomllib diff vs runs/exp/E3a/train.toml: ONLY
+  paths (E2 vs E3a dirs), resnet.conv_channels 202 vs 192, [model] E2=false vs E3a=true
+  (+event_* hyper-params). Every confound-relevant key identical: batch_size=1024,
+  opt_step_every=1, save_every=2000, test_every=100000, num_workers=3,
+  enable_compile=false, enable_amp, dataset globs 2009-2022 / holdout 2023,
+  file_index=checkpoints/file_index.pth, optim/scheduler/freeze_bn/env unchanged.
+PREREG sha256 before launch = 28d0f86b... (addendum §6 added 2026-09-18, see [3]);
+   final sha256 = 0e55a795799c771270d85322aeceb4b295d535e294d43d75e429dd42bb24097b
+
+### [3] Training — declared budget 20,000 optimizer steps (batch 1024)
+
+Pre-reboot segment (0 -> 4,000):
+  launched 2026-09-18 02:02:00; log head:
+   "2026-09-18 02:02:01 train.py:78 mortal params: 11,775,996"
+   "02:02:11 train.py:314 event tokens: (1024, 150, 5) nonzero=1688435"
+   "02:15:38 train.py:409 total steps: 2,000 (~98,000)"
+   "02:28:58 train.py:409 total steps: 4,000 (~96,000)"  holdout_loss 4.236074
+  0->4,000 in 1,612 s = 2.48 steps/s (403 ms/step)
+  This process (pid 5746) was killed by a HOST REBOOT at ~02:40; the step-4,000 save
+  (runs/exp/E2/state.pth, 142,598,970 B, 02:28:58) survived.
+
+Resume segment (4,000 -> 20,000):  (PREREG §6 addendum records interruption + resume)
+  resume checkpoint verified before launch: steps=4000, conv_channels=202,
+  use_event_branch=False, optimizer/scheduler/scaler present, 0 event_branch keys
+  launched 2026-09-18 20:34:07 PID 1484; log runs/exp/E2/train.log.resume
+   "20:34:11 train.py:115 loaded: 2026-09-18 02:28:58"
+   "20:34:18 train.py:199 total steps: 4,000 (~96,000)"
+  markers: 6,000 @20:51:45 | 8,000 @21:06:40 | 10,000 @21:24:34 | 12,000 @21:41:05 |
+           14,000 @21:52:25 | 16,000 @22:02:32 | 18,000 @22:12:11 | 20,000 @22:21:51
+  4,000->20,000 in 6,453 s = 2.48 steps/s overall (E3a's eval shared the GPU 20:34-21:40;
+  clean 12k->20k = 2,446 s = 3.27 steps/s = 306 ms/step. E3a's own resume clean rate was
+  3.19 steps/s = 313 ms/step, so end-to-end E2 ~= E3a; the synthetic pre-measurements were
+  133 ms/step CNN(c=192) vs 220 ms/step E3a — data loading dominates the real loop.)
+  final holdout_loss 3.352417 (dqn 0.393406, cql 0.562488, next_rank 0.732852)
+  watchdog: "22:21:56 target step seen" -> state mtime 22:21:51 -> "22:23:07 killed pid=1484"
+  final checkpoint verified: steps=20000, conv_channels=202, use_event_branch=False,
+  0 event_branch keys (650 mortal tensors)
+
+### [4] Pool-A evaluation (12,000 games, seed_start=10000, own games dir)
+
+$ (vendor/mortal/mortal) MORTAL_CFG=/home/ygsldr/riichi-ai/runs/exp/E2/eval.toml \
+      python3 one_vs_three.py  > runs/exp/E2/eval.log 2>&1
+  launched 22:24:50 PID 16890
+  "22:24:50 one_vs_three.rs:131 seed: [10000, 13000) w/ 0x5dfaa4cef265cd7,
+   start 3000 sets, 12000 hanchans"
+  "22:58:53 one_vs_three.rs:196 dumping game logs"; process gone by 23:03 -> wall ~38 min
+  "challenger rankings: [2625 3150 3068 3157] (2.563083333333333, -4.01625pt)"
+  runs/exp/E2/games/: 12,000 files, 3000 seeds [10000,12999], key 423244137402621143
+  (== 0x5dfaa4cef265cd7), splits a-d; pool B (50000) NOT touched.
+
+$ python3 scripts/eval_report.py --games-dir runs/exp/E2/games \
+      --seed-key 0x5dfaa4cef265cd7 --seed-range 10000-13000 \
+      --checkpoint state.pth --source-dir runs/exp/E2 --out runs/exp/E2/report.csv
+  candidates(*.json.gz)=12000 matched=12000 ignored_files=0 non-game files skipped=0
+  sets=3000 games=12000 incomplete_sets=0 seed_key_groups=1
+  dist(1/2/3/4)=[2625 3150 3068 3157] avg_rank=2.5631 pt=-4.0163
+  bootstrap B=2000: avg_rank 95%CI=[2.5450, 2.5797]  pt 95%CI=[-5.3401, -2.6288]
+  arm: challenger='e2' x12000 vs champion={('old148800',)*3: 12000}
+  assertions: self-consistency OK; exact gate not applicable for this invocation
+  CSV -> runs/exp/E2/report.csv (1 row)
+sha256 report.csv = 43c7b9250e37397466f7aabf57624ac738515b6c0b4cbe0e79b8dd6490c9f16d
+
+Context (not the verdict; pool A is selection data): E3a's pool-A report.csv on the same
+protocol is dist [2860 2958 2897 3285] avg_rank 2.5506 CI [2.5327,2.5685],
+pt -4.4138 CI [-5.8351,-3.1012]. E2 - E3a = +0.0125 avg_rank / +0.3975 pt, both far below
+the 12k 80%-power MDD (0.0239 avg_rank / 1.86 pt) — pool A does not resolve the architecture
+contrast; the primary criterion is todo 22's single-shot pool-B (seed_start=50000) E3a-vs-E2.
+
+### [5] Invariants after training/eval
+
+$ ls runs/1v3/*.json.gz | wc -l
+2004   (unchanged; no game log written there)
+$ ls -l --time-style=full-iso checkpoints/mortal.pth checkpoints/best.pth
+  mortal.pth 2026-09-17 02:03:09.718844843 +0800   (unchanged)
+  best.pth   2026-09-16 02:59:45.582238799 +0800   (unchanged)
+$ pgrep -af "[t]rain.py"      -> (none)
+$ pgrep -af "[o]ne_vs_three.py" -> (none)
+No live path (checkpoints/mortal.pth, best.pth, runs/, runs/test_play, runs/train_play)
+was ever named by E2's configs: the generator/read-back asserts them under runs/exp/E2/
+only; the training/monitor mtimes above confirm it.
+
+### [6] Artefacts
+
+runs/exp/E2/{PREREG.md,params.json,measure_params.py,make_configs.py,train.toml,eval.toml,
+train.log,train.log.resume,state.pth(143 MB, not in git),report.csv,eval.log,tb/}
+configs/exp_e2.toml
+/tmp/opencode/e2/{launch.log,resume_launch.log,eval_launch.log,eval_report.log,watchdog*.log}

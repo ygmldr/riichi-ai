@@ -1,0 +1,213 @@
+{
+  "ok": true,
+  "checks": [
+    "layout: 8 window blocks match A1 offsets/items/item_channels",
+    "perms: 8 river perms + event pi are fixed non-identity permutations",
+    "event pi: order extension non-identity for L in {3,6,18,100,384}",
+    "river: multiset/count asserts pass; 7/8 changed, 1 uniform; deterministic",
+    "river: non-binary values pass the same slot-multiset checks",
+    "river: negative controls (bit flip + value bump) are caught",
+    "events: row multiset preserved, padding kept, non-uniform streams changed",
+    "collate: wrapper permutes obs + events and keeps dtypes/shapes"
+  ],
+  "n_checks": 8,
+  "perms": {
+    "perm_seed": 10575597,
+    "perm_seed_hex": "0xa15eed",
+    "river_blocks": [
+      {
+        "name": "self_kawa_recent6",
+        "offset": 35,
+        "items": 6,
+        "item_channels": 4,
+        "perm": [
+          0,
+          5,
+          2,
+          4,
+          1,
+          3
+        ]
+      },
+      {
+        "name": "self_kawa_old18",
+        "offset": 59,
+        "items": 18,
+        "item_channels": 4,
+        "perm": [
+          3,
+          4,
+          16,
+          14,
+          17,
+          11,
+          10,
+          6,
+          8,
+          9,
+          2,
+          5,
+          12,
+          0,
+          13,
+          1,
+          7,
+          15
+        ]
+      },
+      {
+        "name": "opp1_shimocha_kawa_recent6",
+        "offset": 132,
+        "items": 6,
+        "item_channels": 8,
+        "perm": [
+          5,
+          1,
+          4,
+          0,
+          3,
+          2
+        ]
+      },
+      {
+        "name": "opp1_shimocha_kawa_old18",
+        "offset": 180,
+        "items": 18,
+        "item_channels": 8,
+        "perm": [
+          0,
+          10,
+          3,
+          4,
+          11,
+          17,
+          1,
+          9,
+          7,
+          12,
+          13,
+          2,
+          15,
+          8,
+          6,
+          5,
+          14,
+          16
+        ]
+      },
+      {
+        "name": "opp2_toimen_kawa_recent6",
+        "offset": 327,
+        "items": 6,
+        "item_channels": 8,
+        "perm": [
+          1,
+          5,
+          4,
+          0,
+          3,
+          2
+        ]
+      },
+      {
+        "name": "opp2_toimen_kawa_old18",
+        "offset": 375,
+        "items": 18,
+        "item_channels": 8,
+        "perm": [
+          12,
+          2,
+          1,
+          16,
+          8,
+          15,
+          17,
+          7,
+          6,
+          14,
+          13,
+          4,
+          10,
+          9,
+          3,
+          5,
+          0,
+          11
+        ]
+      },
+      {
+        "name": "opp3_kamicha_kawa_recent6",
+        "offset": 522,
+        "items": 6,
+        "item_channels": 8,
+        "perm": [
+          0,
+          3,
+          2,
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "name": "opp3_kamicha_kawa_old18",
+        "offset": 570,
+        "items": 18,
+        "item_channels": 8,
+        "perm": [
+          3,
+          15,
+          16,
+          10,
+          7,
+          11,
+          14,
+          12,
+          13,
+          1,
+          6,
+          4,
+          0,
+          5,
+          2,
+          8,
+          9,
+          17
+        ]
+      }
+    ],
+    "event_pi_sha256": "b5f5d18fcecefd3e237739943779fb6590a283a4d7fbd23aa84d90ebf5e56d03",
+    "event_pi_head": [
+      158,
+      25,
+      331,
+      11,
+      371,
+      64,
+      298,
+      84,
+      72,
+      376,
+      154,
+      295,
+      59,
+      245,
+      157,
+      320
+    ],
+    "fingerprint_sha256": "bf16f51cbea1b8a52f02351d29f3843814090ff97b2df72ee03caf60c5a88027"
+  },
+  "perm_apply_stats": {
+    "batches": 0,
+    "obs_samples": 8,
+    "blocks_checked": 8,
+    "blocks_changed": 7,
+    "blocks_uniform": 1,
+    "obs_changed": 8,
+    "events_samples": 0,
+    "events_checked": 0,
+    "events_changed": 0,
+    "events_uniform": 0
+  },
+  "done_at": "2026-09-18T23:47:00+0800"
+}

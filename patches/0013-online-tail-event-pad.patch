@@ -1,0 +1,57 @@
+--- a/mortal/event_data.py
++++ b/mortal/event_data.py
+@@ -25,9 +25,51 @@
+ 
+ 
+ def cat_event_batches(batches):
+-    keys = batches[0].keys()
+-    return {k: torch.cat([b[k] for b in batches], dim=0) for k in keys}
++    # Each batch is padded to *its own* longest event stream, so batches with
++    # different T cannot be concatenated directly: zero-pad the shorter ones to
++    # the common maximum, exactly as `collate_events` pads rows (zero tokens,
++    # False mask). Padding stays inert for the model: causal attention hides
++    # every later key and the pooled output is read at `lengths - 1`, so no
++    # padded position can reach a real one.
++    seq_len = max(int(b['tokens'].shape[1]) for b in batches)
++    padded = []
++    for b in batches:
++        batch_size, t = b['tokens'].shape[0], int(b['tokens'].shape[1])
++        if t == seq_len:
++            padded.append(b)
++            continue
++        tokens = torch.zeros(
++            (batch_size, seq_len, EVENT_TOKEN_DIM),
++            dtype=b['tokens'].dtype,
++            device=b['tokens'].device,
++        )
++        tokens[:, :t] = b['tokens']
++        mask = torch.zeros(
++            (batch_size, seq_len),
++            dtype=b['mask'].dtype,
++            device=b['mask'].device,
++        )
++        mask[:, :t] = b['mask']
++        padded.append({**b, 'tokens': tokens, 'mask': mask})
++    return {
++        'tokens': torch.cat([b['tokens'] for b in padded], dim=0),
++        'lengths': torch.cat([b['lengths'] for b in padded], dim=0),
++        'mask': torch.cat([b['mask'] for b in padded], dim=0),
++        # `causal` is (T, T), not batch-stacked: rebuild it for the common T
++        # the same way `collate_events` does. Padded query rows are never read
++        # and, from a real query i, every padded key j >= seq_len > i sits
++        # outside the lower triangle.
++        'causal': torch.ones(
++            (seq_len, seq_len),
++            dtype=batches[0]['causal'].dtype,
++            device=batches[0]['causal'].device,
++        ).tril(),
++    }
+ 
+ 
+ def slice_event_batch(batch, start, end):
+-    return {k: v[start:end] for k, v in batch.items()}
++    # `causal` is shared by all rows (T, T): slice only the batch-stacked keys.
++    return {
++        k: v if k == 'causal' else v[start:end]
++        for k, v in batch.items()
++    }

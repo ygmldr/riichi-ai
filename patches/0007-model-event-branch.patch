@@ -1,0 +1,392 @@
+diff --git a/mortal/model.py b/mortal/model.py
+index 2bc9931..b1dbc98 100644
+--- a/mortal/model.py
++++ b/mortal/model.py
+@@ -1,4 +1,5 @@
+ import torch
++import logging
+ from torch import nn, Tensor
+ from torch.nn import functional as F
+ from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence
+@@ -6,6 +7,7 @@
+ from functools import partial
+ from itertools import permutations
+ from libriichi.consts import obs_shape, oracle_obs_shape, ACTION_SPACE, GRP_SIZE
++from event_data import MAX_EVENT_TOKENS
+ 
+ class ChannelAttention(nn.Module):
+     def __init__(self, channels, ratio=16, actv_builder=nn.ReLU, bias=True):
+@@ -105,8 +107,98 @@
+     def forward(self, x):
+         return self.net(x)
+ 
++# [patch 0007] token vocabularies, one per column of the (T, 5) token stream
++# produced by `libriichi/src/mjai/tokens.rs` / `event_data.collate_events`:
++# (type_id <= 19, tile <= 34, actor <= 4, turn, flags) with 34/4 = "none" and
++# `turn` = POV tsumo count so far (bounded by the event count).
++EVENT_TYPE_VOCAB = 20
++EVENT_TILE_VOCAB = 35
++EVENT_ACTOR_VOCAB = 5
++EVENT_TURN_VOCAB = MAX_EVENT_TOKENS + 1
++EVENT_FLAGS_VOCAB = 8
++
++class EventBranch(nn.Module):
++    """[patch 0007] public event-stream Transformer (E3a treatment arm).
++
++    Consumes the `collate_events` batch (patches 0006/0010) and returns the
++    1024-d residual delta that `Brain.forward` adds to the CNN embedding. The
++    output projection is zero-initialised, so an untrained branch is exactly
++    the identity (`phi_out == phi` bit-for-bit) and the CNN-only path is
++    untouched until the branch has received gradient.
++
++    Attention is causal: a decision point only sees events up to and including
++    its trigger. Padded tokens are inconsequential because no real position can
++    attend to a later padding token and the pooled output is read at the last
++    real token.
++    """
++
++    def __init__(self, *, dim=128, heads=4, layers=4, ffn=512, out_dim=1024):
++        super().__init__()
++        assert dim % heads == 0, f'event_dim {dim} not divisible by event_heads {heads}'
++        self.dim = dim
++        self.embeds = nn.ModuleList([
++            nn.Embedding(EVENT_TYPE_VOCAB, dim),
++            nn.Embedding(EVENT_TILE_VOCAB, dim),
++            nn.Embedding(EVENT_ACTOR_VOCAB, dim),
++            nn.Embedding(EVENT_TURN_VOCAB, dim),
++            nn.Embedding(EVENT_FLAGS_VOCAB, dim),
++        ])
++        self.pos_embed = nn.Embedding(MAX_EVENT_TOKENS, dim)
++        self.layers = nn.ModuleList([
++            nn.TransformerEncoderLayer(
++                d_model = dim,
++                nhead = heads,
++                dim_feedforward = ffn,
++                dropout = 0.0,
++                batch_first = True,
++            )
++            for _ in range(layers)
++        ])
++        self.proj = nn.Linear(dim, out_dim, bias=False)
++        nn.init.zeros_(self.proj.weight)
++
++    def forward(self, events) -> Tensor:
++        tokens = events['tokens'].long()    # (B, T, 5)
++        lengths = events['lengths']         # (B,)
++        x = self.embeds[0](tokens[..., 0])
++        x = x + self.embeds[1](tokens[..., 1])
++        x = x + self.embeds[2](tokens[..., 2])
++        x = x + self.embeds[3](tokens[..., 3])
++        x = x + self.embeds[4](tokens[..., 4])
++        seq_len = x.shape[1]
++        pos = torch.arange(seq_len, device=x.device)
++        x = x + self.pos_embed(pos)
++        # `src_mask` marks positions that are *disallowed* (True == masked
++        # out), so the strictly upper triangle is the causal mask. Padding is
++        # deliberately *not* masked: causal attention means no real position
++        # can see a later padding token, and the pooled output is read at the
++        # last real token, so padded tokens cannot influence the result
++        # (asserted in `scripts/exp_e3a_selfcheck.py`); dropping
++        # `src_key_padding_mask` keeps attention on the fast path.
++        causal = torch.triu(
++            torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device),
++            diagonal=1,
++        )
++        for layer in self.layers:
++            x = layer(x, src_mask=causal)
++        idx = (lengths - 1).clamp(min=0).to(x.device)
++        h = x[torch.arange(x.shape[0], device=x.device), idx]
++        return self.proj(h)
++
+ class Brain(nn.Module):
+-    def __init__(self, *, conv_channels, num_blocks, is_oracle=False, version=1):
++    def __init__(
++        self,
++        *,
++        conv_channels,
++        num_blocks,
++        is_oracle=False,
++        version=1,
++        use_event_branch=False,
++        event_dim=128,
++        event_heads=4,
++        event_layers=4,
++        event_ffn=512,
++    ):
+         super().__init__()
+         self.is_oracle = is_oracle
+         self.version = version
+@@ -146,6 +238,17 @@
+         )
+         self.actv = actv_builder()
+ 
++        # [patch 0007] instantiated only when the toggle is on (plan decision
++        # #10): E2/baseline resolve it to false and stay exactly the old CNN.
++        self.event_branch = None
++        if use_event_branch:
++            self.event_branch = EventBranch(
++                dim = event_dim,
++                heads = event_heads,
++                layers = event_layers,
++                ffn = event_ffn,
++            )
++
+         # always use EMA or CMA when True
+         self._freeze_bn = False
+ 
+@@ -159,6 +262,17 @@
+             obs = torch.cat((obs, invisible_obs), dim=1)
+         phi = self.encoder(obs)
+ 
++        # [patch 0007] residual, zero-initialised fusion. A branch-enabled
++        # Brain must never run without its event stream: silently skipping the
++        # fusion would degrade E3a to E2 (plan decision #10), so fail loudly.
++        if self.event_branch is not None:
++            if events is None:
++                raise ValueError(
++                    'event branch is enabled but `events` is None; refusing to run '
++                    'the branch-less path (would silently degrade E3a to E2)'
++                )
++            phi = phi + self.event_branch(events)
++
+         match self.version:
+             case 1:
+                 latent_out = self.latent_net(phi)
+@@ -189,6 +303,52 @@
+         self._freeze_bn = value
+         return self.train(self.training)
+ 
++def has_event_branch_weights(state_dict) -> bool:
++    return any(k.startswith('event_branch.') for k in state_dict)
++
++def brain_from_config(cfg, *, is_oracle=False) -> Brain:
++    """[patch 0007] build a `Brain` from a saved config (`state['config']`).
++
++    The `[model]` section (toggle + hyper-parameters) is read from the config
++    that the checkpoint itself carries, never from the process's live config:
++    an old CNN checkpoint therefore always resolves to a branch-less Brain even
++    when the live config enables the branch (plan decision #10).
++    """
++    return Brain(
++        version = cfg['control'].get('version', 1),
++        conv_channels = cfg['resnet']['conv_channels'],
++        num_blocks = cfg['resnet']['num_blocks'],
++        is_oracle = is_oracle,
++        **cfg.get('model', {}),
++    )
++
++def load_brain_state_dict(mortal, state_dict, *, source='checkpoint'):
++    """[patch 0007] `strict=False` load guarded against silent degradation.
++
++    E3a checkpoints carry `event_branch.*` weights. Loading them into a
++    branch-less Brain with `strict=False` would drop them without a trace and
++    the arm would evaluate as the E2 CNN-only arm -- a false "no difference"
++    verdict. Refuse loudly instead (plan decision #10).
++    """
++    if has_event_branch_weights(state_dict) and getattr(mortal, 'event_branch', None) is None:
++        raise RuntimeError(
++            f'{source}: checkpoint contains event-branch weights but the constructed '
++            'Brain has use_event_branch=false; refusing to drop them silently '
++            '(strict=False would degrade E3a into E2)'
++        )
++    incompatible = mortal.load_state_dict(state_dict, strict=False)
++    if incompatible.unexpected_keys:
++        raise RuntimeError(
++            f'{source}: unexpected keys while loading Brain: '
++            f'{incompatible.unexpected_keys[:8]}'
++        )
++    if incompatible.missing_keys:
++        logging.warning(
++            f'{source}: missing keys while loading Brain (kept at init): '
++            f'{incompatible.missing_keys[:8]}'
++        )
++    return incompatible
++
+ class AuxNet(nn.Module):
+     def __init__(self, dims=None):
+         super().__init__()
+diff --git a/mortal/train.py b/mortal/train.py
+index 1c41861..49c2b5f 100644
+--- a/mortal/train.py
++++ b/mortal/train.py
+@@ -24,7 +24,7 @@
+     from dataloader import FileDatasetsIter, collate_batch, worker_init_fn
+     from event_data import cat_event_batches, slice_event_batch
+     from lr_scheduler import LinearWarmUpCosineAnnealingLR
+-    from model import Brain, DQN, AuxNet
++    from model import Brain, DQN, AuxNet, load_brain_state_dict
+     from libriichi.consts import obs_shape
+     from config import config
+ 
+@@ -63,7 +63,9 @@
+     val_batches = config['dataset'].get('val_batches', 20)
+     val_num_workers = config['dataset'].get('val_num_workers', 1)
+ 
+-    mortal = Brain(version=version, **config['resnet']).to(device)
++    # [patch 0007] the live config decides how the *training* model is built;
++    # `[model] use_event_branch` (default false) instantiates the event branch.
++    mortal = Brain(version=version, **config['resnet'], **config.get('model', {})).to(device)
+     dqn = DQN(version=version).to(device)
+     aux_net = AuxNet((4,)).to(device)
+     all_models = (mortal, dqn, aux_net)
+@@ -111,7 +113,7 @@
+         state = torch.load(state_file, weights_only=True, map_location=device)
+         timestamp = datetime.fromtimestamp(state['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+         logging.info(f'loaded: {timestamp}')
+-        mortal.load_state_dict(state['mortal'])
++        load_brain_state_dict(mortal, state['mortal'], source=state_file)
+         dqn.load_state_dict(state['current_dqn'])
+         aux_net.load_state_dict(state['aux_net'])
+         if not online or state['config']['control']['online']:
+diff --git a/mortal/one_vs_three.py b/mortal/one_vs_three.py
+index c8261cd..ab5841d 100644
+--- a/mortal/one_vs_three.py
++++ b/mortal/one_vs_three.py
+@@ -4,7 +4,7 @@
+ import torch
+ import secrets
+ import os
+-from model import Brain, DQN
++from model import DQN, brain_from_config, load_brain_state_dict
+ from engine import MortalEngine
+ from libriichi.arena import OneVsThree
+ from config import config
+@@ -32,11 +32,11 @@
+         state = torch.load(cfg['champion']['state_file'], weights_only=True, map_location=torch.device('cpu'))
+         cham_cfg = state['config']
+         version = cham_cfg['control'].get('version', 1)
+-        conv_channels = cham_cfg['resnet']['conv_channels']
+-        num_blocks = cham_cfg['resnet']['num_blocks']
+-        mortal = Brain(version=version, conv_channels=conv_channels, num_blocks=num_blocks).eval()
++        # [patch 0007] `[model]` is read from the checkpoint's own config:
++        # E3a/A8/A9 rebuild the event branch, old CNNs stay branch-less.
++        mortal = brain_from_config(cham_cfg).eval()
+         dqn = DQN(version=version).eval()
+-        mortal.load_state_dict(state['mortal'])
++        load_brain_state_dict(mortal, state['mortal'], source=cfg['champion']['state_file'])
+         dqn.load_state_dict(state['current_dqn'])
+         if cfg['champion']['enable_compile']:
+             mortal.compile()
+@@ -55,11 +55,10 @@
+     state = torch.load(cfg['challenger']['state_file'], weights_only=True, map_location=torch.device('cpu'))
+     chal_cfg = state['config']
+     version = chal_cfg['control'].get('version', 1)
+-    conv_channels = chal_cfg['resnet']['conv_channels']
+-    num_blocks = chal_cfg['resnet']['num_blocks']
+-    mortal = Brain(version=version, conv_channels=conv_channels, num_blocks=num_blocks).eval()
++    # [patch 0007] see the champion block above.
++    mortal = brain_from_config(chal_cfg).eval()
+     dqn = DQN(version=version).eval()
+-    mortal.load_state_dict(state['mortal'])
++    load_brain_state_dict(mortal, state['mortal'], source=cfg['challenger']['state_file'])
+     dqn.load_state_dict(state['current_dqn'])
+     if cfg['challenger']['enable_compile']:
+         mortal.compile()
+diff --git a/mortal/player.py b/mortal/player.py
+index 1bcb7bd..92b8f42 100644
+--- a/mortal/player.py
++++ b/mortal/player.py
+@@ -5,7 +5,7 @@
+ import secrets
+ import logging
+ from os import path
+-from model import Brain, DQN
++from model import DQN, brain_from_config, load_brain_state_dict
+ from engine import MortalEngine
+ from libriichi.stat import Stat
+ from libriichi.arena import OneVsThree
+@@ -19,11 +19,11 @@
+         state = torch.load(baseline_cfg['state_file'], weights_only=True, map_location=torch.device('cpu'))
+         cfg = state['config']
+         version = cfg['control'].get('version', 1)
+-        conv_channels = cfg['resnet']['conv_channels']
+-        num_blocks = cfg['resnet']['num_blocks']
+-        stable_mortal = Brain(version=version, conv_channels=conv_channels, num_blocks=num_blocks).eval()
++        # [patch 0007] `[model]` comes from the checkpoint's own config, so an
++        # old CNN checkpoint always resolves to a branch-less Brain.
++        stable_mortal = brain_from_config(cfg).eval()
+         stable_dqn = DQN(version=version).eval()
+-        stable_mortal.load_state_dict(state['mortal'])
++        load_brain_state_dict(stable_mortal, state['mortal'], source=baseline_cfg['state_file'])
+         stable_dqn.load_state_dict(state['current_dqn'])
+         if baseline_cfg['enable_compile']:
+             stable_mortal.compile()
+@@ -81,11 +81,11 @@
+         state = torch.load(baseline_cfg['state_file'], weights_only=True, map_location=torch.device('cpu'))
+         cfg = state['config']
+         version = cfg['control'].get('version', 1)
+-        conv_channels = cfg['resnet']['conv_channels']
+-        num_blocks = cfg['resnet']['num_blocks']
+-        stable_mortal = Brain(version=version, conv_channels=conv_channels, num_blocks=num_blocks).eval()
++        # [patch 0007] `[model]` comes from the checkpoint's own config, so an
++        # old CNN checkpoint always resolves to a branch-less Brain.
++        stable_mortal = brain_from_config(cfg).eval()
+         stable_dqn = DQN(version=version).eval()
+-        stable_mortal.load_state_dict(state['mortal'])
++        load_brain_state_dict(stable_mortal, state['mortal'], source=baseline_cfg['state_file'])
+         stable_dqn.load_state_dict(state['current_dqn'])
+         if baseline_cfg['enable_compile']:
+             stable_mortal.compile()
+diff --git a/mortal/mortal.py b/mortal/mortal.py
+index fccd3af..00b4cd7 100644
+--- a/mortal/mortal.py
++++ b/mortal/mortal.py
+@@ -5,7 +5,7 @@
+ import json
+ import torch
+ from datetime import datetime, timezone
+-from model import Brain, DQN, GRP
++from model import DQN, GRP, brain_from_config, load_brain_state_dict
+ from engine import MortalEngine
+ from common import filtered_trimmed_lines
+ from libriichi.mjai import Bot
+@@ -38,9 +38,11 @@
+         time = datetime.fromtimestamp(state['timestamp'], tz=timezone.utc).strftime('%y%m%d%H')
+         tag = f'mortal{version}-b{num_blocks}c{conv_channels}-t{time}'
+ 
+-    mortal = Brain(version=version, num_blocks=num_blocks, conv_channels=conv_channels).eval()
++    # [patch 0007] `[model]` is read from the checkpoint's own config, so an
++    # old CNN checkpoint always resolves to a branch-less Brain.
++    mortal = brain_from_config(cfg).eval()
+     dqn = DQN(version=version).eval()
+-    mortal.load_state_dict(state['mortal'])
++    load_brain_state_dict(mortal, state['mortal'], source=config['control']['state_file'])
+     dqn.load_state_dict(state['current_dqn'])
+ 
+     engine = MortalEngine(
+diff --git a/mortal/client.py b/mortal/client.py
+index fc6a97d..3c9de4e 100644
+--- a/mortal/client.py
++++ b/mortal/client.py
+@@ -7,7 +7,7 @@
+ import time
+ import gc
+ from os import path
+-from model import Brain, DQN
++from model import Brain, DQN, load_brain_state_dict
+ from player import TrainPlayer
+ from common import send_msg, recv_msg
+ from config import config
+@@ -16,10 +16,10 @@
+     remote = (config['online']['remote']['host'], config['online']['remote']['port'])
+     device = torch.device(config['control']['device'])
+     version = config['control']['version']
+-    num_blocks = config['resnet']['num_blocks']
+-    conv_channels = config['resnet']['conv_channels']
+ 
+-    mortal = Brain(version=version, num_blocks=num_blocks, conv_channels=conv_channels).to(device).eval()
++    # [patch 0007] the live config decides how the online model is built; the
++    # checkpoint's own config is only available after the first param fetch.
++    mortal = Brain(version=version, **config['resnet'], **config.get('model', {})).to(device).eval()
+     dqn = DQN(version=version).to(device)
+     if config['online']['enable_compile']:
+         mortal.compile()
+@@ -46,7 +46,7 @@
+                     param_version = rsp['param_version']
+                     break
+                 time.sleep(3)
+-        mortal.load_state_dict(rsp['mortal'])
++        load_brain_state_dict(mortal, rsp['mortal'], source='param server')
+         dqn.load_state_dict(rsp['dqn'])
+         logging.info('param has been updated')
+ 

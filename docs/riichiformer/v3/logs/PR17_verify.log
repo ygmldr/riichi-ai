@@ -1,0 +1,43 @@
+# PR-17 G3 verification log
+# date (UTC): 2026-11-20T23:24:30Z
+# branch: rf/pr17-gate  base: 11a92a1b4f0fcbea1828c89ab9caba33853ad628
+# host python: Python 3.12.3
+# policy: no training, no checkpoint, no runs/exp/RF3_MVP_S, no code/data edits
+
+## A. canonical/full + split-v2
+canonical rows/valid/invalid/components/dup/quarantine/shards: 2512424 2512424 0 2512424 0 0 109
+canonical index sha256: 21d9077f04836a123025a5336e38a3746801ea5e2d5a63d45793cc8714efae4c
+canonical summary/manifest sha256: 25e1a43d506ba70f20a0040943f04eccd7e0f00022905fa5755b583111e9fdce 25e1a43d506ba70f20a0040943f04eccd7e0f00022905fa5755b583111e9fdce
+split registry sha256: 1afc11759daae0cc4ab5d07abd745a21a0c2c30f094acbe7ead54790c18b51c5
+split run log sha256: 1d86844344c0e7349a54920bfc2a787e7c181f3419b3082c0187eb6e11422e49
+split L: rows=2512424 quarantine=0 registry_hash=86d7b5578bdb133d40596cf4a87659008a5d231ddb4fd775a5d54aa2ec482170 train_allowed_rows=0 quarantined=0 counts={'external_diagnostic': 375500, 'train': 1968147, 'val_holdout': 168777}
+split R: rows=2512424 quarantine=0 registry_hash=7ffbe7c672b387c5c76773a74a45295c84faf002b40b6a42b54f95316ec118de train_allowed_rows=0 quarantined=0 counts={'confirm_blocked_previously_used': 12188, 'select': 89867, 'train': 2321348, 'val': 89021}
+moved vs PR-05: 0 0
+
+## B. full RF test suite on integration tree
+$ cd /home/ygsldr/riichi-ai && PYTHONPATH=... pytest -q $(git ls-files "tests/rf_test_*.py" | tr "\\n" " ")
+......................................................... [ 38%]
+................................................................................................................ [ 62%]
+...s............................................... [ 73%]
+...............................................s..............................................................................      [100%]
+471 passed, 2 skipped, 242 subtests passed in 155.75s (0:02:35)
+
+## C. rights gate (11 rows, 0 ALLOWED)
+rows 11 allowed_train 0
+train_allowed {'RESTRICTED': 6, 'UNKNOWN': 5}
+status {'RESTRICTED': 8, 'UNKNOWN': 3}
+$ rf_check_source_rights.py --source tenhou_old --purpose train --json
+{"allowed": false, "error": null, "evidence_url": "https://raw.githubusercontent.com/NikkeTryHard/tenhou-to-mjai/main/LICENSE-DATA", "purpose": "train", "reason": "status=RESTRICTED (need ALLOWED; train_allowed=RESTRICTED)", "retrieved_at": "2026-11-21", "source": "tenhou_old", "status": "RESTRICTED"}
+exit=1
+$ rf_check_source_rights.py --source tenhou_recent --purpose train --json
+{"allowed": false, "error": null, "evidence_url": "https://raw.githubusercontent.com/NikkeTryHard/tenhou-to-mjai/main/LICENSE-DATA", "purpose": "train", "reason": "status=RESTRICTED (need ALLOWED; train_allowed=RESTRICTED)", "retrieved_at": "2026-11-21", "source": "tenhou_recent", "status": "RESTRICTED"}
+exit=1
+
+## D. PR-14 trainer refuses blocked shard before model construction
+$ worktrees/trainer/scripts/rf_train.py --shard /tmp/pr12_audit2 --dry-run
+PR14_REFUSED: rights gate refused shard: training loader refuses purpose='diagnostic' shard
+exit=2
+
+## E. explicit NOT_RUN
+real training=NOT_RUN; real checkpoint=NOT_RUN; arena strength=NOT_RUN; confirm=NOT_RUN; Tenhou-equivalent claim=FORBIDDEN
+no datasets/runs/checkpoints write; no runs/exp/RF3_MVP_S; no model step

@@ -1,0 +1,33 @@
+diff --git a/mortal/one_vs_three.py b/mortal/one_vs_three.py
+index 23ecb3b..c8261cd 100644
+--- a/mortal/one_vs_three.py
++++ b/mortal/one_vs_three.py
+@@ -9,11 +9,16 @@ from engine import MortalEngine
+ from libriichi.arena import OneVsThree
+ from config import config
+ 
++def seed_interval(cfg):
++    # seed_start defaults to 10000 for configs written before the key existed
++    seeds_per_iter = cfg['games_per_iter'] // 4
++    seed_start = cfg.get('seed_start', 10000)
++    return seed_start, seed_start + seeds_per_iter * cfg['iters']
++
+ def main():
+     cfg = config['1v3']
+     games_per_iter = cfg['games_per_iter']
+     seeds_per_iter = games_per_iter // 4
+-    iters = cfg['iters']
+     log_dir = cfg['log_dir']
+     use_akochan = cfg['akochan']['enabled']
+ 
+@@ -70,8 +75,8 @@ def main():
+         name = cfg['challenger']['name'],
+     )
+ 
+-    seed_start = 10000
+-    for i, seed in enumerate(range(seed_start, seed_start + seeds_per_iter * iters, seeds_per_iter)):
++    seed_start, seed_end = seed_interval(cfg)
++    for i, seed in enumerate(range(seed_start, seed_end, seeds_per_iter)):
+         print('-' * 50)
+         print('#', i)
+         env = OneVsThree(

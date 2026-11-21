@@ -1,0 +1,10 @@
+{
+  "check": "trained_branch_active",
+  "state": "runs/exp/E3a/state.pth",
+  "steps": 20000,
+  "branch_present": true,
+  "unexpected_keys": [],
+  "missing_keys": [],
+  "max_abs_diff_vs_cnn_only": 0.6948837041854858,
+  "branch_changes_embedding": true
+}

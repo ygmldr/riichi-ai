@@ -1,0 +1,101 @@
+EVIDENCE M1 — measure live 328k (runs/exp/PINNED/mortal.pth.at-328000) vs 175.2k / 148.8k on pool A
+====================================================================================================
+Host: WSL, RTX 5070 Ti 16 GB, ~15 GB RAM. One GPU job at a time under /tmp/opencode/train.lock.
+Repo: /home/ygsldr/riichi-ai (HEAD 1993b14 at task start; dirty: pre-existing notepads/RUNBOOK/parse_eval/vendor edits).
+Goal: fresh measurement of the most-trained checkpoint; NO training resumed; NO existing artifact modified.
+
+[1] PRE-RUN CHECKS
+-----------------
+$ sha256sum runs/exp/PINNED/mortal.pth.at-328000
+b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511  runs/exp/PINNED/mortal.pth.at-328000
+  size 130780507 B; torch.load(steps)=328000; config has NO [model] key -> plain CNN
+  (use_event_branch defaults false); resnet {conv_channels:192, num_blocks:40}; online=false; version=4.
+$ same check on runs/exp/PINNED/mortal.pth.at-175200
+  size 130780507 B; steps=175200; NO [model] key; resnet {192,40}; online=false; version=4.
+  (=> both sides of run B load as the same architecture; run A champion at-148800 likewise a plain CNN.)
+$ nvidia-smi: RTX 5070 Ti, 16303 MiB total, 4534 MiB already used by desktop, util 18%
+$ df -h / : 1007G, 813G free;  free -g: 15G total, 12G available
+$ .venv/bin/python: torch 2.11.0+cu128 (cuda True), numpy 2.5.2, libriichi imports OK from
+  vendor/mortal/target/release (PYTHONPATH)
+
+[2] TEMP CONFIGS (NOT under configs/; configs/config.toml untouched)
+-------------------------------------------------------------------
+Generator: patched a deep copy of runs/exp/A14/eval_confirm.toml (sha256 4ac52a7f037a67128d6e704d93d8d9a715b66d166bb505331e5e60f8e1e5ed53)
+           -> /tmp/opencode/m328/vs148800.toml and /tmp/opencode/m328/vs175200.toml
+Per-run overrides: [control].online=false; control/test_play/train_play logs redirected under /tmp/opencode/m328/unused-*;
+  [model].use_event_branch=false; [1v3].seed_key=0x5dfaa4cef265cd7 (423244137402621143), seed_start=10000,
+  games_per_iter=12000, iters=1, log_dir=runs/exp/M328/<run>/games;
+  challenger name=at-328000 state_file=runs/exp/PINNED/mortal.pth.at-328000;
+  champion  = old148800 (checkpoints/mortal.pth.at-148800) | at-175200 (runs/exp/PINNED/mortal.pth.at-175200).
+Assertion (printed, both configs): no `state_file`/`anchor_state_file` value equals
+  checkpoints/mortal.pth or checkpoints/best.pth -> PASS.
+  state_file targets remaining: /tmp unused control files, rl.anchor=...at-148800, grp, baseline (none live).
+
+[3] RUN A — runs/exp/M328/vs148800 (328k challenger vs at-148800 champion)
+--------------------------------------------------------------------------
+$ (setsid nohup bash /tmp/opencode/m328/run_one.sh vs148800 > /tmp/opencode/m328/runner_vs148800.out 2>&1 & echo $!) -> runner pid 82716
+$ cat /tmp/opencode/m328/runner_vs148800.pid = 82716 ; lock owner.txt: "82716 runner vs148800 2026-09-20T00:53:35+08:00"
+$ pgrep -f one_vs_three.py -> arena pid 82754 (launcher pid 82754, /tmp/opencode/m328/vs148800.arena.pid)
+Arena seed line: `seed: [10000, 13000) w/ 0x5dfaa4cef265cd7, start 3000 sets, 12000 hanchans` (00:53:38)
+START 2026-09-20 00:53:35 CST
+
+=== SESSION RESUMED 2026-09-21 (close-out of the interrupted measurement) ===
+
+[4] RUN B — runs/exp/M328/vs175200 report (328k challenger vs at-175200 champion)
+---------------------------------------------------------------------------------
+The interrupted session left 12000 *.json.gz in runs/exp/M328/vs175200/games and the
+arena summary in eval.log, but no report.csv. Nothing was re-run; the report was
+generated from the existing corpus with the UNMODIFIED scripts/eval_report.py:
+
+$ time .venv/bin/python scripts/eval_report.py \
+    --games-dir runs/exp/M328/vs175200/games --seed-key=0x5dfaa4cef265cd7 \
+    --seed-range=10000-13000 --checkpoint at-328000 \
+    --source-dir runs/exp/M328/vs175200 --out runs/exp/M328/vs175200/report.csv \
+    2>&1 | tee runs/exp/M328/vs175200/report_stdout.txt
+  candidates(*.json.gz)=12000 matched=12000 ignored_files=0 non-game files skipped=0
+  sets=3000 games=12000 incomplete_sets=0 seed_key_groups=1
+  dist(1/2/3/4)=[3177 2896 2849 3078] avg_rank=2.4857 pt=+0.0600
+  bootstrap B=2000 (resample sets, rng seed=0, bootstrap_sets=3000):
+    avg_rank 95%CI=[2.4670, 2.5032]  pt 95%CI=[-1.3090, +1.4812]
+  arm: challenger='at-328000' x12000 vs champion={('at-175200','at-175200','at-175200'): 12000}
+  assertions: self-consistency OK
+  CSV -> runs/exp/M328/vs175200/report.csv (1 row(s))
+  real 0m37.964s
+  => matches eval.log summary `challenger rankings: [3177 2896 2849 3078] (2.4856667, 0.06pt)`.
+
+Caveat (benign): vs175200/runner.log ends with `FAIL: no 'challenger rankings'` at
+01:35:03 — the launcher's 60s liveness poll misread the arena as dead. eval.log shows
+the arena actually finished at 02:10:01 (`dumping game logs` + rankings), and all
+12000 games replay clean through eval_report.py. No re-run needed.
+
+[5] PAIRED COMPARISON (main judgement): 328k - 175.2k on the same seeds/champion
+---------------------------------------------------------------------------------
+probe: runs/exp/M328/paired_delta_328k_minus_175200.py
+       (imports scripts/exp_a1_delta.py + scripts/eval_report.py unmodified)
+arm:       runs/exp/M328/vs148800/games      challenger at-328000 vs champion old148800
+reference: runs/exp/EVAL_A_175200/games      challenger at-175200 vs champion old148800
+window [10000,13000), seed_key 0x5dfaa4cef265cd7, 3000 paired sets / 12000 games each.
+
+$ .venv/bin/python runs/exp/M328/paired_delta_328k_minus_175200.py
+  delta_avg_rank = +0.0035833333333333333   CI [-0.017922916666666667, +0.027002083333333322]  crosses 0
+  delta_avg_pt   = -0.86625                 CI [-2.6551875, +0.802687499999999]                crosses 0
+  prereg_decision: challenger_328k: NO detectable effect on avg_rank (95% CI crosses 0)
+  -> runs/exp/M328/paired_delta_328k_minus_175200.json
+
+Floor (runs/variance/README.md): 12k => 80%-power MDD 0.0239 avg_rank / 1.86 pt.
+|point effect| = 0.15x / 0.47x MDD; CI half-widths 0.94x / 0.93x MDD.
+
+[6] VERDICT
+-----------
+- 328k vs 175.2k: indistinguishable (both paired CIs cross 0).
+- 328k vs 148.8k / 175.2k vs 148.8k: indistinguishable (absolute CIs cross parity).
+=> 148.8k / 175.2k / 328k are mutually indistinguishable at 12k; the extra 153k steps
+   produced no detectable improvement. Report: runs/exp/M328/REPORT.md.
+
+[7] INVARIANTS / CLEANUP (2026-09-21)
+-------------------------------------
+$ sha256sum runs/exp/PINNED/mortal.pth.at-328000 checkpoints/mortal.pth
+b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511  (both, pin untouched)
+$ ls runs/1v3/*.json.gz | wc -l  -> 2004   (frozen corpus intact)
+$ nvidia-smi compute apps -> none; PIDs 82716/82754/83441/83398 all dead; /tmp/opencode empty
+No training launched during Part A; no config/scripts/patches/vendor changes.

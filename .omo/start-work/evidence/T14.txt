@@ -1,0 +1,169 @@
+T14 — A2b calibration audit (probe / GRP / DQN-Q), zero training
+================================================================================
+Date: 2026-09-17 (Asia/Shanghai)   Plan: .omo/plans/fork-roadmap-steps-1-10.md todo 14
+Artifacts: runs/exp/A2b/{PREREG.md, results.json, README.md} + 3 per-sample npz
+Script:    scripts/exp_a2b_calibration.py  (new; imports scripts/exp_a2_probe.py plumbing)
+Commit:    feat(exp): A2b calibration audit (probe/GRP/Q)
+
+[1] ENVIRONMENT
+$ source scripts/activate_env.sh
+>>> 环境: .venv (Python 3.12.3)
+>>> PYTHONPATH 已加入 libriichi(release): /home/ygsldr/riichi-ai/vendor/mortal/target/release
+torch 2.11.0+cu128 numpy 2.5.2 cuda True sklearn absent? True
+device=cuda; policy ckpt runs/exp/PINNED/mortal.pth.at-175200
+  sha256 f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9
+GRP ckpt checkpoints/grp.pth sha256 009014e4a4883434d7809ad32fd4fefa7840806494dc4cfa950ed5e6bc25aa29
+  steps 78000, hidden 64 x 2, float64
+Reward config: gamma=1, pts=[6,4,2,0] — read from the pinned checkpoint's OWN saved
+  config['env'] (the value targets were trained with these; NOT the RewardCalculator default
+  [3,1,-1,-3]).
+Concurrency: no training job was active during the audit (nvidia-smi --query-compute-apps
+  empty before and after; ps showed no train.py/one_vs_three). nice -n 10 throughout.
+Memory discipline: file batch 3, GPU chunk <= 2048; MemAvailable floor observed 14.3 GB
+  (no "WARNING: MemAvailable < 4 GB" line in the log); no pip installs.
+
+[2] PREREG WRITTEN BEFORE THE RUN (ordering visible in file mtimes)
+$ ls -l --time-style=full-iso runs/exp/A2b/PREREG.md
+-rw-r--r-- 1 ygsldr ygsldr 14354 2026-09-17 16:43:55.534151764 +0800 runs/exp/A2b/PREREG.md
+$ sha256sum runs/exp/A2b/PREREG.md
+92cd0d37bb130efa9f6da4ca8ab5dd291f407dcd4921339a53b10d6fcc2ce5d1  runs/exp/A2b/PREREG.md
+$ python -c "import json;print(json.load(open('runs/exp/A2b/results.json'))['prereg'])"
+{'path': 'runs/exp/A2b/PREREG.md', 'sha256': '92cd0d37bb130efa9f6da4ca8ab5dd291f407dcd4921339a53b10d6fcc2ce5d1'}
+The script refuses to run unless PREREG.md exists. PREREG.md was never edited after the run.
+Pre-run probes (formats/sizes only) are disclosed in PREREG §8, including the one timing probe
+that incidentally reported GRP top-1 acc 0.5946 / mc Brier 2.3321 on files[:2000] of the
+k=10000 draw — those 2000 files are EXCLUDED from the primary object-(b) sample; the run
+reports them separately as `probed_subset`.
+
+[3] METRIC SELF-CHECK (mandatory, synthetic; PREREG §6)
+$ python scripts/exp_a2b_calibration.py --selftest
+[selftest] PASS {
+  "perfect_ece": 9.307425256492178e-18,          <- < 1e-6 required
+  "perfect_brier": 0.16683333333333333,
+  "perfect_n": 999000,
+  "known_miscal_ece": 0.20000000000000007,        <- exact, |x-0.2|<1e-12
+  "known_miscal_brier": 0.29,
+  "top1_perfect_ece": 5.952840559667779e-17,      <- top-1 path, < 1e-6
+  "top1_perfect_brier": 0.175,
+  "brier_sanity": 0.0,
+  "cluster_path_ok": true,
+  "n_samples_perfect": 999000
+}
+(Also re-embedded in results.json -> self_check.)
+
+[4] SMOKE (4-file end-to-end pipeline check, /tmp only)
+$ python scripts/exp_a2b_calibration.py --smoke   # log: /tmp/opencode/a2b/smoke.log
+[ac] done: 2726 decision points from 4 files
+[split] train 2096 pts / val 630 pts (1/4 files)
+[probe] opp_any_tenpai: auc=0.5871 ece=0.0795 brier=0.2486
+[q] tau1 ece=0.0292 brier=0.1259 match=0.7898; value mae=0.6079 vce=0.3729
+[grp] primary: n=194 top1_ece=0.0466 top1_brier=0.1178 acc=0.1495 mc_brier=0.8919
+=> exercises GameplayLoader + oracle decode + phi + DQN + RewardCalculator + GRP + metrics.
+
+[5] BUG FOUND AND FIXED BEFORE FINALIZING (disclosed for reproducibility)
+The first full run's marginal (player, rank) one-vs-rest indicators were built with an
+overwrite bug: `y_cells[:, player, perm[player]] = (true_idx == k)` inside the loop over k,
+so each cell kept the indicator of one arbitrary permutation (frequency ~0.042 per cell
+instead of 0.25). Fixed to accumulate over permutations and added an assert
+`abs(y_cells.mean() - 0.25) < 1e-9`. Re-ran the full audit (run2); only `marginal_*` numbers
+changed (corrected values: marginal_ovr_ece 0.0066 / marginal_ovr_brier 0.1547; pre-fix
+0.2083 / 0.1036); top-1, pooled-OvR, probe, Q and value metrics were unaffected (bit-identical
+headline: 0.0099 / 0.0242 / 0.0364). Pre-fix results kept at
+/tmp/opencode/a2b/results_pre_fix.json for audit. PREREG.md was not modified.
+
+[5b] PREREG DEVIATION CAUGHT AND CLOSED (before the commit)
+PREREG §4 promised one secondary reference for object (b) that the script initially skipped:
+the constant "train-frequency" predictor fitted on a file-level 50/50 split (seed 13) and
+evaluated on the held-out half. It was implemented (function `frequency_reference`) and the
+audit was re-run a third time (run3) so the committed results.json contains every
+pre-registered number. run3 output for the three headline ECEs is bit-identical to run2
+(0.0099 / 0.0242 / 0.0364); only the new reference and the runtime counters changed.
+
+[6] FULL RUN (final = run3, the artifact committed)
+$ setsid nohup nice -n 10 python scripts/exp_a2b_calibration.py > /tmp/opencode/a2b/run3.log 2>&1 &
+$ grep -E "^\[sample\]|^\[ac\] done|^\[split\]|^\[probe\]|^\[q\]|^\[grp\] primary|^\[done\]" /tmp/opencode/a2b/run3.log
+[sample] reservoir-sampled 400 files (seed 13)
+[ac] done: 262339 decision points from 400 files          <- identical to A2 (reproduction)
+[split] train 209610 pts / val 52729 pts (80/400 files)
+[probe] opp_any_tenpai: auc=0.9334 ece=0.0099 brier=0.0943 (22s)
+[probe] opp_any_shanten_le1: auc=0.8982 ece=0.0153 brier=0.1180 (24s)
+[probe] opp_any_shanten_le2: auc=0.9101 ece=0.0222 brier=0.0604 (23s)
+[probe] opp_any_aka_in_hand: auc=0.6055 ece=0.0138 brier=0.1699 (19s)
+[probe] ctrl_opp_any_meld_visible: auc=0.7947 ece=0.0188 brier=0.1821 (25s)
+[q] tau1 ece=0.0364 brier=0.1241 match=0.7959; value mae=0.6077 vce=0.3368
+[grp] files 10000/10000 games 10000 rounds 106717 elapsed 5s
+[grp] primary: n=85144 top1_ece=0.0242 top1_brier=0.1467 acc=0.2220 mc_brier=0.8623
+[done] wrote /home/ygsldr/riichi-ai/runs/exp/A2b/results.json
+(run1 = first full run, discarded for the marginal bug; run2 = bug-fixed, 245.6 s / 6607 MB;
+ run3 = final, adds the PREREG §4 frequency reference, 233.3 s / 6583 MB. Logs:
+ /tmp/opencode/a2b/{run.log, run2.log, run3.log}.)
+
+[7] results.json HEADLINE (real output)
+$ python -c "import json;r=json.load(open('runs/exp/A2b/results.json'));
+  print(json.dumps(r['summary_ece'],indent=1)); print(json.dumps(r['gate'],indent=1))"
+{
+ "a_probe_primary": 0.009871001787941872,
+ "b_grp_top1": 0.024219192132078318,
+ "c_q_actionconf_tau1": 0.03643407866190795,
+ "note": "these three are the numbers that feed docs/exp-gates.md (todo 15)"
+}
+{
+ "threshold_audit": "ECE > 0.05 => allow (triage / readiness gate for the belief line, todo 15)",
+ "threshold_delivery": "belief-head delivery gate (todo 29): ECE <= 0.15; NOT the same as the 0.05 triage gate",
+ "gate_three_default": "block",
+ "gate_two_models": "block",
+ "gate_three_rule": "allow iff max(ece_a_probe_primary, ece_b_grp_top1, ece_c_q_tau1) > 0.05",
+ "gate_two_rule": "allow iff max(ece_a_probe_primary, ece_b_grp_top1) > 0.05",
+ "independent_of_a2_verdict": true
+}
+Per-object detail (all present in results.json):
+  (a) 5 labels: auc/ece/brier + 15-bin reliability + cluster-bootstrap ECE CI;
+      primary reproduction of runs/exp/A2/results.json: delta_auc=delta_ece=delta_brier=0.0,
+      reproduced_within_1e-3 = true; per-sample val probabilities in a2b_probe_val.npz.
+  (b) primary n=85144 rounds / 8000 files: top1_ece 0.0242 CI [0.0214,0.0282], top1_brier
+      0.1467, mc_brier 0.8623 (uniform 0.9583), pooled_ovr_ece 0.0019, marginal_ovr_ece 0.0066,
+      uniform top-1 ECE 0.1804; constant train-frequency reference (50/50 file split, held-out
+      half, n_eval=42,465): top1_ece 0.0064 / top1_brier 0.0399 / acc 0.0416 (a *constant*
+      predictor: low ECE, useless discrimination — ECE is not a discrimination metric);
+      loader: 0 load_errors / 0 zero_round / 0 bad_rank →
+      truth_alignment = "game_final_rank_by_player (exact; no degradation needed)";
+      raw 24-way probabilities in a2b_grp_rounds.npz.
+  (c) tau=1 primary: match 0.7959, mean conf 0.7594, ece 0.0364 CI [0.0346,0.0382], brier
+      0.1241; tau=0.05 sensitivity ece 0.1897 (informational, not gate-bearing); value-scale
+      table (15 equal-count bins): mean bias +0.0526 pts, MAE 0.6077, RMSE 0.8754,
+      Spearman 0.1455, value_binned_calibration_error 0.3368 pts (0.5025 x target std);
+      per-sample records in a2b_q_records.npz.
+
+[8] ACCEPTANCE CRITERIA CHECK
+- PREREG written before run, states operationalization + binning ................. PASS [2]
+- ECE + Brier for all three groups in results.json ............................... PASS [7]
+- synthetic perfectly-calibrated ECE < 1e-6 (9.3e-18) ............................ PASS [3]
+- README interprets each number and states which feed the belief gate, and both
+  thresholds (0.05 audit vs 0.15 delivery) ....................................... PASS
+- no `not_estimable` needed; GRP truth aligned exactly (no last-3-rounds fallback) PASS [7]
+- one commit with the exact message .............................................. [9]
+
+[9] ARTIFACTS
+$ ls -l --time-style=full-iso runs/exp/A2b/
+-rw-r--r-- 14354 2026-09-17 16:43:55 PREREG.md            (before the run; sha 92cd0d37...)
+-rw-r--r-- 15683 2026-09-17 17:14:23 README.md            (written after the numbers)
+-rw-r--r-- 80172 2026-09-17 17:10:37 results.json
+-rw-r--r-- 946318 2026-09-17 17:10:37 a2b_probe_val.npz
+-rw-r--r-- 8565724 2026-09-17 17:10:37 a2b_grp_rounds.npz
+-rw-r--r-- 3543682 2026-09-17 17:10:37 a2b_q_records.npz
+Git (runs/ and .omo/ are gitignored → forced add of the small text artifacts only):
+$ git add -f runs/exp/A2b/PREREG.md runs/exp/A2b/README.md runs/exp/A2b/results.json
+             scripts/exp_a2b_calibration.py .omo/start-work/evidence/T14.txt
+             .omo/notepads/fork-roadmap-steps-1-10/learnings.md
+
+[10] CLEANUP / RESOURCES
+- peak RSS of the final audit process: 6583.5 MB (results.json -> runtime.peak_rss_mb);
+  runtime 233.3 s; device cuda.
+- MemAvailable floor during the runs: 14.3 GB (free -g: 8 GB free + buff/cache); zero
+  memory WARNINGs; no batch shrinkage needed.
+- no PIDs left: `pgrep -af exp_a2b_calibration` -> none; nvidia-smi compute-apps -> 0.
+- temp files kept for audit: /tmp/opencode/a2b/{run.log, run2.log, smoke.log, env.txt,
+  results_pre_fix.json, probe_formats.py}; /tmp/opencode/a2b/smoke/ (4-file smoke output)
+  removed after the check.
+- no writes to runs/exp/A2/**, configs/config.toml, checkpoints/**, datasets/**, runs/1v3/**,
+  runs/variance/**, runs/exp/EVAL_A_175200/**, runs/exp/PINNED/**, vendor/**; no git push.

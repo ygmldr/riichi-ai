@@ -1,0 +1,159 @@
+{
+  "experiment": "SELFPLAY",
+  "todo": 25,
+  "created_at": "2026-09-19T20:22:03+08:00",
+  "purpose": "Frozen opponent pool for online self-play (todo 26 / A14). Members are LOCAL snapshots only; no heuristic opponents; no server protocol change (membership is expressed through per-worker configs + this file).",
+  "trainee": {
+    "seat_count": 1,
+    "engine_name": "trainee",
+    "player_names": [
+      "trainee"
+    ]
+  },
+  "opponent_seats_per_game": 3,
+  "members": [
+    {
+      "id": "best-220000",
+      "path": "/home/ygsldr/riichi-ai/checkpoints/best.pth",
+      "bytes": 130780507,
+      "sha256": "7fe084d98f8475967ea0602b9d74980b3d5fc439ca78b8b9701110fc0dd5be77",
+      "steps": 220000,
+      "mtime": "2026-09-16T02:59:45+08:00",
+      "status": "active",
+      "provenance": "checkpoints/best.pth of the repo owner's live run (best checkpoint at 220,000 steps). Newest pool snapshot by steps; frozen copy used read-only."
+    },
+    {
+      "id": "at-175200",
+      "path": "/home/ygsldr/riichi-ai/runs/exp/PINNED/mortal.pth.at-175200",
+      "bytes": 130780507,
+      "sha256": "f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9",
+      "steps": 175200,
+      "mtime": "2026-09-17T13:55:26+08:00",
+      "status": "active",
+      "provenance": "PINNED copy of the 175,200-step checkpoint (mtime 2026-09-17 13:55). Byte-identical to checkpoints/mortal.pth.at-175200 (same sha256, see aliases). Was the pool-A challenger of the 12k architecture eval."
+    },
+    {
+      "id": "at-148800",
+      "path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-148800",
+      "bytes": 130780507,
+      "sha256": "73ec8108f1b9c4ab3775107c7192dcbf72b97bbd47b64dc09a7da9adfd551f4e",
+      "steps": 148800,
+      "mtime": "2026-09-14T23:14:59+08:00",
+      "status": "active",
+      "provenance": "148,800-step checkpoint; also the [rl].anchor_state_file KL anchor since patch 0008 and the 1v3/pool-B champion. Kept as the stable reference member."
+    },
+    {
+      "id": "baseline",
+      "path": "/home/ygsldr/riichi-ai/checkpoints/baseline.pth",
+      "bytes": 43691001,
+      "sha256": "83fd3929035d4aa0d4df3423a16dd028267e40bb54f7dc3f831e18f6bbccc6c9",
+      "steps": null,
+      "mtime": "2026-08-10T13:29:50+08:00",
+      "status": "active",
+      "provenance": "tag='random-baseline', saved 2026-08-10; weights-only export (config/mortal/current_dqn, no optimizer). The fork's historical frozen training opponent ([baseline.train]). Weakest member: a floor anchor, not a heuristic."
+    }
+  ],
+  "aliases": [
+    {
+      "id": "at-175200-cp",
+      "path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth.at-175200",
+      "sha256": "f0a611b97f318e0b32fd7ce97965da0a9299b959742da54f64051677c7dc93a9",
+      "same_as": "at-175200",
+      "note": "byte-identical duplicate; NOT a separate member (duplicates would double-sample the same weights)."
+    }
+  ],
+  "excluded": [
+    {
+      "path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth",
+      "bytes": 130780507,
+      "sha256": "b14e77ed9b79bdaa02ad21d269e378efb398e0aeec3721842975541c082a3511",
+      "steps": 328000,
+      "reason": "live in-training artifact of the repo owner (mtime 2026-09-17 02:03:09). MUST NOT be used as opponent or as any state_file target."
+    },
+    {
+      "path": "/home/ygsldr/riichi-ai/checkpoints/grp.pth",
+      "sha256": "009014e4a4883434d7809ad32fd4fefa7840806494dc4cfa950ed5e6bc25aa29",
+      "reason": "DQN-only snapshot (keys model/optimizer/steps/timestamp; no 'mortal'/'current_dqn'); cannot be loaded as a Mortal opponent."
+    },
+    {
+      "path": "/home/ygsldr/riichi-ai/checkpoints/file_index.pth",
+      "reason": "dataset file index, not a model."
+    },
+    {
+      "path": "/home/ygsldr/riichi-ai/checkpoints/grp_file_index.pth",
+      "reason": "dataset file index, not a model."
+    }
+  ],
+  "weighting": {
+    "rule": "recency-weighted; raw weight w_i = 2 ** (-rank_i / half_life_ranks), normalized over ACTIVE members so the stored probabilities sum to 1.0",
+    "half_life_ranks": 1.0,
+    "rank_key": "snapshot training steps descending; members without steps rank oldest (tie-break: file mtime)",
+    "rank_order": [
+      "best-220000",
+      "at-175200",
+      "at-148800",
+      "baseline"
+    ],
+    "weights": {
+      "best-220000": 0.533333,
+      "at-175200": 0.266667,
+      "at-148800": 0.133333,
+      "baseline": 0.066667
+    },
+    "sum": 1.0,
+    "rounding": "stored to 6 decimals; validate asserts |sum - 1| <= 1e-6"
+  },
+  "sampling": {
+    "method": "weighted_without_replacement_sequential",
+    "algorithm": "A CYCLE is a full rotation: repeatedly draw one member from the remaining set with probability w_i / sum(w_remaining), remove it, append; continue until every active member is drawn exactly once. Split the drawn sequence into consecutive waves of k workers. So every active member is assigned exactly once per cycle and each wave has k DISTINCT members.",
+    "seed": 20260925,
+    "rng": "python random.Random(f'{seed}:cycle:{cycle}')",
+    "k_per_wave": 2,
+    "worker_order": "draw position index maps to worker index (position 0 -> worker 0, ...)"
+  },
+  "cycle_length_waves": 2,
+  "assign": {
+    "cycle_0": [
+      [
+        "at-175200",
+        "at-148800"
+      ],
+      [
+        "best-220000",
+        "baseline"
+      ]
+    ],
+    "cycle_1": [
+      [
+        "at-175200",
+        "best-220000"
+      ],
+      [
+        "at-148800",
+        "baseline"
+      ]
+    ]
+  },
+  "promotion": {
+    "max_active": 4,
+    "trigger": "a new snapshot is frozen locally (e.g. copied to runs/exp/PINNED/mortal.pth.at-<steps>) and proposed as a member",
+    "procedure": [
+      "1. copy/pin the snapshot under a frozen path; record bytes + sha256 (no live path, no in-training file)",
+      "2. append to members with status=active, steps, mtime, provenance",
+      "3. re-rank ALL candidates with the same rank_key and recompute raw weights with the same formula",
+      "4. if active count > max_active, retire the lowest-weight member(s) until active <= max_active (status=retired, retired_at, retired_reason='displaced by <new-id> (max_active=4)'); the file is NOT deleted",
+      "5. recompute and store the explicit normalized weights over the remaining active members (sum must be 1)",
+      "6. sample the assign for the NEXT cycle (a cycle already running keeps its stored schedule); update cycle_length_waves = ceil(N_active/k)"
+    ],
+    "retirement": "retired members keep path/bytes/sha256 but get weight 0 and are skipped by the sampler; re-activation is an explicit status flip followed by re-rank/re-weight/re-sample of future cycles.",
+    "example": "promoting a 250k-step snapshot makes ranks [new, best-220000, at-175200, at-148800, baseline]; new stored weights over the 4 survivors = {new: 0.533333, best-220000: 0.266667, at-175200: 0.133333, at-148800: 0.066667} and baseline is retired."
+  },
+  "invariants": [
+    "every ACTIVE member file must exist with the recorded bytes and sha256, otherwise prepare/launch refuse to start (no silent downgrade)",
+    "sum(weights over active) == 1.0 +/- 1e-6",
+    "assign ids are active members; members within a wave are pairwise distinct; across a cycle each active member appears exactly once",
+    "pool members are local snapshots only; checkpoints/mortal.pth (live) is excluded by construction",
+    "a smoke covering one full cycle has every active member appearing in >= 1 completed session"
+  ],
+  "sampled_at": "2026-09-19T20:53:10+08:00"
+}

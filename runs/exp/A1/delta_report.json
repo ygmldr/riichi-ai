@@ -1,0 +1,94 @@
+{
+  "comparisons": [
+    {
+      "arm": "shuffle",
+      "arm_avg_pt": -4.25625,
+      "arm_avg_rank": 2.551083333333333,
+      "arm_info": {
+        "candidates": 12000,
+        "games_dir": "/home/ygsldr/riichi-ai/runs/exp/A1/games_shuffle",
+        "ignored_files": 0,
+        "non_game_files": 1,
+        "sets": 3000
+      },
+      "bootstrap": {
+        "B": 2000,
+        "rng_seed": 0
+      },
+      "comparison": "shuffle - original",
+      "delta_avg_pt": -4.095,
+      "delta_avg_pt_ci": [
+        -5.9101875,
+        -2.4336562500000003
+      ],
+      "delta_avg_rank": 0.04583333333333333,
+      "delta_avg_rank_ci": [
+        0.024,
+        0.06891666666666667
+      ],
+      "mdd_80pct_12k": {
+        "avg_rank": 0.0239,
+        "pt": 1.86
+      },
+      "n_games": 12000,
+      "n_sets": 3000,
+      "original_avg_pt": -0.16125,
+      "original_avg_rank": 2.50525,
+      "prereg_decision": "shuffle: avg_rank effect (95% CI excludes 0)",
+      "pt_ci_crosses_0": false,
+      "rank_ci_crosses_0": false
+    },
+    {
+      "arm": "recency_zero",
+      "arm_avg_pt": 1.2825,
+      "arm_avg_rank": 2.490666666666667,
+      "arm_info": {
+        "candidates": 12000,
+        "games_dir": "/home/ygsldr/riichi-ai/runs/exp/A1/games_recency_zero",
+        "ignored_files": 0,
+        "non_game_files": 1,
+        "sets": 3000
+      },
+      "bootstrap": {
+        "B": 2000,
+        "rng_seed": 0
+      },
+      "comparison": "recency_zero - original",
+      "delta_avg_pt": 1.44375,
+      "delta_avg_pt_ci": [
+        0.06365625000000001,
+        2.74875
+      ],
+      "delta_avg_rank": -0.014583333333333334,
+      "delta_avg_rank_ci": [
+        -0.032002083333333334,
+        0.0036708333333333107
+      ],
+      "mdd_80pct_12k": {
+        "avg_rank": 0.0239,
+        "pt": 1.86
+      },
+      "n_games": 12000,
+      "n_sets": 3000,
+      "original_avg_pt": -0.16125,
+      "original_avg_rank": 2.50525,
+      "prereg_decision": "recency_zero: NO detectable effect on avg_rank (95% CI crosses 0)",
+      "pt_ci_crosses_0": false,
+      "rank_ci_crosses_0": true
+    }
+  ],
+  "mdd_80pct_12k": {
+    "avg_rank": 0.0239,
+    "pt": 1.86
+  },
+  "reference": "original",
+  "reference_avg_pt": -0.16125,
+  "reference_avg_rank": 2.50525,
+  "reference_info": {
+    "candidates": 12000,
+    "games_dir": "/home/ygsldr/riichi-ai/runs/exp/A1/games_original",
+    "ignored_files": 0,
+    "non_game_files": 1,
+    "sets": 3000
+  }
+}
