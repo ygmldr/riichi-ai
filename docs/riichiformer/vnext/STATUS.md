@@ -23,8 +23,8 @@
 
 ## Current measured evidence
 
-* VNext-only CPU: **73 passed** in 2.16 s
-  (`logs/VNEXT_CPU_SUITE_FINAL.log`).
+* VNext-only CPU: **76 passed** in 1.86 s
+  (`logs/VNEXT_REAL_TRAIN_SUITE.log`), including the real-trainer CLI tests.
 * Combined VNext + B0 + arena/bridge + anchor CPU: **142 passed, 6 skipped,
   13 subtests** (`logs/VNEXT_COMBINED_FINAL.log`).
 * M5D anchor tests alone: **9 passed, 1 skipped, 7 subtests**; the skip is the
@@ -41,6 +41,10 @@
 * Synthetic CUDA BC/GRP/RL: 100 BC steps finite, checkpoint state round-trip
   unchanged, GRP 50 steps finite, behavior/AWR/PPO/PBRS/GAE finite.
   `logs/VNEXT_GPU_SMOKE_AFTER_SYNC_FIX.log`.
+* **Real-data pilot**: 1,000 games / 661,627 decisions train; 500 games /
+  326,798 decisions held-out val; 1,000 steps in 158.9 s; val BC CE
+  **1.5983 → 1.5285**, rank CE **1.3769 → 1.3454**.  See
+  [`PR12_REAL_PILOT.md`](PR12_REAL_PILOT.md).  Loss only; no strength claim.
 
 The first GPU profile was 323.8 forward / 274.0 train decisions/s because every
 forward re-ran the scalar-heavy `VNextModelBatch` contract.  `VNextPolicy.forward`
@@ -69,7 +73,8 @@ rewritten.  A local smoke-only registry was generated under
 
 ## What is NOT done
 
-* Real 2.51M-match Census and a real Train/Val BC epoch.
+* Real 2.51M-match one epoch: measured ~47 days at the current CPU-bound data
+  rate; only a full 2009-year run is feasible in this window (build in progress).
 * Full B0 epoch, broad GRP fit, AWR/PPO league, Trend/Select/Confirm.
 * End-to-end multi-kan (`KAN_SELECTION`) native test; this smoke had only
   single-candidate ankan/kakan.
@@ -88,7 +93,7 @@ case is explicitly `NOT_RUN`, so PR-05 is not called complete for
 ## Gate
 
 `G0` baseline/contracts: reviewable; `G1` model/runtime: synthetic + native
-smoke; `G2` GRP/Critic: unit/synthetic only; `G3` BC: synthetic only;
+smoke; `G2` GRP/Critic: unit/synthetic only; `G3` BC: real 1,000-game pilot;
 `G4` RL: toy/synthetic only; `G5` prereg: GPU resource authorised, data gate
 still closed; `G6`: not started.
 

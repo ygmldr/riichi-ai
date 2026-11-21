@@ -51,14 +51,18 @@ class VNextBCBatch:
 class VNextBatchAdapter:
     """Group shard decisions into current-kyoku VNext batches."""
 
-    def __init__(self, reader, *, batch_size: int = 8) -> None:
+    def __init__(self, reader, *, batch_size: int = 8,
+                 rank_base: int = 0) -> None:
         if not hasattr(reader, "iter_decisions"):
             raise VNextDataError("reader must expose iter_decisions()")
         if isinstance(batch_size, bool) or not isinstance(batch_size, int) \
                 or batch_size <= 0:
             raise VNextDataError("batch_size must be a positive int")
+        if rank_base not in (0, 1):
+            raise VNextDataError("rank_base must be 0 (labels 0..3) or 1 (1..4)")
         self.reader = reader
         self.batch_size = int(batch_size)
+        self.rank_base = int(rank_base)
 
     def _finish(self, streams: dict, records: dict) -> VNextBCBatch:
         if not records:
@@ -81,6 +85,15 @@ class VNextBatchAdapter:
                         f"missing target record for batched decision {key}")
                 target, game_id, pov, decision_index, kyoku = record
                 ordered_ids.append(key)
+                target = dict(target)
+                if self.rank_base == 1:
+                    # Real rf-shard targets use Tenhou ranks 1..4; the Critic
+                    # class axis is 0..3.  Synthetic fixtures default to
+                    # rank_base=0 and are left unchanged.
+                    rank = target.get("rank_final")
+                    if isinstance(rank, int) and not isinstance(rank, bool) \
+                            and 1 <= rank <= 4:
+                        target["rank_final"] = rank - 1
                 targets.append(target)
                 game_ids.append(game_id)
                 povs.append(pov)

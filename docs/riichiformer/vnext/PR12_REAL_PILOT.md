@@ -1,0 +1,103 @@
+# PR-12 Real-Data Pilot (Operator-Authorized Local Research)
+
+**Status**: `PILOT_PASS`; full 2009-year build in progress
+**Updated**: 2026-11-22 03:55 Asia/Shanghai
+**Branch**: `rf/vnext-core`
+**Data policy**: operator-authorized local research on the existing Tenhou-derived
+copy.  This is **not** a claim of upstream permission, and the external
+`SOURCE_RIGHTS_GATE` facts were not rewritten.
+
+## 1. What was built
+
+| Artifact | Value |
+|---|---|
+| canonical sample | 4,000 games (2,000 from 2009, 2,000 from 2023) |
+| split manifest | `rf-split/2`, protocol L, 2,000 train / 2,000 val |
+| train shard | 1,000 games, **661,627 decisions**, 917 MB, `55ac5e03...` |
+| val shard | 500 games, **326,798 decisions**, 453 MB, `ac5c68b8...` |
+| local policy hash | `f0d472ee...` (`operator_private_research`) |
+
+The val shard is a val-only filtered manifest, so it contains no train rows.
+The trainer checks the shard policy hash, purpose, and split before yielding a
+batch.
+
+## 2. Trainer
+
+`scripts/rf_train_vnext.py` is the missing real-data entry point:
+
+- opens authenticated `rf-shard/3` train/validation shards;
+- groups decisions with `VNextBatchAdapter`;
+- runs masked BC + Critic rank CE (`rank_base=1` for Tenhou ranks 1..4);
+- validates on a held-out shard;
+- saves VNext checkpoints with source/split/canonical/policy provenance;
+- supports resume, wall-clock cap, bounded steps and dry-run.
+
+Two loader fixes were required by the pilot:
+
+1. `ShardReader.iter_decisions` now decodes each POV event stream **once per
+   game** instead of once per decision.  The old path was O(decisions × events)
+   and dominated CPU time.
+2. `VNextModelBatch.to(device)` no longer re-runs `__post_init__`; moving tensors
+   cannot change the already-validated values.  The old path caused host
+   synchronisation on every batch.
+
+## 3. Pilot result
+
+Command shape: 1,000 optimizer steps, batch 64, 1000-game train shard,
+500-game held-out val shard, CUDA FP32.
+
+| Step | val BC CE | val rank CE | val total |
+|---:|---:|---:|---:|
+| 200 | 1.5983 | 1.3769 | 1.7360 |
+| 400 | 1.5765 | 1.3778 | 1.7143 |
+| 600 | 1.5465 | 1.3675 | 1.6832 |
+| 800 | 1.5428 | 1.3613 | 1.6789 |
+| 1000 | **1.5285** | **1.3454** | **1.6631** |
+
+- training wall: 158.9 s for 1,000 steps (64,000 decisions);
+- observed ~**403 decisions/s** including data loading, validation excluded;
+- train loss first/last: 2.2397 / 1.9160;
+- checkpoint: `runs/vnext_real_pilot1000/candidates/step_001000.pt`;
+- no strength, dan, or Arena claim.
+
+This is a **loss** pilot, not a quality result.  The held-out CE decrease proves
+the data/trainer/checkpoint loop is learning something, not that the policy is
+strong.
+
+## 4. Full-corpus feasibility (measured, not projected)
+
+The local corpus is 2,512,424 matches.  The pilot shard has ~662 decisions per
+match (4 POVs).  A full one-epoch pass is therefore ~1.66B decisions.
+
+At the measured ~403 decisions/s (data loader + model), one full epoch would
+take ~47 days.  Building a full shard at the observed ~0.7 games/s would take
+~41 days.  **A 2.51M-match full epoch does not fit the review window.**  This is
+a data-pipeline throughput limit, not a GPU limit: the synthetic GPU profile is
+~1,600 train decisions/s, but real event/decision decoding is CPU-bound.
+
+The feasible full-year run is 2009:
+
+- 6,897 matches, ~4.55M decisions;
+- shard build ~2.5–3 h;
+- one BC epoch ~3 h at the measured rate.
+
+That build is running now.  The 2.51M corpus needs parallel shard building or a
+pre-encoded feature cache before it can be trained as one epoch; neither is
+claimed here.
+
+## 5. Evidence
+
+- `runs/vnext_real_pilot1000/metrics.json`
+- `runs/vnext_real_pilot1000/validation.jsonl`
+- `runs/vnext_real_pilot1000/candidates/step_001000.pt(.json)`
+- `runs/vnext_pilot_train_shard.log`, `runs/vnext_pilot_val_shard.log`
+- `docs/riichiformer/vnext/logs/VNEXT_REAL_TRAIN_SUITE.log`
+
+## 6. NOT_RUN / caveats
+
+- Full 2.51M-match one epoch: infeasible in this review window at measured
+  throughput; not attempted silently.
+- Confirm pool: untouched.
+- Arena / strength: no paired run, no claim.
+- The external source-rights registry remains `RESTRICTED/UNKNOWN`; the local
+  policy is an operator routing choice, not a licence.

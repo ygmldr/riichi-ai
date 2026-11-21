@@ -504,7 +504,13 @@ class VNextModelBatch:
             item.name: getattr(self, item.name).to(device)
             for item in fields(self)
         }
-        return replace(self, **moved)
+        # Moving tensors cannot change the validated values.  Do not call
+        # `replace`, which re-runs __post_init__ and its scalar-heavy checks on
+        # the destination device (thousands of host synchronizations on CUDA).
+        out = object.__new__(type(self))
+        for item in fields(self):
+            object.__setattr__(out, item.name, moved[item.name])
+        return out
 
     def select_decisions(self, keep: Tensor) -> "VNextModelBatch":
         if keep.dtype is not torch.long or keep.dim() != 1:

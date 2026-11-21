@@ -16,16 +16,17 @@ tests (or recorded `NOT_RUN`), and received an independent review verdict.
 | PR-05 Runtime/native | Lead/Runtime | `PARTIAL` | Cacheless adapter, kyoku reset, native 4-game smoke 579 decisions, 0 illegal/fallback. `kan_selections=0`, so the end-to-end multi-kan `KAN_SELECTION` path remains `NOT_RUN`. |
 | PR-06 GRP24 | Lead/Value | `INTEGRATED` | 24 permutations, marginals, zero-sum Phi, independent checkpoint; synthetic CUDA 50-step loss finite. |
 | PR-07 Decision Critic | Lead/Value | `INTEGRATED` | Detach/joint gradient tests; real-game calibration `NOT_RUN`. |
-| PR-08 BC census/trainer | Lead/Model | `INTEGRATED` (synthetic) | Shard adapter, two-step BC, all-censored no-op, checkpoint roundtrip; synthetic GPU 100-step smoke. Real Census/epoch `NOT_RUN`. |
+| PR-08 BC census/trainer | Lead/Model | `INTEGRATED` (real pilot) | Real `rf_train_vnext.py`, authenticated shards, 1,000-game/661k-decision pilot, held-out val CE 1.5983→1.5285. Full 2.51M epoch `NOT_RUN` (throughput). |
 | PR-09 RL contracts | Lead/RL | `INTEGRATED` (toy) | Behavior μ/guard, PBRS/Mortal delta, GAE, AWR/PPO tests; synthetic CUDA finite; native rollout `NOT_RUN`. |
 | PR-10 League | Lead/RL | `INTEGRATED` (toy) | League manifest/toy only; native 1v3 league `NOT_RUN`. |
-| PR-11 Preregistration | Lead | `BLOCKED` | GPU resource authorised; rights gate and real Census still block a real BC pilot. |
-| PR-12 Formal BC/RL/Arena | User-gated | `SYNTHETIC_ONLY` | Native smoke + CUDA profile + synthetic objectives only. No restricted data, no real epoch, no strength claim. |
+| PR-11 Preregistration | Lead | `IN_PROGRESS` | Operator-authorized local pilot complete; real Census limited to the 2009 pilot/val shards; full-corpus Census not run. |
+| PR-12 Formal BC/RL/Arena | Lead | `IN_PROGRESS` | Real 1,000-step BC pilot passed; full 2009-year shard build in progress. No Arena/strength claim. |
 
 ## Current blockers
 
-1. **Rights**: 11 rows, 0 `ALLOWED`, `BLOCKED_FOR_NEW_TRAINING`. No real Train
-   subset exists for a lawful epoch.
+1. **Rights**: external registry still 0 `ALLOWED`; the operator explicitly
+   authorized local research on 2026-11-22.  The local policy is not an upstream
+   licence and must not be described as one.
 2. **Census**: the 2.51M reported matches are not an eligible decision count;
    the real match-level audit is `NOT_RUN`.
 3. **Multi-kan native**: ankan/kakan occurred in the smoke, but each had one

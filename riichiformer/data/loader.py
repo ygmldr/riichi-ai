@@ -665,14 +665,21 @@ class ShardReader:
     def iter_decisions(self):
         """Yield ``(input, target_dict, meta, game_id, pov, decision_index)``."""
         for game in self.games():
-            streams = tuple(tuple(stream) for stream in game["pov_streams"])
+            raw_streams = tuple(tuple(stream) for stream in game["pov_streams"])
+            # Decode each POV stream once per game.  The previous path decoded
+            # the full prefix again for every decision (O(décisions × events)),
+            # which dominates VNext/BC data loading on long hanchan streams.
+            streams = tuple(
+                tuple(event_from_dict(event) for event in stream)
+                for stream in raw_streams)
             inputs = self._conn.execute(
                 "SELECT * FROM inputs WHERE game_id=? ORDER BY pov,decision_index",
                 (game["game_id"],)).fetchall()
             for row in inputs:
                 target_dict = self._load_target(row["decision_id"])
                 decision = _decision_input(
-                    streams[row["pov"]], _decision_payload(row))
+                    raw_streams[row["pov"]], _decision_payload(row),
+                    stream_events=streams[row["pov"]])
                 yield (decision, target_dict, self._stream_meta(row["pov"]),
                        game["game_id"], int(row["pov"]), int(row["decision_index"]))
 

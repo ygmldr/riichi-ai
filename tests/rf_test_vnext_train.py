@@ -97,6 +97,18 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len(batch.targets), 2)
         self.assertNotIn("target", batch.batch.__dataclass_fields__)
 
+    def test_real_one_based_ranks_are_normalised(self):
+        class OneBased(FakeReader):
+            def iter_decisions(self):
+                for item in super().iter_decisions():
+                    _decision, target, meta, game, pov, index = item
+                    target = dict(target)
+                    target["rank_final"] = (index % 4) + 1
+                    yield _decision, target, meta, game, pov, index
+        batches = list(VNextBatchAdapter(OneBased(), batch_size=2,
+                                        rank_base=1).iter_batches())
+        self.assertEqual([t["rank_final"] for t in batches[0].targets], [0, 1])
+
     def test_interleaved_reader_targets_follow_batch_rows(self):
         batch = list(VNextBatchAdapter(InterleavedReader(), batch_size=4)
                      .iter_batches())[0]
