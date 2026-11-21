@@ -197,8 +197,9 @@ class ShardReader:
             if self.metadata.purpose != "train":
                 raise ShardRightsError(
                     f"training loader refuses purpose={self.metadata.purpose!r} shard")
-            if not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED":
-                raise ShardRightsError("training loader refuses blocked source shard")
+            if self.metadata.research_policy == "licensed_only" and (
+                    not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED"):
+                raise ShardRightsError("licensed training loader refuses blocked source shard")
         self._conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True)
         self._conn.row_factory = sqlite3.Row
         self._closed = False
@@ -229,14 +230,15 @@ class ShardReader:
             raise ShardRightsError(
                 f"training loader refuses game {game['game_id']} from split "
                 f"{game['split']!r}")
-        if not game["train_allowed"]:
-            raise ShardRightsError(
-                f"training loader refuses game {game['game_id']} with "
-                "per-game train_allowed=False")
-        if str(game["rights_status"]).upper() != "ALLOWED":
-            raise ShardRightsError(
-                f"training loader refuses game {game['game_id']} with rights_status "
-                f"{game['rights_status']!r}")
+        if self.metadata.research_policy == "licensed_only":
+            if not game["train_allowed"]:
+                raise ShardRightsError(
+                    f"licensed training loader refuses game {game['game_id']} with "
+                    "per-game train_allowed=False")
+            if str(game["rights_status"]).upper() != "ALLOWED":
+                raise ShardRightsError(
+                    f"licensed training loader refuses game {game['game_id']} with rights_status "
+                    f"{game['rights_status']!r}")
         if game["source_id"] not in self._allowed_sources():
             raise ShardRightsError(
                 f"training loader refuses game {game['game_id']} source "
