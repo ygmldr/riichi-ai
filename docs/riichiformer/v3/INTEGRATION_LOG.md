@@ -102,3 +102,13 @@
 - PR-14/PR-15 fixture 对齐 PR-12 `rf-shard/2` 严格 gate：`3c87e83` / `3c44714`；training 11 + shard 23 + offline 7 全绿。
 - 最终集成全量：**484 passed, 1 skipped, 242 subtests**，164.55 s；日志 `docs/riichiformer/v3/logs/W3_full_suite.log`。
 - **公开推送注意**：HEAD 的 H-01 fixture 已是 synthetic，但历史提交 `9d59d68` 等仍含旧真实牌谱片段；公开 push 前必须 filtered-history 重写，不能直接推送本分支历史。
+
+## 2026-11-21 — V3.2 remote branch accepted, Wave 1 opened
+
+- 从 GitHub `origin/rf/v3.2-policy-parallel-plan` 拉取到 `worktrees/v3.2-policy`（分支 `rf/v3.2-local`），没有用旧 V3.2 包覆盖远程树。
+- 全量测试 **494 passed, 2 skipped, 242 subtests**（145.41 s）。首次运行缺少 `vendor/mortal` 子模块导致 25 个 source-contract 环境失败；初始化 pin `0cff2b5` 后通过。
+- 真实 H-02 10 局私有 shard：`rf-shard/3`、8,504 decisions、policy `operator_private_research`、`rights_status=UNKNOWN`/`train_allowed=false` 原样保留；`licensed_only` 仍拒绝。
+- 6 层 5,217,582 参数 GPU 两步 smoke：loss 2.193→1.712；strict resume 到 step 3；protocol-R split mismatch 被拒绝。
+- 结论 **PASS_WITH_P1**：policy hash 未配置认证、builder 默认过宽、无 `--policy-config`。报告 `docs/riichiformer/v3_2/ACCEPTANCE_LEAD.md`。
+- 建立四个独立 worktree（`v32-policy/compute/rules/selfplay`）并派发 PR-37 follow-up、PR-38/39、PR-40、PR-41/42；状态见 `docs/riichiformer/v3_2/WAVE1_STATUS.md`。
+- 本轮不运行真实训练/强度/发布；source_rights 仍 11 行 0 ALLOWED。
