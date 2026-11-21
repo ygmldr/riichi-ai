@@ -96,7 +96,7 @@ PR-46 duplicate arena are separate gates.
 ## 7. Current status
 
 - Sample manifest: **created** (`f6560a17…`).
-- 500-game shard: **building** (background job; exact sha/decisions to be filled in).
-- Multi-decision loader/trainer: **in progress** on `rf/v32-b0`.
+- 500-game shard: **built** — 333,224 decisions, sha256 `f474a3f1d78f0cec55f5d54a5089f51b5a47ccf33feff98248243e77b80f3a58`.
+- Multi-decision loader/trainer: **merged** (`PR38_LOADER_INTEGRATION.md`); full suite 707 passed.
 - B0 pilot training: **RUN** — two seeds × 2,000 steps on the 500-game shard; 107,026 decisions / 1,766,242 shared tokens per seed; checkpoints `f3879cb8…` / `3aa54cbe…`; see `PR44_B0_PILOT.md`.
 - Full B0 (full epoch, validation/selection) / strength: **NOT RUN**.

@@ -47,7 +47,7 @@ never counted as passes.
 
 Independent reviews on the lane commits: PR-37 `PASS_WITH_P1` (P1 fixed in `c426ac7`),
 PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38 `PASS` (P2 only),
-PR-39 `PASS` (partial-override P1 fixed and independently re-verified; 683-test rerun), PR-41
+PR-39 `PASS` (partial-override P1 fixed and independently re-verified; 683 at review, 707 after loader integration), PR-41
 `PASS` (P2 only), PR-42 `PASS` (P2 only). No P0 was reported for any lane.
 
 ## 3. SYNTHETIC_E2E_PASS / PRIVATE_H2_TRAIN_SMOKE
@@ -113,8 +113,9 @@ This gate is **not** a statement that third-party training rights were obtained.
 ## 6. STRENGTH_NOT_RUN
 
 No model-vs-bot arena, no official dan/rank estimate, no Mortal/akochan comparison, and
-no “九段/天凤位” claim. BC loss decreasing on 8 decisions is a plumbing signal, not
-strength. PR-44 B0 and the later candidate/risk/RL lines remain future work.
+no “九段/天凤位” claim. The 10-decision smoke and the separate 2,000-step B0 pilot
+are pipeline signals, not strength. Full B0 and the later candidate/risk/RL lines
+remain future work.
 
 ## 7. Remaining P1/P2 (do not hide)
 
