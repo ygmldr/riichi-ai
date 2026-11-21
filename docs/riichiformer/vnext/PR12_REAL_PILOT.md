@@ -110,6 +110,13 @@ A separate 500-batch / 32,000-decision validation of that checkpoint (not just
 the 50-batch training-time sample) gives **BC CE 1.4934**, **rank CE 1.1744**,
 total 1.6108.  The 50-batch result (1.4719 / 1.2956) was a noisier sample.
 
+A full-shard run (10,500 steps, target above the shard's partial-batch count)
+completed in 1,310.9 s with `exhausted=true` and a restart of the shard; the
+last validation at step 10,000 was BC CE **1.45696**, rank CE **1.27958**,
+total 1.58492.  Train loss first/last was 2.2397 / 1.5085.  Checkpoints:
+`step_005000.pt`, `step_010000.pt`, `step_010500.pt`.  This is still a loss
+result, not a strength claim.
+
 Still a loss/optimisation result only; no strength claim.
 
 ## 4. Full-corpus feasibility (measured, not projected)
