@@ -40,7 +40,7 @@ PYTHONPATH=/home/ygsldr/riichi-ai/worktrees/v32-rules/vendor/mortal/target/relea
   $(git ls-files 'tests/rf_test_*.py' | tr '\n' ' ')
 ```
 
-Result: **683 passed, 2 skipped, 1 warning, 281 subtests passed**, 198.99 s, exit 0.
+Result: **683 passed, 2 skipped, 1 warning, 281 subtests passed**, 187.73 s, exit 0.
 Log: `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`. The two skips are the
 pre-existing `NativeBoardCapabilityTests` / board-injection capability gaps; they are
 never counted as passes.

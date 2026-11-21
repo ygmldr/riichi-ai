@@ -15,4 +15,4 @@ tests/rf_test_training.py::PrivatePolicyCLITests::test_private_train_and_resume_
     print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-683 passed, 2 skipped, 1 warning, 281 subtests passed in 198.99s (0:03:18)
+683 passed, 2 skipped, 1 warning, 281 subtests passed in 187.73s (0:03:07)
