@@ -1,0 +1,49 @@
+# command: CARGO_HOME=/home/ygsldr/riichi-ai/.cargo-v33 PYO3_PYTHON=/home/ygsldr/riichi-ai/.venv/bin/python CARGO_BUILD_JOBS=4 cargo test --offline -p libriichi --lib --no-default-features
+# cwd: /home/ygsldr/riichi-ai/worktrees/v33-d/vendor/mortal
+# date: 2026-11-21T17:28:09+08:00
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running unittests src/lib.rs (target/debug/deps/riichi-9050e9fc46529c94)
+
+running 35 tests
+test algo::point::test::table ... ok
+test arena::game::rule_tests::r25_last_dealer_stop_excludes_just_paid_kyotaku ... ok
+test arena::board::rule_tests::r02_triple_ron_aborts_without_settlement ... ok
+test array::test::mutate ... ok
+test arena::board::rule_tests::r26_fourth_riichi_aborts_before_the_next_draw ... ok
+test hand::test::string ... ok
+test macros::test::completeness ... ok
+test hand::test::parse ... ok
+test rankings::test::rankings ... ok
+test state::test::can_chi ... ok
+test mjai::event::test::bound_check ... ok
+test mjai::event::test::json_consistency ... ok
+test macros::test::syntax ... ok
+test state::test::get_rank ... ok
+test algo::agari::test::agari_calc ... ok
+test algo::shanten::test::calc_3n_plus_2 ... ok
+test state::test::waits ... ok
+test algo::agari::test::ankan_after_riichi ... ok
+test algo::shanten::test::calc_3n_plus_1 ... ok
+test state::update::r29_tests::r29_first_kakan_keeps_ippatsu_through_the_chankan_probe ... ok
+test state::update::r29_tests::r29_kakan_window_closes_at_the_next_event_before_the_rinshan_tsumo ... ok
+test state::update::r29_tests::r29_second_consecutive_kakan_has_no_ippatsu ... ok
+test state::update::r29_tests::r29_own_discard_and_other_calls_close_the_window ... ok
+test state::test::chi_at_0_shanten ... ok
+test tile::test::next_prev ... ok
+test tile::test::convert ... ok
+test state::test::furiten ... ok
+test state::test::dora_count_after_kan ... ok
+test arena::game::test::tsumogiri ... ok
+test state::test::kakan_from_hand ... ok
+test state::test::rule_based_agari_all_last_minogashi ... ok
+test state::test::discard_candidates_with_unconditional_tenpai ... ok
+test state::test::double_chankan_ron ... ok
+test algo::sp::calc::test::tsumo_only ... ok
+test algo::sp::calc::test::nanikiru ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.38s
+
+real 2.51
+user 4.84
+sys 0.07
+# exit: 0
