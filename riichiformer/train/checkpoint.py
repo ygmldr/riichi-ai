@@ -111,6 +111,12 @@ def _validate_provenance(provenance: Mapping) -> dict:
                 f"{type(value).__name__}"
             )
         if isinstance(value, str) and not value:
+            # A licensed_only shard has no operator-policy hash by design; every
+            # other provenance string (source/split/canonical hashes) is non-empty.
+            if key == "research_policy_hash" \
+                    and provenance.get("research_policy") == "licensed_only":
+                out[key] = ""
+                continue
             raise CheckpointError(f"provenance[{key!r}] must not be empty")
         out[key] = value
     return out

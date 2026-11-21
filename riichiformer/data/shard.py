@@ -296,9 +296,21 @@ class ShardMetadata:
     def from_dict(cls, value: dict) -> "ShardMetadata":
         if value.get("format_version") != FORMAT_VERSION:
             raise ShardError(f"unsupported shard format {value.get('format_version')!r}")
+        # Boolean gate fields must stay booleans.  ``bool("false")`` is True, so a
+        # silent coercion here would turn a JSON string into an eligible training
+        # shard and bypass the explicit contract in ``__post_init__``.
+        train_allowed = value["train_allowed"]
+        if not isinstance(train_allowed, bool):
+            raise ShardError(
+                f"train_allowed must be a JSON boolean, got {type(train_allowed).__name__}")
+        eligible = value.get("train_eligible_under_policy", False)
+        if not isinstance(eligible, bool):
+            raise ShardError(
+                "train_eligible_under_policy must be a JSON boolean, got "
+                f"{type(eligible).__name__}")
         return cls(
             purpose=value["purpose"], source_id=value["source_id"],
-            rights_status=value["rights_status"], train_allowed=bool(value["train_allowed"]),
+            rights_status=value["rights_status"], train_allowed=train_allowed,
             canonical_manifest_sha256=value["canonical_manifest_sha256"],
             canonical_index_sha256=value["canonical_index_sha256"],
             split_manifest_sha256=value["split_manifest_sha256"],
@@ -311,8 +323,7 @@ class ShardMetadata:
             research_policy_hash=value.get("research_policy_hash", ""),
             policy_version=value.get("policy_version", ""),
             external_license_status=value.get("external_license_status", ""),
-            train_eligible_under_policy=bool(
-                value.get("train_eligible_under_policy", False)),
+            train_eligible_under_policy=eligible,
             created_utc=value.get("created_utc", "1970-01-01T00:00:00Z"),
         )
 

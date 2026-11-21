@@ -128,18 +128,18 @@ class R25LastDealerKyotakuTests(unittest.TestCase):
 
 
 class R26FourRiichiTests(unittest.TestCase):
-    def test_event_order_has_no_extra_draw_after_acceptance(self):
-        # Pre-fix model: the fourth acceptance is followed by a draw, then the abort is
-        # seen on the next step. Fixed model: acceptance is immediately followed by the
-        # abort, so the wall does not move.
-        pre_fix = ["reach_accepted", "tsumo", "ryukyoku"]
-        fixed = ["reach_accepted", "ryukyoku"]
-        self.assertEqual(pre_fix.count("tsumo"), 1)
-        self.assertEqual(fixed.count("tsumo"), 0)
-        tiles_left = {"pre_fix": 10, "fixed": 10}
-        tiles_left["pre_fix"] -= 1  # the extra draw
-        self.assertEqual(tiles_left["pre_fix"], 9)
-        self.assertEqual(tiles_left["fixed"], 10)
+    def test_native_fixture_asserts_no_draw_and_wall_unchanged(self):
+        # The native fixture is the executable evidence; this check prevents the test
+        # from being reduced to a hand-written list again.
+        board = BOARD_RS.read_text(encoding="utf-8")
+        start = board.index("fn r26_fourth_riichi_aborts_before_the_next_draw()")
+        end = board.index("\n    }", start)
+        body = board[start:end]
+        self.assertIn("assert_eq!(state.tiles_left, 10);", body)
+        self.assertIn("assert_eq!(state.board.yama.len(), 10);", body)
+        self.assertIn("no tile may be drawn after the fourth riichi is accepted", body)
+        self.assertIn("Some(Event::EndKyoku)", body)
+        self.assertIn("assert_eq!(state.end().kyotaku_left, 5);", body)
 
     def test_native_fixture_is_present_and_ordered(self):
         board = BOARD_RS.read_text(encoding="utf-8")

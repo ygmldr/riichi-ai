@@ -988,22 +988,30 @@ class MultiRonSettlementTests(unittest.TestCase):
         self.assertEqual(totals, fx["next_scores"])
 
     def test_r02_fixed_arena_aborts_and_carries_kyotaku(self):
-        """The Tenhou outcome: no deltas, honba+1, dealer renchan, kyotaku carried."""
+        """Settlement arithmetic for the abort; continuation is source-read, not run here.
+
+        The executable continuation evidence is the Rust fixture in `board.rs`
+        (it calls `handle_hora` and `end()`), not this Python arithmetic.  This test
+        only pins the no-payout/score shape so a future edit cannot silently reuse the
+        old triple-ron payment table.
+        """
         fx = TRIPLE_RON
         kyotaku = fx["kyotaku_start"] + fx["reach_in_kyoku"]
         start = [20500, 23500, 30500, 23500]
         riichi = [-1000, 0, 0, -1000]  # seats 0 and 3 declared/accepted
         after_sticks = [start[i] + riichi[i] for i in range(4)]
+        # 三家和了 is an abortive draw: no hand is paid, so the scores are exactly
+        # start + the two riichi deductions; they must differ from the pre-fix
+        # settlement (which paid three ron and distributed all four sticks).
         self.assertEqual(after_sticks, [19500, 23500, 30500, 22500])
-        # 三家和了 is an abortive draw: no hand is paid.
-        self.assertEqual([0, 0, 0, 0], [0, 0, 0, 0])
-        self.assertEqual(fx["next_start"]["honba"], fx["honba"] + 1)
-        self.assertEqual(fx["next_start"]["oya"], fx["oya"])
+        self.assertNotEqual(after_sticks, fx["next_scores"])
         # The 4 sticks (2 carried + 2 accepted here) remain on the table.
         self.assertEqual(kyotaku, 4)
-        self.assertEqual(after_sticks, [19500, 23500, 30500, 22500])
-        # Ranks after the abort, descending by score with E1-wind tie-break.
-        ranks = [sorted(after_sticks, reverse=True).index(s) + 1 for s in after_sticks]
+        self.assertEqual(sum(after_sticks), 96000)
+        # Scores are distinct, so descending rank is unambiguous here.  The report
+        # labels the continuation (honba/dealer/kyotaku carry) as source-read.
+        ranks = [1 + sum(1 for other in after_sticks if other > score)
+                 for score in after_sticks]
         self.assertEqual(ranks, [4, 2, 1, 3])
 
     def test_r03_allocation_matches_recorded_tenhou_double_ron(self):
@@ -1112,11 +1120,13 @@ class ReportSyncTests(unittest.TestCase):
                     self.assertTrue(cells[7].strip(), f"{rid} must state the impact")
 
     def test_r02_is_matched_only_with_native_evidence_and_r29_stays_unverified(self):
-        # R02 is MATCH only because a native fixture executes the abort branch; the
-        # historical V3.1 source comment is retained in §4.1 as history, not as the
-        # current behaviour.
-        self.assertEqual(self.rows["R02"][6], "MATCH")
+        # The matrix supplies the verdict; this test checks the evidence that supports
+        # it instead of hard-coding a green label.  The native fixture executes the
+        # settlement branch; the continuation is explicitly source-read.
+        self.assertIn(self.rows["R02"][6], VALID_STATUS)
         self.assertIn("r02_triple_ron_aborts_without_settlement", self.text)
+        self.assertIn("settlement", self.text.lower())
+        self.assertIn("source-read", self.text.lower())
         self.assertIn("tenhou-parity-verified", self.text)
         self.assertIn("三家和了", self.text)
         self.assertIn("No triple-ron ryukyoku", self.text)  # historical quote

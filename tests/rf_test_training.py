@@ -859,6 +859,35 @@ class RightsAndCLITests(unittest.TestCase):
                                "--max-steps", "1"])
             self.assertEqual(code, 2)
 
+    def test_cli_default_model_is_six_layer_mvp_s(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "train.rfshard"
+            ckpt = Path(temp) / "default.pt"
+            build_shard(path, games=1)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = train_main(["--shard", str(path), "--train", "--out",
+                                   str(ckpt), "--max-steps", "0"])
+            self.assertEqual(code, 0)
+            text = out.getvalue()
+            self.assertIn("PR14_MODEL", text)
+            self.assertIn("layers=6", text)
+            self.assertIn(f"parameters={MVP_S_REFERENCE_PARAMETERS}", text)
+
+    def test_cli_tiny_model_is_explicit_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "train.rfshard"
+            ckpt = Path(temp) / "tiny.pt"
+            build_shard(path, games=1)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = train_main(["--shard", str(path), "--train", "--out",
+                                   str(ckpt), "--max-steps", "0",
+                                   "--tiny-smoke"])
+            self.assertEqual(code, 0)
+            text = out.getvalue()
+            self.assertIn("kind=tiny_smoke", text)
+            self.assertIn("parameters=502510", text)
+            self.assertNotIn(f"parameters={MVP_S_REFERENCE_PARAMETERS}", text)
+
 
 def private_policy(allowlist=("tenhou_old",),
                    reference="unit-test-private-operator") -> PolicyConfig:

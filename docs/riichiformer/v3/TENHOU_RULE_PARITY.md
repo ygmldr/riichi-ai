@@ -98,7 +98,7 @@ E3 honba 2, oya 2, discarder 3; start scores `[20500,23500,30500,23500]`, two
 | Path | seat 0 | seat 1 | seat 2 (oya) | seat 3 | honba | kyotaku | ranks |
 |---|---:|---:|---:|---:|---:|---:|---|
 | Pre-fix recorded settlement (three hora paid) | 32100 | 25500 | 42100 | 300 | 3 | 0 | `[2,3,1,4]` |
-| PR-40 Tenhou abort (native fixture) | 19500 | 23500 | 30500 | 22500 | 3 | 4 | `[4,2,1,3]` |
+| PR-40 Tenhou abort (native settlement fixture; continuation source-read) | 19500 | 23500 | 30500 | 22500 | 3 | 4 | `[4,2,1,3]` |
 
 The abort row is start minus the two riichi sticks (`-1000` seats 0 and 3), no hora
 deltas, honba 2→3, same oya, 4 sticks carried. The recorded row is preserved as
@@ -201,7 +201,10 @@ settlement shape (B evidence); they are **not** required by the test file.
 
 `vendor/mortal/libriichi/src/arena/{board.rs,game.rs,result.rs}`, `rankings.rs`,
 `state/update.rs`, `state/agent_helper.rs`, `algo/agari.rs`. This document cites **71
-distinct source lines**; all 71 are present in the test's `ANCHORS` table and asserted at
+distinct source lines**. Every full `file.rs:line` citation in the report tables is
+present in the test's `ANCHORS` table; shorthand citations (for example R29's
+`345/446/560/606`) are explicitly not independently anchored and are not claimed as
+executable evidence. Full citations are asserted at
 that exact line by `SourceContractTests.test_anchor_lines_are_exact`.
 `ReportSyncTests.test_every_reported_file_line_is_anchored` parses this file and fails if a
 citation is added without an anchor (or if the count changes without updating
@@ -246,7 +249,7 @@ Columns: **rule**, **Tenhou behaviour (quote + URL)**, **pinned arena behaviour 
 | ID | Rule | Tenhou behaviour ([man#RULE](https://tenhou.net/man/#RULE)) | Pinned arena (file:line) | Ev | Fixture / test | Status | Competitive impact |
 |---|---|---|---|---|---|---|---|
 | R01 | 開始点・返し点・半荘長 | 「25000点開始の30000点返し」「ウマ10-20」 | `arena/game.rs:236` `length: 8,`; `arena/game.rs:237` `init_scores: [25000; 4],` | A | `SourceContractTests.test_r01_hanchan_start_and_return_points` | MATCH | none; uma/oka are ranking-tool conventions, the arena emits only ordinal rank |
-| R02 | 三家和了（triple ron） | 「途中流局(九種九牌/四家立直/三家和了/四槓散了/四風連打)あり。すべて連荘」 — three ron = abortive draw, no score, honba+1, dealer renchan, kyotaku carried | `arena/board.rs:383-389` (`if n_hora >= 3` guard in `handle_hora`, before `has_hora`/kyotaku/ura); abort path `arena/board.rs:530-536`; continuation `arena/game.rs:135-137` | A+native | `arena::board::rule_tests::r02_triple_ron_aborts_without_settlement`; `MultiRonSettlementTests.test_r02_fixed_arena_aborts_and_carries_kyotaku`; historical recorded log `runs/1v3/10089_579411421376059130_b.json.gz` | MATCH | tenhou-parity-verified at settlement/continuation level; old distortion removed |
+| R02 | 三家和了（triple ron） | 「途中流局(九種九牌/四家立直/三家和了/四槓散了/四風連打)あり。すべて連荘」 — three ron = abortive draw, no score, honba+1, dealer renchan, kyotaku carried | `arena/board.rs:383-389` (`if n_hora >= 3` guard in `handle_hora`, before `has_hora`/kyotaku/ura); abort path `arena/board.rs:530-536`; continuation `arena/game.rs:135-137` | A+native | `arena::board::rule_tests::r02_triple_ron_aborts_without_settlement`; `MultiRonSettlementTests.test_r02_fixed_arena_aborts_and_carries_kyotaku`; historical recorded log `runs/1v3/10089_579411421376059130_b.json.gz` | MATCH | tenhou-parity-verified for the **settlement branch** (the native fixture calls the private `handle_hora` and `end()`); honba/dealer/kyotaku continuation is **source-read** at `arena/game.rs:135-137`, not executed by that fixture; old distortion removed |
 | R03 | ダブロン/多栄の支払いと積み棒・供託の上家取り | 「ダブロンあり。積み棒/供託は上家取り。」「ダブロンは親が含まれれば連荘」 | `arena/board.rs:394-397`, `421-423`, `437-443` | A+B | `test_r03_double_ron_matches_recorded_arena_log`; `test_r03_allocation_matches_recorded_tenhou_double_ron` | MATCH | none; allocation verified against a real Tenhou double ron (dealer as second winner got no honba/kyotaku) |
 | R04 | 赤ドラ 各1枚 | 「赤ありルールでの枚数：各1枚」 | `arena/board.rs:826` (5mr), `arena/board.rs:836` (5pr), `arena/board.rs:846` (5sr); `state/update.rs:710-724` | A | `NativePlayerStateTests.test_r04_aka_dora_is_one_per_suit` | MATCH | none |
 | R05 | カンドラ時点 | 「カンドラは、暗槓は即乗り、明槓/加槓は後めくり（打牌または続く嶺上の直前）」 | `arena/board.rs:658-659` immediate for ankan; `arena/board.rs:623`+`678` for daiminkan/kakan; `arena/board.rs:669`+`614` for a following kan | A | `SourceContractTests.test_r05_kan_dora_timing_matches_tenhou` | MATCH | none; the `dora` event is logged immediately before the discard event, which is the same instant |
@@ -269,7 +272,7 @@ Columns: **rule**, **Tenhou behaviour (quote + URL)**, **pinned arena behaviour 
 | R22 | 喰い替え | 「喰い替えなし」 | `state/update.rs:469-487`, `531-534`; `state/agent_helper.rs:61` | A | `test_r22_kuikae_is_forbidden` | MATCH | none through the arena's own mask; `validate_reaction` alone would not reject a kuikae supplied by an external driver (INFO, unreachable from a normal agent) |
 | R23 | ノーテン罰符 | 3000 / 1500 / 1000; the man page states 「ノーテン親流れ、聴牌連荘」 | `arena/board.rs:271-292` | A+B | `test_r23_exhaustive_draw_tenpai_payments`; `test_r23_noten_payment_matches_recorded_tenhou_draw` (real Tenhou `[1000,1000,1000,-3000]`) | MATCH | none |
 | R24 | 流し満貫 | 「流し満貫あり。聴牌清算を満貫清算に代替。親の聴牌で連荘。」「流し満貫は、自分の河が鳴かれていない場合に成立。自分が鳴いた場合でも成立。」 | `arena/board.rs:251-269` (親 12000 / 子 8000); `arena/board.rs:249` (renchan by dealer tenpai) | A+B | `test_r24_nagashi_mangan_payments`; `test_r24_nagashi_payment_matches_recorded_tenhou_draw` (real Tenhou `[-2000,8000,-4000,-2000]`, next kyoku honba+1) | MATCH | none; the dealer-renchan sub-case follows from 「親の聴牌で連荘」 and is consistent with the observed honba increment |
-| R25 | ラス親和了止めの供託除外 | 「親が連荘(和了/聴牌)し原点を超えたトップになる(和了/聴牌清算後、供託料を除く)」 | `arena/board.rs:396` snapshots the paid sticks; `arena/board.rs:439-441` records the winner; `arena/result.rs:16-32` excludes them; `arena/game.rs:216-230` uses the adjusted vector | A+native | `arena::game::rule_tests::r25_last_dealer_stop_excludes_just_paid_kyotaku`; `V32RuleFixTests.test_r25_*` | MATCH | tenhou-parity-verified; can change the S4 end decision when the kyotaku is decisive |
+| R25 | ラス親和了止めの供託除外 | 「親が連荘(和了/聴牌)し原点を超えたトップになる(和了/聴牌清算後、供託料を除く)」 | `arena/board.rs:396` snapshots the paid sticks; `arena/board.rs:439-441` records the winner; `arena/result.rs:16-32` excludes them; `arena/game.rs:216-230` uses the adjusted vector | A+native | `arena::game::rule_tests::r25_last_dealer_stop_excludes_just_paid_kyotaku`; `R25LastDealerKyotakuTests.test_kyotaku_decisive_case_changes_the_end_decision` | MATCH | tenhou-parity-verified; can change the S4 end decision when the kyotaku is decisive |
 | R26 | 四家立直の流局時点 | 「四家立直」 — abortive; the fourth acceptance is the abort event, so the next draw must not happen | `arena/board.rs:587-594` aborts immediately after `check_riichi_accepted()`; no tile is drawn before the abort. The top-of-step guard remains at `arena/board.rs:545-549` | A+native | `arena::board::rule_tests::r26_fourth_riichi_aborts_before_the_next_draw` (no `Tsumo`, wall unchanged); `SourceContractTests.test_r26_four_riichi_aborts_before_the_next_draw` | MATCH | tenhou-parity-verified for abort-before-draw; manual lists 四家立直 but does not separately spell out the draw instant (§0.1) |
 | R27 | パオ | 「大三元/大四喜のパオあり。複合役満を含む得点を、ツモ＝全額・ロン＝折半で支払う。積み棒は包。」「四槓子のパオなし」 | `arena/board.rs:427-433`, `arena/board.rs:501-527` (only daisangen/daisuushi) | A | `test_r27_pao_exists_for_daisangen_and_daisuushi_only` | MATCH | none |
 | R28 | リーチ後の打牌 | 「リーチ後はロン/ツモ/暗槓以外でツモ切り」 | `state/agent_helper.rs:40-46` (only the drawn tile is offered) | A | `test_r28_riichi_discard_must_be_tsumogiri` | MATCH | none |
@@ -382,7 +385,8 @@ and broadcasts a `Tsumo` (`arena/board.rs:602-619`). The abort therefore fires o
 `step()`, after one tile has been revealed. The drawn player cannot win on it, because the
 abort check precedes reaction handling. No score is affected; the log contains one tile that
 Tenhou would not have dealt, which is why this blocks exact log/observation equivalence but
-not score equivalence. No patch is proposed: fixing it would require moving the 4-riichi
+not score equivalence. The V3.1 sketch said no patch; PR-40 now implements the fix in
+`patches/0014-rule-r02-r25-r26.patch` (the sketch is retained as historical): fixing it required moving the 4-riichi
 decision ahead of the draw (a structural change to `poll`).
 
 ### 4.4 R29 — ippatsu cancellation (UNVERIFIED)

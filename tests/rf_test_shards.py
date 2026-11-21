@@ -408,6 +408,39 @@ class PrivateResearchTests(unittest.TestCase):
             ShardReader(path, purpose="train",
                         expected_policy_hash=self.policy.policy_hash)
 
+    def test_private_train_eligibility_string_false_is_rejected(self):
+        # bool("false") is True; the metadata decoder must not coerce gate fields.
+        path = self._write()
+        manifest_path = Path(str(path) + ".manifest.json")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["metadata"]["train_eligible_under_policy"] = "false"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(ShardError):
+            ShardReader(path, purpose="train",
+                        expected_policy_hash=self.policy.policy_hash)
+
+    def test_metadata_train_allowed_string_is_rejected(self):
+        manifest_path = self.dir / "bad.rfshard.manifest.json"
+        manifest_path.write_text(json.dumps({
+            "format_version": "rf-shard/3",
+            "metadata": {
+                "purpose": "audit", "source_id": "tenhou_old",
+                "rights_status": "UNKNOWN", "train_allowed": "false",
+                "canonical_manifest_sha256": "a" * 64,
+                "canonical_index_sha256": "b" * 64,
+                "split_manifest_sha256": "c" * 64,
+                "split_version": "rf-split/2",
+                "schema_version": "rf-schema-v3/2",
+                "schema_hash": "d" * 64, "action_map_hash": "e" * 64,
+                "normalizer_hash": "f" * 64, "ruleset_id": "tenhou_4p_ranked",
+                "source_kind": "human_log", "projection_version": "rf-pov-v3/2",
+            },
+        }), encoding="utf-8")
+        with self.assertRaises(ShardError):
+            ShardMetadata.from_dict(json.loads(
+                manifest_path.read_text(encoding="utf-8"))["metadata"]
+                | {"format_version": "rf-shard/3"})
+
     def test_private_training_metadata_requires_eligibility(self):
         base = private_metadata(self.policy, purpose="audit")
         with self.assertRaises(ShardRightsError):

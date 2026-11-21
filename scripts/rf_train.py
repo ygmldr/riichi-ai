@@ -27,14 +27,18 @@ import torch  # noqa: E402
 
 from riichiformer.data.loader import ShardLoadError, ShardReader  # noqa: E402
 from riichiformer.data.shard import ShardRightsError  # noqa: E402
-from riichiformer.models.policy import MVPConfig, Policy  # noqa: E402
+from riichiformer.models.policy import MVPConfig, Policy, count_parameters  # noqa: E402
 from riichiformer.policy.config import (  # noqa: E402
     PROFILES, PolicyConfig, PolicyConfigError, load_policy_config,
 )
 from riichiformer.policy.research_policy import ResearchPolicyError  # noqa: E402
 from riichiformer.train.bc import TrainingError, training_step  # noqa: E402
 from riichiformer.train.checkpoint import (  # noqa: E402
-    CheckpointMismatch, load_checkpoint, save_checkpoint,
+    CheckpointMismatch, config_hash, init_weights_only, load_checkpoint,
+    save_checkpoint,
+)
+from riichiformer.train.model_config import (  # noqa: E402
+    ModelConfigError, ResolvedModelConfig, resolve_mvp_config,
 )
 from riichiformer.train.optimizer import (  # noqa: E402
     OptimizerError, TrainingConfig, make_optimizer, make_scheduler, set_seed,
@@ -58,6 +62,37 @@ def _check_output_path(path: Path) -> None:
 
 def _is_sha256(value: str) -> bool:
     return len(value) == 64 and all(char in string.hexdigits for char in value)
+
+
+def _resolve_model_config(args) -> ResolvedModelConfig:
+    """MVP-S by default; tiny only when explicitly requested."""
+    overrides = any(value is not None for value in
+                    (args.layers, args.ffn, args.state_hidden, args.max_positions))
+    if args.tiny_smoke:
+        if args.model_config is not None or overrides:
+            raise TrainerRefusal(
+                "--tiny-smoke cannot be combined with --model-config or explicit "
+                "architecture overrides")
+        return resolve_mvp_config(tiny_smoke=True)
+    if args.model_config is not None:
+        if overrides:
+            raise TrainerRefusal(
+                "--model-config cannot be combined with --layers/--ffn/"
+                "--state-hidden/--max-positions; put the architecture in the YAML")
+        return resolve_mvp_config(args.model_config)
+    if overrides:
+        config = MVPConfig(
+            layers=args.layers if args.layers is not None else 1,
+            ffn=args.ffn if args.ffn is not None else 64,
+            state_hidden=(args.state_hidden if args.state_hidden is not None else 64),
+            max_positions=(args.max_positions if args.max_positions is not None else 2048),
+        )
+        model = Policy(config)
+        return ResolvedModelConfig(
+            config=config, parameter_count=count_parameters(model),
+            config_hash=config_hash(config), source_path=None,
+            tiny_smoke=False, reference_verified=False)
+    return resolve_mvp_config()
 
 
 def _resolve_policy(args) -> tuple[PolicyConfig | None, str | None]:
@@ -155,10 +190,21 @@ def run(args) -> int:
         if args.cpu:
             config = TrainingConfig(**{**config.__dict__, "device": "cpu", "bf16": False})
         set_seed(config.seed)
-        model_config = MVPConfig(layers=args.layers, ffn=args.ffn,
-                                 state_hidden=args.state_hidden,
-                                 max_positions=args.max_positions)
+        resolved = _resolve_model_config(args)
+        model_config = resolved.config
+        print(f"PR14_MODEL {resolved.describe()}")
         model = Policy(model_config).to(config.device)
+        if args.init_weights_only:
+            if args.resume:
+                raise TrainerRefusal(
+                    "--init-weights-only and --resume are separate paths")
+            init_weights_only(
+                args.init_weights_only, model=model,
+                expected_hashes={key: getattr(meta, key) for key in
+                                 ("schema_hash", "action_map_hash", "normalizer_hash")},
+                expected_model_config=model_config,
+                expected_model_config_hash=resolved.config_hash)
+            print(f"PR14_INIT_WEIGHTS_ONLY checkpoint={args.init_weights_only}")
         optimizer = make_optimizer(model, config)
         scheduler = make_scheduler(optimizer, config)
         step = tokens = decisions = 0
@@ -166,6 +212,8 @@ def run(args) -> int:
                   "action_map_hash": meta.action_map_hash,
                   "normalizer_hash": meta.normalizer_hash,
                   "split_manifest_sha256": meta.split_manifest_sha256,
+                  "canonical_manifest_sha256": meta.canonical_manifest_sha256,
+                  "canonical_index_sha256": meta.canonical_index_sha256,
                   "source_id": meta.source_id,
                   "research_policy": meta.research_policy,
                   "research_policy_hash": meta.research_policy_hash,
@@ -177,11 +225,16 @@ def run(args) -> int:
             expected = {key: hashes[key] for key in
                         ("schema_hash", "action_map_hash", "normalizer_hash")}
             provenance_keys = ("split_manifest_sha256", "source_id",
-                               "research_policy", "research_policy_hash", "rights_status")
+                               "research_policy", "research_policy_hash", "rights_status",
+                               "policy_version", "external_license_status",
+                               "train_eligible_under_policy")
             expected_provenance = {key: hashes[key] for key in provenance_keys}
-            info, _ = load_checkpoint(args.resume, model=model, optimizer=optimizer,
-                                      scheduler=scheduler, expected_hashes=expected,
-                                      expected_provenance=expected_provenance)
+            info, _ = load_checkpoint(
+                args.resume, model=model, optimizer=optimizer, scheduler=scheduler,
+                expected_hashes=expected, expected_provenance=expected_provenance,
+                expected_model_config=model_config,
+                expected_model_config_hash=resolved.config_hash,
+                strict_resume=True)
             step, tokens, decisions = info.step, info.tokens, info.decisions
         batches = reader.iter_batches(batch_size=args.batch_size)
         model.train()
@@ -201,12 +254,17 @@ def run(args) -> int:
             tokens += int(batch.batch.padding_mask.sum())
             print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
                   f"valid={result.valid_decisions}/{result.total_decisions}")
+        provenance = {key: hashes[key] for key in (
+            "source_id", "split_manifest_sha256", "canonical_manifest_sha256",
+            "canonical_index_sha256", "research_policy", "research_policy_hash")}
         info = save_checkpoint(
             args.out, model=model, optimizer=optimizer, scheduler=scheduler,
             counters={"step": step, "tokens": tokens, "decisions": decisions},
-            hashes=hashes, config=config, seed=config.seed)
+            hashes=hashes, config=config, seed=config.seed,
+            model_config=model_config, provenance=provenance)
         print(f"PR14_DONE step={step} tokens={tokens} decisions={decisions} "
-              f"sha256={info.sha256} {policy_summary}")
+              f"sha256={info.sha256} model_sha256={resolved.config_hash} "
+              f"parameters={resolved.parameter_count} {policy_summary}")
         return 0
     finally:
         reader.close()
@@ -240,15 +298,22 @@ def main(argv=None) -> int:
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--device", default="cpu", choices=("cpu", "cuda"))
     parser.add_argument("--cpu", action="store_true")
-    parser.add_argument("--layers", type=int, default=1)
-    parser.add_argument("--ffn", type=int, default=64)
-    parser.add_argument("--state-hidden", type=int, default=64)
-    parser.add_argument("--max-positions", type=int, default=2048)
+    parser.add_argument("--model-config", default=None,
+                        help="MVP-S YAML config; omitted loads the frozen six-layer "
+                             "configs/riichiformer/mvp_s.yaml")
+    parser.add_argument("--tiny-smoke", action="store_true",
+                        help="explicit one-layer tiny model for smoke tests only")
+    parser.add_argument("--init-weights-only", default=None,
+                        help="load model weights only (no optimizer/scheduler/RNG)")
+    parser.add_argument("--layers", type=int, default=None)
+    parser.add_argument("--ffn", type=int, default=None)
+    parser.add_argument("--state-hidden", type=int, default=None)
+    parser.add_argument("--max-positions", type=int, default=None)
     args = parser.parse_args(argv)
     try:
         return run(args)
     except (TrainerRefusal, ShardLoadError, ShardRightsError,
-            PolicyConfigError, ResearchPolicyError) as exc:
+            PolicyConfigError, ResearchPolicyError, ModelConfigError) as exc:
         print(f"PR14_REFUSED: {exc}", file=sys.stderr)
         return 2
     except (TrainingError, OptimizerError, CheckpointMismatch) as exc:
