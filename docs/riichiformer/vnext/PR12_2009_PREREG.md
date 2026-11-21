@@ -1,6 +1,6 @@
 # VNEXT-BC-2009-1 — Full-Year 2009 BC Run (operator-authorized)
 
-**Status**: `BUILDING_SHARD` (1,454/6,897 at 04:26; watcher armed)
+**Status**: `BUILDING_SHARD` (3,841/6,897 at 05:36; watcher armed; Census before train)
 **Created**: 2026-11-22
 **Owner**: single Lead
 **Data**: local Tenhou-derived 2009, operator-authorized local research
