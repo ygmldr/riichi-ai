@@ -308,3 +308,16 @@ on the GPU host (Lead-owned measurement; this lane did not run GPU).
    and cross-path resume checks.
 3. Do not start PR-44 B0 until the Lead's GPU parity/long-context contract and
    the full-suite result are recorded. No remote/vendor change was made.
+
+## 7. Lead follow-up after independent review (2026-11-21)
+
+The independent review was `PASS_WITH_P1`. The P1 was a legacy-checkpoint
+bookkeeping hole: a checkpoint without `extra.training_path` could resume on the
+multi path and relabel its prefix counters. The Lead fix defaults such a legacy
+checkpoint to `prefixes`; prefix→prefix still resumes, prefix→multi now exits 1.
+A regression test (`test_legacy_checkpoint_without_training_path_is_prefix_only`)
+was added. The same follow-up also records `shard_sha256` in checkpoint `extra`
+and removes a tautological identity check in the observable-prefix audit.
+
+Final full suite on the patched integration tree: **708 passed, 2 skipped, 281
+subtests** (235.27 s), log `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`.
