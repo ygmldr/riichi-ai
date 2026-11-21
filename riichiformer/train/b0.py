@@ -448,6 +448,8 @@ class B0StopMonitor:
             "elapsed_seconds": self.elapsed_seconds,
             "best_ce": self.best_ce,
             "regression_count": int(self.regression_count),
+            "nonfinite_total": int(self.nonfinite_total),
+            "illegal_total": int(self.illegal_total),
             "events": [event.as_dict() for event in self.events],
         }
 
