@@ -350,6 +350,58 @@ class B0WrapperTests(unittest.TestCase):
         self.assertEqual([path.name for path in before],
                          [path.name for path in after])
 
+    def test_private_shard_policy_authentication(self):
+        from rf_test_training import (
+            build_private_shard, private_policy, write_policy_config,
+        )
+        root = self.root / "private"
+        root.mkdir()
+        policy = private_policy()
+        policy_config = write_policy_config(root, policy)
+        train = root / "private_train.rfshard"
+        validation = root / "private_validation.rfshard"
+        build_private_shard(train, policy, games=16)
+        build_private_shard(validation, policy, games=6)
+        protocol = build_protocol_from_files(
+            experiment_id="EXP-B0-PRIVATE", train_shard=str(train),
+            validation_shard=str(validation), model_config=tiny_config(),
+            train=train_settings(max_steps=2, ema_decay=0.9),
+            seeds=(11, 22), validation_steps=(2,), candidate_steps=(2,),
+            selection=B0SelectionRule(weights="raw"),
+            stop_policy=B0StopPolicy(max_wall_seconds=120.0),
+            policy_config=str(policy_config), policy_hash=policy.policy_hash,
+            created_utc="2026-11-21T00:00:00Z")
+        prereg = root / "prereg.json"
+        protocol.write_json(prereg)
+        code, stdout, stderr = invoke("--prereg", prereg, "--dry-run")
+        self.assertEqual(code, 0, stderr)
+        self.assertIn("B0_DRY_RUN_OK", stdout)
+        # A prereg without operator-policy authentication cannot open it.
+        document = protocol.as_dict()
+        document["policy_config"] = ""
+        document["policy_hash"] = ""
+        unauthenticated = root / "unauthenticated.json"
+        unauthenticated.write_text(json.dumps(document), encoding="utf-8")
+        code, _stdout, stderr = invoke("--prereg", unauthenticated, "--dry-run")
+        self.assertEqual(code, 2)
+        self.assertIn("unauthenticated private shard", stderr)
+        # A wrong policy hash is refused before any step.
+        document = protocol.as_dict()
+        document["policy_hash"] = "e" * 64
+        wrong = root / "wrong.json"
+        wrong.write_text(json.dumps(document), encoding="utf-8")
+        code, _stdout, stderr = invoke("--prereg", wrong, "--dry-run")
+        self.assertEqual(code, 2)
+        self.assertIn("policy", stderr)
+        # The authenticated private path trains and emits a candidate.
+        code, stdout, stderr = invoke(
+            "--prereg", prereg, "--train", "--max-steps", "2",
+            "--allow-full-budget", "--out-dir", root / "out", "--seed", "11")
+        self.assertEqual(code, 0, stderr)
+        self.assertIn("B0_CANDIDATE", stdout)
+        self.assertTrue((root / "out" / "EXP-B0-PRIVATE" / "run_seed11"
+                        / "candidates" / "step_000002.pt").is_file())
+
     def test_emit_prereg_template_roundtrips(self):
         model_config = self.root / "tiny.yaml"
         model_config.write_text(

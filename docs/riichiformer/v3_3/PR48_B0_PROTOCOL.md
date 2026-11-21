@@ -12,7 +12,7 @@ B0 training result, not an arena result and not a strength result. The full
 
 | Item | Status |
 |---|---|
-| `CODE_PASS` | **PASS** — 40 new tests + 60 related existing tests pass on CPU |
+| `CODE_PASS` | **PASS** — 41 new tests + 60 related existing tests pass on CPU |
 | `CPU_SMOKE_PASS` | **PASS** — 2 seeds × 2 steps, frozen six-layer MVP-S, synthetic shards |
 | `B0_FULL_TRAIN` | **NOT_RUN** — needs user GPU authorization, an independent validation shard and a written budget |
 | `B0_VALIDATION` | **NOT_RUN** — no independent 100–200 game validation shard exists yet (Dev-B / PR-45) |
@@ -32,7 +32,7 @@ validation shard.
 | `riichiformer/train/b0.py` | frozen protocol dataclasses, fingerprints, prereg/manifest writers, validation metrics, EMA, accumulation step, candidate save/selection, strict resume, stop monitor |
 | `scripts/rf_train_b0.py` | prereg-gated CLI: dry-run, bounded two-seed training, candidate/validation/selection/manifest emission, validate-only, prereg-template emission |
 | `tests/rf_test_b0_protocol.py` | 28 CPU tests (fingerprints, schedule, validation isolation, accumulation equivalence, selection, resume refusals, stops, manifest) |
-| `tests/rf_test_b0_cli.py` | 12 CPU tests (10-step same-seed identity, seed divergence, strict resume == uninterrupted, guards, dry-run/validate-only, template, two-seed selection) |
+| `tests/rf_test_b0_cli.py` | 13 CPU tests (10-step same-seed identity, seed divergence, strict resume == uninterrupted, private-policy auth, guards, dry-run/validate-only, template, two-seed selection) |
 | `docs/riichiformer/v3_3/PR48_B0_PROTOCOL.md` | this record |
 
 `scripts/rf_train.py`, `riichiformer/data/loader.py`, `data/shard.py`,
@@ -303,9 +303,9 @@ Command set (all from `worktrees/v33-c`, `PYTHONPATH=vendor/mortal/target/releas
 .venv/bin/python -m pytest -q tests/rf_test_b0_protocol.py
 # 28 passed in 12.38s (exit 0)
 
-# 2. wrapper tests (12 tests)
+# 2. wrapper tests (13 tests)
 .venv/bin/python -m pytest -q tests/rf_test_b0_cli.py
-# 12 passed in 11.39s (exit 0; 6.47 s on an unloaded host)
+# 13 passed in 11.76s (exit 0; 6.47 s for the first 12 on an unloaded host)
 
 # 3. related existing suites (no regressions)
 .venv/bin/python -m pytest -q tests/rf_test_training.py tests/rf_test_multi_loader.py
@@ -314,7 +314,7 @@ Command set (all from `worktrees/v33-c`, `PYTHONPATH=vendor/mortal/target/releas
 # 4. all four files together
 .venv/bin/python -m pytest -q tests/rf_test_b0_protocol.py tests/rf_test_b0_cli.py \
   tests/rf_test_training.py tests/rf_test_multi_loader.py
-# 100 passed, 1 pre-existing warning in 22.16s (exit 0; wall 25.86 s)
+# 101 passed, 1 pre-existing warning in 29.09s (exit 0; wall 30.10 s)
 ```
 
 Measured properties from the tests:
@@ -327,6 +327,7 @@ Measured properties from the tests:
 | different seed, same data/steps | weights differ |
 | strict resume at step 6 → 10 | model/optimizer/scheduler/EMA equal to uninterrupted |
 | validation vs optimizer/EMA | no change (snapshotted bytes identical) |
+| private `operator_private_research` shard | authenticated dry-run + 2-step train pass; missing/wrong policy auth refused (exit 2) |
 
 Bounded CPU smoke with the **frozen six-layer MVP-S** (`mvp_s_8192.yaml`,
 **5,217,582 parameters**) on tiny synthetic shards (6 train / 4 validation
