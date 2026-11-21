@@ -31,8 +31,9 @@
   (`--max-prefix-tokens 4096`), not silently truncated
 * full BC: 71,387 steps, batch 64, warmup+cosine, 5-hour cap, output
   `runs/vnext_bc_2009`
-* validation at 5,000: BC CE 1.4891, rank CE 1.2881; at 10,000: 50-batch BC CE
-  1.4666 / rank 1.2870; 500-batch re-eval **1.4895 / 1.1472**; checkpoints
+* validation at 5,000: 50-batch BC CE 1.4891 / rank 1.2881; 500-batch re-eval
+  **1.5019 / 1.1787**. At 10,000: 50-batch 1.4666 / 1.2870; 500-batch
+  **1.4895 / 1.1472**; checkpoints
   `step_005000.pt` / `step_010000.pt`.
 
 ## Current measured evidence
