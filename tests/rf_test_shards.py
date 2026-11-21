@@ -282,6 +282,57 @@ class ShardRightsTests(unittest.TestCase):
             self.assertFalse(module.source_rights_allowed(rights, "blocked"))
 
 
+class PrivateResearchTests(unittest.TestCase):
+    def test_private_train_preserves_original_restriction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "private.rfshard"
+            base = metadata(purpose="audit", train_allowed=False,
+                            rights="RESTRICTED", source="tenhou_old")
+            private = dataclasses.replace(
+                base, purpose="train", research_policy="operator_private_research",
+                research_policy_hash="a" * 64)
+            item = game_record(source="tenhou_old", train_allowed=False,
+                               rights_status="RESTRICTED")
+            writer = ShardWriter(path, private)
+            writer.add_game(item)
+            writer.finalize()
+            reader = ShardReader(path, purpose="train")
+            rows = list(reader.games())
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["rights_status"], "RESTRICTED")
+            self.assertFalse(rows[0]["train_allowed"])
+            self.assertEqual(reader.metadata.research_policy,
+                             "operator_private_research")
+            self.assertEqual(len(list(reader.iter_decisions())), 4)
+            reader.close()
+
+    def test_strict_gate_rejects_same_unlicensed_source(self):
+        with self.assertRaises(ShardRightsError):
+            metadata(purpose="train", train_allowed=False,
+                     rights="RESTRICTED", source="tenhou_old")
+
+    def test_private_shard_still_refuses_holdout(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "private.rfshard"
+            base = metadata(purpose="audit", train_allowed=False,
+                            rights="UNKNOWN", source="tenhou_old")
+            private = dataclasses.replace(
+                base, purpose="train", research_policy="operator_private_research",
+                research_policy_hash="b" * 64)
+            writer = ShardWriter(path, private)
+            with self.assertRaises(ShardRightsError):
+                writer.add_game(game_record(source="tenhou_old", split="val_holdout",
+                                            train_allowed=False, rights_status="UNKNOWN"))
+            writer.close()
+
+    def test_policy_hash_required(self):
+        base = metadata(purpose="audit", train_allowed=False,
+                        rights="UNKNOWN", source="tenhou_old")
+        with self.assertRaises(ShardError):
+            dataclasses.replace(base, research_policy="operator_private_research",
+                                research_policy_hash="")
+
+
 class FixtureTests(unittest.TestCase):
     def test_100k_split_fixture_dry_run_and_audit_build(self):
         fixture_root = main_checkout_root() / "artifacts/riichiformer/h02"
@@ -325,7 +376,7 @@ class FixtureTests(unittest.TestCase):
                 [sys.executable, str(REPO_ROOT / "scripts/rf_build_shards.py"),
                  "--out", str(Path(temp) / "train.rfshard"), "--purpose", "train",
                  "--limit", "1", "--canonical-dir", str(canonical),
-                 "--split-manifest", str(split)],
+                 "--split-manifest", str(split), "--research-policy", "licensed_only"],
                 env={**os_environ(), "PYTHONPATH": str(vendor_path())},
                 capture_output=True, text=True)
             self.assertEqual(refused.returncode, 2, refused.stderr)
