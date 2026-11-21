@@ -3,8 +3,8 @@
 **Updated**: 2026-11-22  
 **Lead branch**: `rf/vnext-core` (worktree `/home/ygsldr/riichi-ai/worktrees/vnext-core`)  
 **Base**: `8a915d1` / tag `rf3.3-w2`  
-**Contract hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
-**Model params**: 6,462,940
+**Contract hash**: `c6e15a7cb6a6e885ccb434e2380ab10616de50d0cfe71679e7f7f77a5d931f1d`  
+**Model params**: 6,472,924
 
 ## What exists now
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | Contracts | `riichiformer/vnext/contracts.py` | 12 contract tests |
 | Event + 34-tile state | `observable.py` | included in model suite |
-| Model / cross-attn / heads | `model.py` | 14 model tests |
+| Model / cross-attn / heads | `model.py` | 15 model tests |
 | Runtime | `runtime.py` | 4 tests |
 | GRP24 | `grp.py` | 8 tests |
 | Critic | `critic.py` | 4 tests |
@@ -20,16 +20,16 @@
 | RL contracts/toy | `rl.py` | 14 tests |
 | V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | 8 synthetic tests + 43 B0 tests |
 
-Last clean VNext-only CPU run: **63 passed** in ~2 s
+Last clean VNext-only CPU run: **64 passed** in ~2 s
 (`logs/vnext/vnext_cpu_only.log`), with CUDA hidden.  The VNext + P1 + B0
 combined run is recorded separately; it does not substitute for a full native
 Arena.
 
 ## What is measured
 
-* CPU forward: 1,567 decisions/s, 200,616 event-tokens/s (32 decisions × 128
+* CPU forward: 2,247 decisions/s, 287,618 event-tokens/s (32 decisions × 128
   tokens, 4 threads).
-* CPU train step: 307 decisions/s, 39,339 event-tokens/s; peak RSS 804.6 MiB.
+* CPU train step: 340 decisions/s, 43,477 event-tokens/s; peak RSS 802.6 MiB.
 * This is a synthetic contract-valid microbench, not a full-epoch estimate.
 * V3.3 inherited baseline: 841 passed / 6 skipped (historical log), fresh
   integration run recorded in `logs/vnext/baseline_v33_integration.log`.

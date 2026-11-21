@@ -4,7 +4,7 @@
 **Owner**: single Lead  
 **Base**: `rf3.3-w2` / `8a915d1`  
 **Contract module**: `riichiformer/vnext/contracts.py`  
-**Manifest hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
+**Manifest hash**: `c6e15a7cb6a6e885ccb434e2380ab10616de50d0cfe71679e7f7f77a5d931f1d`  
 **Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`
 
 ## 1. Frozen identifiers
@@ -41,6 +41,8 @@ with `critic_grad_mode ∈ {joint, detach_actor}`.
 
 * event fields `[B,L]`: type id (BOS=16, PAD=17, 0..15 schema events), actor,
   tile kind, aka, tsumogiri, kyoku position, valid-prefix mask;
+* event meld fields `[B,L,3]`: public consumed tile kinds and aka flags
+  (UNKNOWN padding), so chi/pon/daiminkan/kakan public tiles are not collapsed;
 * decision fields `[N]`: `decision_to_sequence`, inclusive
   `prefix_token_offsets`, `phases`;
 * state fields `[N,...]`: `x_tile`, `x_global`, `candidate_features`,

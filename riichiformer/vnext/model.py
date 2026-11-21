@@ -29,6 +29,7 @@ from .contracts import (
     EVENT_ACTOR_VOCAB,
     EVENT_AKA_VOCAB,
     EVENT_KYOKU_POS_VOCAB,
+    EVENT_MELD_SLOTS,
     EVENT_TILE_VOCAB,
     EVENT_TSUMOGIRI_VOCAB,
     EVENT_TYPE_VOCAB,
@@ -62,6 +63,8 @@ class VNextEventEmbedding(nn.Module):
         self.aka = nn.Embedding(EVENT_AKA_VOCAB, d_model)
         self.tsumogiri = nn.Embedding(EVENT_TSUMOGIRI_VOCAB, d_model)
         self.kyoku_pos = nn.Embedding(EVENT_KYOKU_POS_VOCAB, d_model)
+        self.meld_tile = nn.Embedding(EVENT_TILE_VOCAB, d_model)
+        self.meld_aka = nn.Embedding(EVENT_AKA_VOCAB, d_model)
         self.norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
@@ -73,6 +76,8 @@ class VNextEventEmbedding(nn.Module):
             + self.aka(batch.event_aka)
             + self.tsumogiri(batch.event_tsumogiri)
             + self.kyoku_pos(batch.event_kyoku_pos)
+            + self.meld_tile(batch.event_meld_tile).sum(dim=2)
+            + self.meld_aka(batch.event_meld_aka).sum(dim=2)
         )
         x = self.norm(x)
         x = self.dropout(x)

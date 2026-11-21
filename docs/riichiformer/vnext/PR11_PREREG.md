@@ -4,9 +4,9 @@
 **Experiment ID**: `VNEXT-BC-PILOT-1`  
 **Owner**: single Lead  
 **Base**: `rf/vnext-core` at `8a915d1` + VNext PRs  
-**Frozen contract hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
+**Frozen contract hash**: `c6e15a7cb6a6e885ccb434e2380ab10616de50d0cfe71679e7f7f77a5d931f1d`  
 **Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`  
-**Model parameters**: 6,462,940
+**Model parameters**: 6,472,924
 
 This is a **plan**, not a passed gate.  No GPU training has been started.  The
 full 2.51M-match Census and the real Train/Validation split audit are still
@@ -51,10 +51,10 @@ From `scripts/rf_bench_vnext.py`, 32 decisions × 128 tokens, 4 CPU threads:
 
 | Mode | Decisions/s | Event tokens/s |
 |---|---:|---:|
-| forward-only | 1,567 | 200,616 |
-| one training step | 307 | 39,339 |
+| forward-only | 2,247 | 287,618 |
+| one training step | 340 | 43,477 |
 
-Peak RSS: 804.6 MiB.  Raw: `logs/vnext/profile_cpu.json`.
+Peak RSS: 802.6 MiB.  Raw: `logs/vnext/profile_cpu.json`.
 
 These numbers **must not** be extrapolated into an 8-hour guarantee or a 2.51M
 epoch promise.  They only show that the CPU reference path runs and that the

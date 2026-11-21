@@ -20,7 +20,10 @@ from riichiformer.vnext.model import (  # noqa: E402
     FactorizedTileEmbedding, VNextPolicy, count_parameters,
 )
 from riichiformer.vnext.observable import (  # noqa: E402
-    VNextBatchBuilder, encode_stream, encode_visible_state,
+    VNextBatchBuilder, VNextEventStream, encode_stream, encode_visible_state,
+)
+from riichiformer.schemas.event_v3 import (  # noqa: E402
+    ChiEvent, TileRef, UNKNOWN_TILE,
 )
 
 
@@ -88,6 +91,16 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(float(state.tile_features[4, 0]), 0.5)
         self.assertEqual(float(state.tile_features[4, 6]), 1.0)  # own aka 5m
         self.assertEqual(float(state.tile_features[4, 0]), 0.5)
+
+    def test_chi_consumed_tiles_are_preserved(self):
+        stream = VNextEventStream(match_id="m", kyoku_id=0, pov=0)
+        event = ChiEvent(
+            seq_idx=0, kyoku_idx=0, actor_rel=1, target_rel=0,
+            tile=TileRef(2), consumed=(TileRef(0), TileRef(1),
+                                       UNKNOWN_TILE, UNKNOWN_TILE))
+        stream.append_event(event)
+        self.assertEqual(stream.event_meld_tile[-1], (0, 1, 34))
+        self.assertEqual(stream.event_meld_aka[-1], (0, 0, 0))
 
     def test_batch_builder_two_streams(self):
         a = encode_stream(self.samples[0].input, match_id="a")

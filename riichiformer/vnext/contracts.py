@@ -59,6 +59,7 @@ EVENT_TILE_VOCAB = 35
 EVENT_AKA_VOCAB = 4
 EVENT_TSUMOGIRI_VOCAB = 2
 EVENT_KYOKU_POS_VOCAB = 512
+EVENT_MELD_SLOTS = 3
 
 #: Per-tile channel registry.  Every channel is computed from POV-visible data.
 TILE_FEATURE_NAMES: tuple[str, ...] = (
@@ -405,6 +406,8 @@ class VNextModelBatch:
     event_aka: Tensor
     event_tsumogiri: Tensor
     event_kyoku_pos: Tensor
+    event_meld_tile: Tensor
+    event_meld_aka: Tensor
     event_valid_mask: Tensor
     decision_to_sequence: Tensor
     prefix_token_offsets: Tensor
@@ -435,6 +438,10 @@ class VNextModelBatch:
                            high=EVENT_TSUMOGIRI_VOCAB)
         _check_long_tensor("event_kyoku_pos", self.event_kyoku_pos, (b, length),
                            high=EVENT_KYOKU_POS_VOCAB)
+        _check_long_tensor("event_meld_tile", self.event_meld_tile,
+                           (b, length, EVENT_MELD_SLOTS), high=EVENT_TILE_VOCAB)
+        _check_long_tensor("event_meld_aka", self.event_meld_aka,
+                           (b, length, EVENT_MELD_SLOTS), high=EVENT_AKA_VOCAB)
         n = int(self.decision_to_sequence.numel())
         if n <= 0:
             raise ContractError("batch must contain at least one decision")
@@ -472,6 +479,7 @@ class VNextModelBatch:
             self.event_type_id.device, self.event_actor_rel.device,
             self.event_tile_kind.device, self.event_aka.device,
             self.event_tsumogiri.device, self.event_kyoku_pos.device,
+            self.event_meld_tile.device, self.event_meld_aka.device,
             self.event_valid_mask.device, self.decision_to_sequence.device,
             self.prefix_token_offsets.device, self.phases.device, self.x_tile.device,
             self.x_global.device, self.candidate_features.device, self.legal_mask.device,
@@ -849,6 +857,7 @@ def contract_manifest(config: VNextConfig | None = None) -> dict:
         "bos_event_id": BOS_EVENT_ID,
         "pad_event_id": PAD_EVENT_ID,
         "event_type_vocab": EVENT_TYPE_VOCAB,
+        "event_meld_slots": EVENT_MELD_SLOTS,
         "grp_permutations": [list(perm) for perm in GRP_PERMUTATIONS],
         "pt_tables": {key: list(value) for key, value in PT_TABLES.items()},
         "model_config": config.as_dict(),
@@ -863,7 +872,8 @@ def contract_hash(config: VNextConfig | None = None) -> str:
 __all__ = [
     "ACTION_SPACE", "BOS_EVENT_ID", "CANDIDATE_FEATURE_DIM", "CANDIDATE_FEATURE_NAMES",
     "ContractError", "EVENT_ACTOR_VOCAB", "EVENT_AKA_VOCAB",
-    "EVENT_KYOKU_POS_VOCAB", "EVENT_TILE_VOCAB", "EVENT_TSUMOGIRI_VOCAB",
+    "EVENT_KYOKU_POS_VOCAB", "EVENT_MELD_SLOTS", "EVENT_TILE_VOCAB",
+    "EVENT_TSUMOGIRI_VOCAB",
     "EVENT_TYPE_VOCAB", "ENCODER_CONTRACT_ID", "GLOBAL_FEATURE_DIM",
     "GLOBAL_FEATURE_NAMES", "GRP_CONTRACT_ID", "GRPBoundary",
     "GRP_PERMUTATIONS", "GRP_PERMUTATION_INDEX", "GuardSpec", "MODEL_ARCH_ID",

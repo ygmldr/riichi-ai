@@ -21,7 +21,10 @@ stream); VNext intentionally **filters to the current `kyoku_idx`** and prepends
 Categorical event features: event type, relative actor, tile kind, aka, public
 tsumogiri, intra-kyoku position.  Opponent `tsumo`/`ankan` tiles remain UNKNOWN
 and cannot carry aka.  Chi/Pon/Daiminkan/Kakan/Akan consumed tiles remain in the
-`DecisionInput` objects; VNext does not collapse chi to one `claimed_tile`.
+`DecisionInput` objects.  VNext additionally carries three public consumed-tile
+slots per meld token (`event_meld_tile`/`event_meld_aka`, UNKNOWN padded), so a
+chi's two consumed tiles and their red-five flags are visible to the event
+encoder rather than collapsed to the claimed tile.
 
 Tile state is derived from visible data only: own counts/aka, public counts/aka,
 each opponent's river and post-riichi river (from public `dahai`), each
@@ -50,11 +53,11 @@ opponent hand, ura, final rank or future event enters `x_tile`/`x_global`.
 
 | Item | Value |
 |---|---|
-| default trainable parameters | **6,462,940** |
+| default trainable parameters | **6,472,924** |
 | default layers/width/heads | 6 / 256 / 4 |
-| CPU forward, 32 decisions × 128 tokens, 4 threads | **1,567 decisions/s**, 200,616 event-tokens/s |
-| CPU train step, same synthetic batch | **307 decisions/s**, 39,339 event-tokens/s |
-| peak RSS in this microbench | 804.6 MiB |
+| CPU forward, 32 decisions × 128 tokens, 4 threads | **2,247 decisions/s**, 287,618 event-tokens/s |
+| CPU train step, same synthetic batch | **340 decisions/s**, 43,477 event-tokens/s |
+| peak RSS in this microbench | 802.6 MiB |
 | device | CPU only; no CUDA in this measured run |
 
 These are synthetic contract-valid batches, not a full-epoch projection and not

@@ -52,6 +52,7 @@ from .contracts import (
     EVENT_ACTOR_VOCAB,
     EVENT_AKA_VOCAB,
     EVENT_KYOKU_POS_VOCAB,
+    EVENT_MELD_SLOTS,
     EVENT_TILE_VOCAB,
     EVENT_TSUMOGIRI_VOCAB,
     EVENT_TYPE_VOCAB,
@@ -267,6 +268,10 @@ class VNextEventStream:
     event_aka: list[int] = field(default_factory=lambda: [0])
     event_tsumogiri: list[int] = field(default_factory=lambda: [0])
     event_kyoku_pos: list[int] = field(default_factory=lambda: [0])
+    event_meld_tile: list[tuple[int, ...]] = field(
+        default_factory=lambda: [(UNKNOWN_TILE_KIND,) * EVENT_MELD_SLOTS])
+    event_meld_aka: list[tuple[int, ...]] = field(
+        default_factory=lambda: [(0,) * EVENT_MELD_SLOTS])
     decisions: list[tuple[VNextDecisionIndex, VNextVisibleState]] = field(
         default_factory=list)
 
@@ -281,7 +286,9 @@ class VNextEventStream:
                 or len(self.event_type_id) != len(self.event_tile_kind) \
                 or len(self.event_type_id) != len(self.event_aka) \
                 or len(self.event_type_id) != len(self.event_tsumogiri) \
-                or len(self.event_type_id) != len(self.event_kyoku_pos):
+                or len(self.event_type_id) != len(self.event_kyoku_pos) \
+                or len(self.event_type_id) != len(self.event_meld_tile) \
+                or len(self.event_type_id) != len(self.event_meld_aka):
             raise EncoderContractError("event token columns have unequal lengths")
 
     @property
@@ -309,6 +316,16 @@ class VNextEventStream:
         self.event_aka.append(0 if tile.aka is None else tile.aka + 1)
         self.event_tsumogiri.append(_event_tsumogiri(event))
         self.event_kyoku_pos.append(pos)
+        meld_tiles = [UNKNOWN_TILE_KIND] * EVENT_MELD_SLOTS
+        meld_akas = [0] * EVENT_MELD_SLOTS
+        consumed = getattr(event, "consumed", ())
+        if isinstance(event, (ChiEvent, PonEvent, DaiminkanEvent, KakanEvent)):
+            for index, tile in enumerate(consumed[:EVENT_MELD_SLOTS]):
+                if not tile.is_unknown:
+                    meld_tiles[index] = tile.kind
+                    meld_akas[index] = 0 if tile.aka is None else tile.aka + 1
+        self.event_meld_tile.append(tuple(meld_tiles))
+        self.event_meld_aka.append(tuple(meld_akas))
         return len(self.event_type_id) - 1
 
     def add_decision(self, decision: DecisionInput, *, decision_id: str,
@@ -352,6 +369,10 @@ class VNextEventStream:
             "event_aka": pad_col(self.event_aka, 0),
             "event_tsumogiri": pad_col(self.event_tsumogiri, 0),
             "event_kyoku_pos": pad_col(self.event_kyoku_pos, 0),
+            "event_meld_tile": pad_col(self.event_meld_tile,
+                                       (UNKNOWN_TILE_KIND,) * EVENT_MELD_SLOTS),
+            "event_meld_aka": pad_col(self.event_meld_aka,
+                                      (0,) * EVENT_MELD_SLOTS),
         }
         valid = torch.zeros((1, pad), dtype=torch.bool)
         valid[0, :length] = True
@@ -363,6 +384,8 @@ class VNextEventStream:
             event_aka=torch.tensor([tensors["event_aka"]], dtype=torch.long),
             event_tsumogiri=torch.tensor([tensors["event_tsumogiri"]], dtype=torch.long),
             event_kyoku_pos=torch.tensor([tensors["event_kyoku_pos"]], dtype=torch.long),
+            event_meld_tile=torch.tensor([tensors["event_meld_tile"]], dtype=torch.long),
+            event_meld_aka=torch.tensor([tensors["event_meld_aka"]], dtype=torch.long),
             event_valid_mask=valid,
             decision_to_sequence=torch.zeros(len(states), dtype=torch.long),
             prefix_token_offsets=torch.tensor(
@@ -398,6 +421,7 @@ class VNextBatchBuilder:
         flat = {
             "event_type_id": [], "event_actor_rel": [], "event_tile_kind": [],
             "event_aka": [], "event_tsumogiri": [], "event_kyoku_pos": [],
+            "event_meld_tile": [], "event_meld_aka": [],
         }
         valid = torch.zeros((batch, length), dtype=torch.bool)
         decisions: list[tuple[int, VNextDecisionIndex, VNextVisibleState]] = []
@@ -410,8 +434,16 @@ class VNextBatchBuilder:
                 ("event_aka", stream.event_aka),
                 ("event_tsumogiri", stream.event_tsumogiri),
                 ("event_kyoku_pos", stream.event_kyoku_pos),
+                ("event_meld_tile", stream.event_meld_tile),
+                ("event_meld_aka", stream.event_meld_aka),
             ):
-                flat[name].append(column + [0] * (length - stream.n_tokens))
+                if name == "event_meld_tile":
+                    pad_value = (UNKNOWN_TILE_KIND,) * EVENT_MELD_SLOTS
+                elif name == "event_meld_aka":
+                    pad_value = (0,) * EVENT_MELD_SLOTS
+                else:
+                    pad_value = 0
+                flat[name].append(column + [pad_value] * (length - stream.n_tokens))
             for index, state in stream.decisions:
                 decisions.append((seq, index, state))
         if not decisions:
@@ -423,6 +455,8 @@ class VNextBatchBuilder:
             event_aka=torch.tensor(flat["event_aka"], dtype=torch.long),
             event_tsumogiri=torch.tensor(flat["event_tsumogiri"], dtype=torch.long),
             event_kyoku_pos=torch.tensor(flat["event_kyoku_pos"], dtype=torch.long),
+            event_meld_tile=torch.tensor(flat["event_meld_tile"], dtype=torch.long),
+            event_meld_aka=torch.tensor(flat["event_meld_aka"], dtype=torch.long),
             event_valid_mask=valid,
             decision_to_sequence=torch.tensor([d[0] for d in decisions], dtype=torch.long),
             prefix_token_offsets=torch.tensor(
@@ -456,6 +490,7 @@ def encode_stream(decision: DecisionInput, *, decision_id: str = "d0",
 
 
 __all__ = [
-    "EncoderContractError", "PHASE_INDEX", "PHASE_ORDER", "VNextBatchBuilder",
+    "EncoderContractError", "EVENT_MELD_SLOTS", "PHASE_INDEX", "PHASE_ORDER",
+    "VNextBatchBuilder",
     "VNextEventStream", "encode_stream", "encode_visible_state",
 ]
