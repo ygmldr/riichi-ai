@@ -91,7 +91,7 @@ was not rewritten and no public branch was pushed.
 
 Integration full suite after all merges and P1 fixes: **683 passed, 2 skipped, 281
 subtests** (187.73 s); after PR-38 loader/trainer integration: **708 passed, 2 skipped,
-281 subtests** (235.27 s), log `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`.
+281 subtests** (235.27 s), log `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`.
 
 G3/PR-43 split result is in `PR43_GATE.md`: CODE_PASS and private H-02 GPU smoke PASS;
 own-selfplay train and strength are NOT_RUN. Third-party rights remain 11 rows / 0
