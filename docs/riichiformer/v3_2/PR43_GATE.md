@@ -17,7 +17,7 @@ single unconditional PASS.
 | Item | Value |
 |---|---|
 | Branch | `rf/v32-integration` |
-| HEAD | `f1a4c95` (includes `c426ac7` P1 fixes and the PR-38/39 doc update) |
+| HEAD | `577cc03` (includes `c426ac7` P1 fixes, PR-38/39 doc update, and the gate record) |
 | Accepted base | `cbf166a` (`rf/v3.2-local`; remote `a27df099…`) |
 | Merged lanes | A `87afe78`, C `8248496`, B `4e4754b`, D `4e380a3` |
 | Python | `/home/ygsldr/riichi-ai/.venv/bin/python` (3.12, torch 2.11.0+cu128) |
