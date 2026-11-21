@@ -1,6 +1,7 @@
 # RiichiFormer VNext — Status
 
 **Updated**: 2026-11-22
+**HEAD**: `9d9fcbb` (review fixes in `63ffd3b`)
 **Lead branch**: `rf/vnext-core` (worktree `/home/ygsldr/riichi-ai/worktrees/vnext-core`)
 **Base**: `8a915d1` / tag `rf3.3-w2`
 **Contract hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
@@ -43,6 +44,12 @@ native Arena.
 * GPU profile, full B0 epoch, GRP fit, Arena Trend/Select/Confirm.
 * RL native league/rollout and any AWR/PPO comparison.
 * Any strength/dan/Tenhou/Mortal claim.
+
+## Review
+
+[`REVIEW.md`](REVIEW.md) records the first independent review (verdict FAIL at
+`138a77b`), every P0/P1 disposition, and the post-fix evidence.  A second
+reviewer is still pending; no PASS is claimed here.
 
 ## Gate
 
