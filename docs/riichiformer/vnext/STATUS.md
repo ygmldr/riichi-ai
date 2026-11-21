@@ -42,8 +42,9 @@
   unchanged, GRP 50 steps finite, behavior/AWR/PPO/PBRS/GAE finite.
   `logs/VNEXT_GPU_SMOKE_AFTER_SYNC_FIX.log`.
 * **Native trained-checkpoint smoke**: 4 games / 765 decisions and a
-  16-game lifecycle rerun / 2,792 decisions, 0 illegal/fallback; the 16-game
-  run exposed and fixed a missing per-game backend reset.
+  16-game lifecycle rerun / 2,792 decisions and an 8-game 10.5k-checkpoint run /
+  1,296 decisions, 0 illegal/fallback; the 16-game run exposed and fixed a
+  missing per-game backend reset.
   `logs/VNEXT_NATIVE_TRAINED_SMOKE.log`, `logs/VNEXT_NATIVE_TRAINED_16G.log`;
   two repeated 8-game runs produced identical action-trace hashes
   (`logs/VNEXT_NATIVE_DETERMINISM.log`).
