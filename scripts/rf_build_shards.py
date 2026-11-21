@@ -23,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from riichiformer.data.decision import DecisionBuildConfig, build_decisions  # noqa: E402
+from riichiformer.policy.research_policy import ResearchPolicy
 from riichiformer.data.shard import (  # noqa: E402
     ACTION_HASH, FROZEN_SCHEMA, NORMALIZER_HASH, SCHEMA_HASH, ShardMetadata,
     ShardRightsError, ShardWriter, make_game_record, sample_hashes,
@@ -171,7 +172,8 @@ def source_rights_allowed(rights: dict, source_id: str) -> bool:
 
 
 def select_rows(manifest_path: Path, protocol: str, limit: int,
-                purpose: str, rights: dict) -> list[dict]:
+                purpose: str, rights: dict,
+                research_policy: str = "licensed_only") -> list[dict]:
     """Stream the split-v2 manifest; select representatives only.
 
     ``is_representative=True`` already means one row per H-02 component; the duplicate
@@ -203,20 +205,25 @@ def select_rows(manifest_path: Path, protocol: str, limit: int,
                 continue
             if purpose == "train":
                 if row.get("split") != "train":
+                    if research_policy == "operator_private_research":
+                        continue  # Keep all holdout/select/confirm partitions isolated.
                     raise ShardRightsError(
                         f"training shard selected non-train split {row.get('split')!r} "
                         f"for {row.get('game_id')}")
-                if not row.get("train_allowed", False):
-                    raise ShardRightsError(
-                        f"training shard selected blocked row {row.get('game_id')} "
-                        f"(source={row.get('source_id')}, train_allowed=False)")
-                if str(row.get("rights_status", "")).upper() != "ALLOWED":
-                    raise ShardRightsError(
-                        f"training shard selected non-ALLOWED rights row {row.get('game_id')}")
-                if not source_rights_allowed(rights, row.get("source_id", "")):
-                    raise ShardRightsError(
-                        f"training source {row.get('source_id')!r} is not ALLOWED in "
-                        "source_rights.csv")
+                if row.get("source_id") not in rights:
+                    raise ShardRightsError("training source missing from provenance registry")
+                if research_policy == "licensed_only":
+                    if not row.get("train_allowed", False):
+                        raise ShardRightsError(
+                            f"training shard selected blocked row {row.get('game_id')} "
+                            f"(source={row.get('source_id')}, train_allowed=False)")
+                    if str(row.get("rights_status", "")).upper() != "ALLOWED":
+                        raise ShardRightsError(
+                            f"training shard selected non-ALLOWED rights row {row.get('game_id')}")
+                    if not source_rights_allowed(rights, row.get("source_id", "")):
+                        raise ShardRightsError(
+                            f"training source {row.get('source_id')!r} is not ALLOWED in "
+                            "source_rights.csv")
             rows.append(row)
             if len(rows) >= limit:
                 stop = True
@@ -227,7 +234,7 @@ def select_rows(manifest_path: Path, protocol: str, limit: int,
     return rows
 
 def build_metadata(rows: list[dict], canonical_dir: Path, split_manifest: Path,
-                   purpose: str) -> ShardMetadata:
+                   purpose: str, research_policy: str = "licensed_only") -> ShardMetadata:
     canonical_manifest = canonical_dir / "manifest.json"
     canonical = read_json(canonical_manifest)
     canonical_index_sha = canonical["artifacts"]["canonical_log_index.parquet"]["sha256"]
@@ -237,8 +244,17 @@ def build_metadata(rows: list[dict], canonical_dir: Path, split_manifest: Path,
     statuses = {str(row.get("rights_status", "UNKNOWN")).upper() for row in rows}
     train_ok = all(bool(row.get("train_allowed", False)) for row in rows) \
         and statuses == {"ALLOWED"}
-    if purpose == "train" and not train_ok:
-        raise ShardRightsError("training shard rows are not all ALLOWED")
+    if purpose == "train" and research_policy == "licensed_only" and not train_ok:
+        raise ShardRightsError("licensed training shard rows are not all ALLOWED")
+    if research_policy not in {"licensed_only", "operator_private_research"}:
+        raise ShardRightsError("unknown research policy")
+    research_policy_hash = ""
+    if research_policy == "operator_private_research":
+        research_policy_hash = ResearchPolicy(
+            profile=research_policy,
+            local_source_allowlist=frozenset(sources),
+            operator_reference="user private noncommercial research preference 2026-11-21",
+        ).policy_hash
     if len(sources) == 1:
         source_id = sources[0]
     else:
@@ -250,6 +266,8 @@ def build_metadata(rows: list[dict], canonical_dir: Path, split_manifest: Path,
         source_id=source_id,
         rights_status=rights_status,
         train_allowed=train_ok,
+        research_policy=research_policy,
+        research_policy_hash=research_policy_hash,
         canonical_manifest_sha256=canonical_manifest_sha,
         canonical_index_sha256=canonical_index_sha,
         split_manifest_sha256=split_sha,
@@ -308,12 +326,14 @@ def run(args) -> dict:
     elif limit > DEFAULT_LIMIT:
         raise ShardRightsError(f"limit {limit} exceeds bounded dry-run {DEFAULT_LIMIT}; use --all")
     rights = load_rights(Path(args.source_rights))
+    research_policy = getattr(args, "research_policy", "licensed_only")
     rows = select_rows(Path(args.split_manifest), args.protocol, limit,
-                       args.purpose, rights)
+                       args.purpose, rights, research_policy=research_policy)
     if not rows:
         raise ShardRightsError("no representative rows selected")
     metadata = build_metadata(rows, Path(args.canonical_dir),
-                              Path(args.split_manifest), args.purpose)
+                              Path(args.split_manifest), args.purpose,
+                              research_policy=research_policy)
     canonical_db = Path(args.canonical_db) if args.canonical_db else (
         Path(args.canonical_dir) / "canonical_index.sqlite")
     db_meta = check_canonical_db(canonical_db, rows) if args.check_canonical_db else {}
@@ -325,7 +345,8 @@ def run(args) -> dict:
             f"games, only {free_bytes} free under {Path(args.out).resolve().parent}")
     print(f"PR12_PLAN purpose={args.purpose} rows={len(rows)} "
           f"sources={metadata.source_id} rights={metadata.rights_status} "
-          f"train_allowed={metadata.train_allowed} dry_run={dry_run} "
+          f"train_allowed={metadata.train_allowed} research_policy={research_policy} "
+          f"policy_hash={metadata.research_policy_hash} dry_run={dry_run} "
           f"estimated_bytes={estimated_bytes} free_bytes={free_bytes} "
           f"canonical={db_meta.get('store_version', 'unchecked')}")
     if dry_run:
@@ -389,6 +410,11 @@ def main(argv=None) -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--io-window-approval", default=None)
     parser.add_argument("--source-rights", default=str(DEFAULT_RIGHTS))
+    parser.add_argument("--research-policy",
+                        choices=("licensed_only", "operator_private_research"),
+                        default="operator_private_research",
+                        help="Use operator-private local research by default and record actual source status; "
+                             "use licensed_only to require verified external permission.")
     parser.add_argument("--dry-run", action="store_true",
                         help="validate/report only (default unless --write)")
     parser.add_argument("--write", action="store_true",
