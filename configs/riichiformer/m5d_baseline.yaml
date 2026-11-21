@@ -50,10 +50,12 @@ permission: local_research_only
 permission_note: Research scope only. This registry grants no licence, no redistribution
   right and no permission to publish the checkpoint or game logs.
 python_driver_files:
+  riichiformer/eval/m5d_arena.py: 9e88ae16105b0d96e1d4202a5cdf103ce5bd89f6ff4b8204c4862fcf3252bb88
   riichiformer/eval/mortal_anchor.py: 22a531932ade52dfcbcddbd9605268320fe4692fcc5ccee4461152489f68e6d0
   riichiformer/eval/relative_pt.py: 1c653f687032a2a9b1d9729e89318033cf0b95c987be14ab86deaa7517eb97e5
+  scripts/rf_eval_m5d.py: 53b32fd759d5f2864f7cf20ef9282fb99127cd101942ec0490a789087c36e2c8
 python_driver_git_sha: e76022600018e9adc6536ccbb904db8c9dc498b3
-registry_hash: 6642df9d115817c76bff3c6264529085d2cde34ef60698401e3195debd2da114
+registry_hash: 96524922fe2b201151b0c01aeaa699fef2f94ff2d33de912103b882f354278cd
 registry_schema: rf-m5d-baseline-registry/1
 role: frozen_opponent
 rule_based_agari_guard: false
