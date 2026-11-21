@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """PR-14 synthetic-first BC trainer CLI.
 
-Default is dry-run.  Training requires a shard whose metadata is purpose=train,
-train_allowed=True and rights_status=ALLOWED; blocked shards are rejected before a model
-is constructed.  Frozen run/checkpoint/data roots are write-refused.
+Default is dry-run.  Training requires a shard whose metadata is purpose=train
+and whose policy is authenticated before a model is constructed:
+
+* ``licensed_only`` shards need ``train_allowed=True`` and
+  ``rights_status=ALLOWED``;
+* ``operator_private_research`` shards need an explicit ``--policy-config`` or
+  ``--expected-policy-hash`` plus a matching allowlist, and keep the real
+  external rights status as an independent fact (never a licence grant).
+
+Frozen run/checkpoint/data roots are write-refused.
 """
 
 from __future__ import annotations
 
 import argparse
+import string
 import sys
 from pathlib import Path
 
@@ -20,6 +28,10 @@ import torch  # noqa: E402
 from riichiformer.data.loader import ShardLoadError, ShardReader  # noqa: E402
 from riichiformer.data.shard import ShardRightsError  # noqa: E402
 from riichiformer.models.policy import MVPConfig, Policy  # noqa: E402
+from riichiformer.policy.config import (  # noqa: E402
+    PROFILES, PolicyConfig, PolicyConfigError, load_policy_config,
+)
+from riichiformer.policy.research_policy import ResearchPolicyError  # noqa: E402
 from riichiformer.train.bc import TrainingError, training_step  # noqa: E402
 from riichiformer.train.checkpoint import (  # noqa: E402
     CheckpointMismatch, load_checkpoint, save_checkpoint,
@@ -29,6 +41,7 @@ from riichiformer.train.optimizer import (  # noqa: E402
 )
 
 FROZEN_PREFIXES = ("datasets", "runs/1v3", "runs/variance", "checkpoints")
+PRIVATE_PROFILE = "operator_private_research"
 
 
 class TrainerRefusal(RuntimeError):
@@ -43,91 +56,160 @@ def _check_output_path(path: Path) -> None:
             raise TrainerRefusal(f"refusing to write frozen path {resolved}")
 
 
-def _load_reader(path: str) -> ShardReader:
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in string.hexdigits for char in value)
+
+
+def _resolve_policy(args) -> tuple[PolicyConfig | None, str | None]:
+    """Resolve the expected policy hash from --policy-config/--expected-policy-hash."""
+    policy = None
+    config_path = getattr(args, "policy_config", None)
+    if config_path:
+        policy = load_policy_config(config_path)
+    requested = getattr(args, "policy", None)
+    if requested is not None:
+        if requested not in PROFILES:
+            raise TrainerRefusal(f"unknown policy profile {requested!r}")
+        if policy is not None and policy.profile != requested:
+            raise TrainerRefusal(
+                f"--policy {requested!r} does not match --policy-config profile "
+                f"{policy.profile!r}")
+        if policy is None and requested == PRIVATE_PROFILE:
+            raise TrainerRefusal(
+                "--policy operator_private_research requires --policy-config")
+    expected = None
+    if policy is not None and policy.profile == PRIVATE_PROFILE:
+        expected = policy.policy_hash
+    cli_expected = (getattr(args, "expected_policy_hash", None) or "").strip()
+    if cli_expected:
+        value = cli_expected.lower()
+        if not _is_sha256(value):
+            raise TrainerRefusal(
+                "--expected-policy-hash must be a 64-character hex sha256")
+        if policy is not None:
+            if policy.profile != PRIVATE_PROFILE:
+                raise TrainerRefusal(
+                    "--expected-policy-hash is only valid with an "
+                    "operator_private_research policy config")
+            if value != policy.policy_hash:
+                raise TrainerRefusal(
+                    "--expected-policy-hash does not match --policy-config "
+                    "policy_hash")
+        expected = value
+    return policy, expected
+
+
+def _load_reader(path: str, policy: PolicyConfig | None = None,
+                 expected_policy_hash: str | None = None) -> ShardReader:
     try:
-        reader = ShardReader(path, purpose="train")
-    except ShardRightsError as exc:
+        reader = ShardReader(
+            path, purpose="train",
+            expected_policy_hash=expected_policy_hash,
+            allowed_local_sources=(policy.allowed_local_sources
+                                   if policy is not None else None))
+    except (ShardRightsError, ShardLoadError) as exc:
         raise TrainerRefusal(f"rights gate refused shard: {exc}") from exc
-    _hashes = {
-        "schema_hash": reader.metadata.schema_hash,
-        "action_map_hash": reader.metadata.action_map_hash,
-        "normalizer_hash": reader.metadata.normalizer_hash,
-    }
+    if policy is not None and reader.metadata.research_policy != policy.profile:
+        reader.close()
+        raise TrainerRefusal(
+            f"policy config profile {policy.profile!r} cannot consume shard "
+            f"profile {reader.metadata.research_policy!r}")
     return reader
 
 
 def run(args) -> int:
     if args.out:
         _check_output_path(Path(args.out))
-    reader = _load_reader(args.shard)
-    if args.dry_run or not args.train:
-        batches = 0
-        decisions = 0
-        for batch in reader.iter_batches(batch_size=args.batch_size):
-            batches += 1
-            decisions += len(batch.targets)
-            if args.steps and batches >= args.steps:
+    policy, expected_policy_hash = _resolve_policy(args)
+    reader = _load_reader(args.shard, policy, expected_policy_hash)
+    meta = reader.metadata
+    policy_summary = (
+        f"research_policy={meta.research_policy} "
+        f"policy_version={meta.policy_version!r} "
+        f"policy_hash={meta.research_policy_hash!r} "
+        f"external_license_status={meta.external_license_status} "
+        f"train_eligible_under_policy={meta.train_eligible_under_policy}")
+    if meta.research_policy == PRIVATE_PROFILE:
+        print("PR14_POLICY_NOTE research_policy=operator_private_research "
+              "operational_allow=True "
+              "basis=operator_attestation_not_external_license "
+              f"external_license_status={meta.external_license_status}; this is "
+              "not an external license or redistribution grant")
+    try:
+        if args.dry_run or not args.train:
+            batches = 0
+            decisions = 0
+            for batch in reader.iter_batches(batch_size=args.batch_size):
+                batches += 1
+                decisions += len(batch.targets)
+                if args.steps and batches >= args.steps:
+                    break
+            print(f"PR14_DRY_RUN shard={args.shard} batches={batches} "
+                  f"decisions={decisions} purpose={meta.purpose} "
+                  f"source={meta.source_id} {policy_summary}")
+            return 0
+        if not args.out:
+            raise TrainerRefusal("--train requires --out")
+        config = TrainingConfig(seed=args.seed, lr=args.lr, bf16=args.bf16,
+                                device=args.device, warmup_steps=args.warmup)
+        if args.cpu:
+            config = TrainingConfig(**{**config.__dict__, "device": "cpu", "bf16": False})
+        set_seed(config.seed)
+        model_config = MVPConfig(layers=args.layers, ffn=args.ffn,
+                                 state_hidden=args.state_hidden,
+                                 max_positions=args.max_positions)
+        model = Policy(model_config).to(config.device)
+        optimizer = make_optimizer(model, config)
+        scheduler = make_scheduler(optimizer, config)
+        step = tokens = decisions = 0
+        hashes = {"schema_hash": meta.schema_hash,
+                  "action_map_hash": meta.action_map_hash,
+                  "normalizer_hash": meta.normalizer_hash,
+                  "split_manifest_sha256": meta.split_manifest_sha256,
+                  "source_id": meta.source_id,
+                  "research_policy": meta.research_policy,
+                  "research_policy_hash": meta.research_policy_hash,
+                  "policy_version": meta.policy_version,
+                  "external_license_status": meta.external_license_status,
+                  "train_eligible_under_policy": meta.train_eligible_under_policy,
+                  "rights_status": meta.rights_status}
+        if args.resume:
+            expected = {key: hashes[key] for key in
+                        ("schema_hash", "action_map_hash", "normalizer_hash")}
+            provenance_keys = ("split_manifest_sha256", "source_id",
+                               "research_policy", "research_policy_hash", "rights_status")
+            expected_provenance = {key: hashes[key] for key in provenance_keys}
+            info, _ = load_checkpoint(args.resume, model=model, optimizer=optimizer,
+                                      scheduler=scheduler, expected_hashes=expected,
+                                      expected_provenance=expected_provenance)
+            step, tokens, decisions = info.step, info.tokens, info.decisions
+        batches = reader.iter_batches(batch_size=args.batch_size)
+        model.train()
+        while step < args.max_steps:
+            try:
+                batch = next(batches)
+            except StopIteration:
                 break
-        print(f"PR14_DRY_RUN shard={args.shard} batches={batches} decisions={decisions} "
-              f"purpose={reader.metadata.purpose} source={reader.metadata.source_id}")
+            model_batch = batch.batch.to(config.device)
+            result = training_step(model, model_batch, batch.targets,
+                                   optimizer=optimizer, scheduler=scheduler,
+                                   max_grad_norm=config.grad_clip, bf16=config.bf16)
+            if result.valid_decisions == 0:
+                continue
+            step += 1
+            decisions += result.valid_decisions
+            tokens += int(batch.batch.padding_mask.sum())
+            print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
+                  f"valid={result.valid_decisions}/{result.total_decisions}")
+        info = save_checkpoint(
+            args.out, model=model, optimizer=optimizer, scheduler=scheduler,
+            counters={"step": step, "tokens": tokens, "decisions": decisions},
+            hashes=hashes, config=config, seed=config.seed)
+        print(f"PR14_DONE step={step} tokens={tokens} decisions={decisions} "
+              f"sha256={info.sha256} {policy_summary}")
         return 0
-    if not args.out:
-        raise TrainerRefusal("--train requires --out")
-    config = TrainingConfig(seed=args.seed, lr=args.lr, bf16=args.bf16,
-                            device=args.device, warmup_steps=args.warmup)
-    if args.cpu:
-        config = TrainingConfig(**{**config.__dict__, "device": "cpu", "bf16": False})
-    set_seed(config.seed)
-    model_config = MVPConfig(layers=args.layers, ffn=args.ffn,
-                             state_hidden=args.state_hidden,
-                             max_positions=args.max_positions)
-    model = Policy(model_config).to(config.device)
-    optimizer = make_optimizer(model, config)
-    scheduler = make_scheduler(optimizer, config)
-    step = tokens = decisions = 0
-    hashes = {"schema_hash": reader.metadata.schema_hash,
-              "action_map_hash": reader.metadata.action_map_hash,
-              "normalizer_hash": reader.metadata.normalizer_hash,
-              "split_manifest_sha256": reader.metadata.split_manifest_sha256,
-              "source_id": reader.metadata.source_id,
-              "research_policy": reader.metadata.research_policy,
-              "research_policy_hash": reader.metadata.research_policy_hash,
-              "rights_status": reader.metadata.rights_status}
-    if args.resume:
-        expected = {key: hashes[key] for key in
-                    ("schema_hash", "action_map_hash", "normalizer_hash")}
-        provenance_keys = ("split_manifest_sha256", "source_id",
-                           "research_policy", "research_policy_hash", "rights_status")
-        expected_provenance = {key: hashes[key] for key in provenance_keys}
-        info, _ = load_checkpoint(args.resume, model=model, optimizer=optimizer,
-                                  scheduler=scheduler, expected_hashes=expected,
-                                  expected_provenance=expected_provenance)
-        step, tokens, decisions = info.step, info.tokens, info.decisions
-    batches = reader.iter_batches(batch_size=args.batch_size)
-    model.train()
-    while step < args.max_steps:
-        try:
-            batch = next(batches)
-        except StopIteration:
-            break
-        model_batch = batch.batch.to(config.device)
-        result = training_step(model, model_batch, batch.targets,
-                               optimizer=optimizer, scheduler=scheduler,
-                               max_grad_norm=config.grad_clip, bf16=config.bf16)
-        if result.valid_decisions == 0:
-            continue
-        step += 1
-        decisions += result.valid_decisions
-        tokens += int(batch.batch.padding_mask.sum())
-        print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
-              f"valid={result.valid_decisions}/{result.total_decisions}")
-    info = save_checkpoint(
-        args.out, model=model, optimizer=optimizer, scheduler=scheduler,
-        counters={"step": step, "tokens": tokens, "decisions": decisions},
-        hashes=hashes, config=config, seed=config.seed)
-    print(f"PR14_DONE step={step} tokens={tokens} decisions={decisions} "
-          f"sha256={info.sha256}")
-    return 0
+    finally:
+        reader.close()
 
 
 def main(argv=None) -> int:
@@ -136,7 +218,17 @@ def main(argv=None) -> int:
     parser.add_argument("--out", default=None)
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--train", action="store_true",
-                        help="actually train (requires --out and ALLOWED shard)")
+                        help="actually train (requires --out; the shard policy is "
+                             "authenticated before a model is built)")
+    parser.add_argument("--policy", choices=PROFILES, default=None,
+                        help="expected research profile; private also requires "
+                             "--policy-config")
+    parser.add_argument("--policy-config", default=None,
+                        help="strict YAML/JSON PolicyConfig used to authenticate a "
+                             "private shard and check its source allowlist")
+    parser.add_argument("--expected-policy-hash", default=None,
+                        help="expected 64-char canonical policy hash; an alternative "
+                             "to --policy-config for operator_private_research shards")
     parser.add_argument("--resume", default=None)
     parser.add_argument("--steps", type=int, default=0,
                         help="dry-run batch bound; 0 = all")
@@ -155,7 +247,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         return run(args)
-    except (TrainerRefusal, ShardLoadError, ShardRightsError) as exc:
+    except (TrainerRefusal, ShardLoadError, ShardRightsError,
+            PolicyConfigError, ResearchPolicyError) as exc:
         print(f"PR14_REFUSED: {exc}", file=sys.stderr)
         return 2
     except (TrainingError, OptimizerError, CheckpointMismatch) as exc:

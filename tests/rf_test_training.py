@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
+import io
+import json
 import sys
 import tempfile
 import unittest
@@ -21,6 +24,7 @@ from riichiformer.data.shard import (  # noqa: E402
     ShardWriter, make_game_record,
 )
 from riichiformer.models.policy import MVPConfig, Policy, PolicyOutput  # noqa: E402
+from riichiformer.policy.config import PolicyConfig  # noqa: E402
 from riichiformer.schemas.action_v3 import ACTION_SPACE  # noqa: E402
 from riichiformer.train.bc import TrainingError, masked_bc_loss, training_step  # noqa: E402
 from riichiformer.train.checkpoint import (  # noqa: E402
@@ -308,6 +312,157 @@ class RightsAndCLITests(unittest.TestCase):
                                str(REPO_ROOT / "checkpoints" / "forbidden.pt"),
                                "--max-steps", "1"])
             self.assertEqual(code, 2)
+
+
+def private_policy(allowlist=("tenhou_old",),
+                   reference="unit-test-private-operator") -> PolicyConfig:
+    return PolicyConfig(
+        profile="operator_private_research",
+        operator_reference=reference,
+        allowed_local_sources=frozenset(allowlist),
+        scope="local_nonpublic_only",
+    )
+
+
+def write_policy_config(directory: Path, policy: PolicyConfig) -> Path:
+    path = directory / f"policy-{policy.policy_hash[:8]}.json"
+    path.write_text(json.dumps(policy.to_dict()), encoding="utf-8")
+    return path
+
+
+def private_metadata(policy: PolicyConfig) -> ShardMetadata:
+    return ShardMetadata(
+        purpose="train", source_id="tenhou_old", rights_status="RESTRICTED",
+        train_allowed=False,
+        canonical_manifest_sha256="a" * 64,
+        canonical_index_sha256="b" * 64,
+        split_manifest_sha256="c" * 64,
+        split_version="rf-split/2",
+        schema_version="rf-schema-v3/2", schema_hash=SCHEMA_HASH,
+        action_map_hash=ACTION_HASH, normalizer_hash=NORMALIZER_HASH,
+        research_policy="operator_private_research",
+        research_policy_hash=policy.policy_hash,
+        policy_version=policy.policy_version,
+        train_eligible_under_policy=True,
+    )
+
+
+def build_private_shard(path: Path, policy: PolicyConfig, games: int = 2) -> None:
+    raw = raw_four()
+    samples = build_decisions(raw)
+    writer = ShardWriter(path, private_metadata(policy))
+    for index in range(games):
+        record = make_game_record(
+            raw, samples, game_id=f"p{index:02d}",
+            component_id=f"pcomp-{index}", component_sha256="d" * 64,
+            split="train", source_id="tenhou_old", train_allowed=False,
+            rights_status="RESTRICTED")
+        writer.add_game(record)
+    writer.finalize()
+
+
+class PrivatePolicyCLITests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.temp.name)
+        self.policy = private_policy()
+        self.config = write_policy_config(self.dir, self.policy)
+        self.shard = self.dir / "private.rfshard"
+        build_private_shard(self.shard, self.policy)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def _dry(self, *extra):
+        return train_main(["--shard", str(self.shard), "--dry-run", "--steps", "1",
+                           *extra])
+
+    def test_private_shard_refused_without_authentication(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            code = self._dry()
+        self.assertEqual(code, 2)
+        self.assertIn("expected policy hash", err.getvalue())
+
+    def test_private_shard_dry_run_with_policy_config(self):
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = self._dry("--policy-config", str(self.config))
+        self.assertEqual(code, 0)
+        self.assertIn("PR14_POLICY_NOTE", out.getvalue())
+        self.assertIn("external_license_status=RESTRICTED", out.getvalue())
+
+    def test_private_shard_dry_run_with_expected_hash(self):
+        code = self._dry("--expected-policy-hash", self.policy.policy_hash)
+        self.assertEqual(code, 0)
+
+    def test_private_shard_wrong_expected_hash_refused(self):
+        code = self._dry("--expected-policy-hash", "e" * 64)
+        self.assertEqual(code, 2)
+
+    def test_private_shard_wrong_config_hash_refused(self):
+        other = write_policy_config(
+            self.dir, private_policy(reference="different-operator-reference"))
+        code = self._dry("--policy-config", str(other))
+        self.assertEqual(code, 2)
+
+    def test_private_shard_source_outside_allowlist_refused(self):
+        # Adversarial fixture: correct policy hash, but a source outside that
+        # policy's allowlist (as a differently-built/tampered shard could claim).
+        meta = dataclasses.replace(
+            private_metadata(self.policy), source_id="selfplay_own",
+            rights_status="UNKNOWN", external_license_status="UNKNOWN")
+        path = self.dir / "outside-allowlist.rfshard"
+        raw = raw_four()
+        samples = build_decisions(raw)
+        writer = ShardWriter(path, meta)
+        writer.add_game(make_game_record(
+            raw, samples, game_id="outside", component_id="comp-outside",
+            component_sha256="d" * 64, split="train", source_id="selfplay_own",
+            train_allowed=False, rights_status="UNKNOWN"))
+        writer.finalize()
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            code = train_main(["--shard", str(path), "--dry-run",
+                               "--policy-config", str(self.config)])
+        self.assertEqual(code, 2)
+        self.assertIn("outside the expected policy allowlist", err.getvalue())
+
+    def test_cli_expected_hash_must_match_given_config(self):
+        code = self._dry("--policy-config", str(self.config),
+                         "--expected-policy-hash", "e" * 64)
+        self.assertEqual(code, 2)
+
+    def test_licensed_shard_refused_by_private_config(self):
+        licensed = self.dir / "licensed.rfshard"
+        build_shard(licensed, games=1)
+        code = train_main(["--shard", str(licensed), "--dry-run",
+                           "--policy-config", str(self.config)])
+        self.assertEqual(code, 2)
+
+    def test_private_train_and_resume_provenance(self):
+        ckpt = self.dir / "private.pt"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = train_main([
+                "--shard", str(self.shard), "--train", "--out", str(ckpt),
+                "--max-steps", "1", "--batch-size", "4",
+                "--policy-config", str(self.config)])
+        self.assertEqual(code, 0)
+        self.assertTrue(ckpt.exists())
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = train_main([
+                "--shard", str(self.shard), "--train", "--resume", str(ckpt),
+                "--out", str(ckpt), "--max-steps", "2", "--batch-size", "4",
+                "--policy-config", str(self.config)])
+        self.assertEqual(code, 0)
+        other_policy = private_policy(reference="different-operator-reference")
+        other_config = write_policy_config(self.dir, other_policy)
+        other_shard = self.dir / "private-other.rfshard"
+        build_private_shard(other_shard, other_policy)
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            code = train_main([
+                "--shard", str(other_shard), "--train", "--resume", str(ckpt),
+                "--out", str(ckpt), "--max-steps", "3", "--batch-size", "4",
+                "--policy-config", str(other_config)])
+        self.assertEqual(code, 1)
+        self.assertIn("provenance mismatch for research_policy_hash", err.getvalue())
 
 
 if __name__ == "__main__":

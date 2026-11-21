@@ -10,8 +10,12 @@ On disk a shard is a SQLite database with three disjoint sections:
 
 A shard also has a JSON sidecar manifest.  Writes go to ``<path>.tmp`` and are atomically
 renamed on :meth:`ShardWriter.finalize`; resume opens the temp/final DB and is idempotent
-per game_id.  Training shards require ``train_allowed=True`` and rights_status ALLOWED;
-audit/diagnostic shards are explicit and carry the same metadata plus a loud purpose.
+per game_id.  Licensed training shards require ``train_allowed=True`` and
+rights_status ALLOWED.  An ``operator_private_research`` shard keeps the real
+``rights_status`` (UNKNOWN/RESTRICTED) and records a policy-config hash plus
+``train_eligible_under_policy``; the loader authenticates that hash against an
+explicit operator policy before any training row is yielded.  Audit/diagnostic shards
+are explicit and carry the same metadata plus a loud purpose.
 """
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from ..policy.config import POLICY_VERSION
 from ..schemas.action_v3 import ACTION_MAP_HASH, SCHEMA_VERSION, ActionPhase
 from ..schemas.decision_v3 import DecisionInput, RulesetDeviation, RulesetId, SourceKind
 from ..schemas.event_v3 import event_from_dict
@@ -171,6 +176,16 @@ class ShardMetadata:
     projection_version: str = pov.POV_PROJECTION_VERSION
     research_policy: str = "licensed_only"
     research_policy_hash: str = ""
+    #: Canonical policy-config version that produced ``research_policy_hash``.
+    #: Empty on legacy shards (or licensed-only builds without a config file).
+    policy_version: str = ""
+    #: Independent external-rights fact; never rewritten by a local policy.
+    #: Empty means "inherit ``rights_status``" (normalised in ``__post_init__``).
+    external_license_status: str = ""
+    #: True only when a policy decision (not merely a local file) made this
+    #: training shard eligible.  External licence facts remain in
+    #: ``rights_status``/``external_license_status`` and are never overwritten.
+    train_eligible_under_policy: bool = False
     created_utc: str = field(
         default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
@@ -191,11 +206,41 @@ class ShardMetadata:
                 raise ShardError("private research requires a 64-character policy hash")
         elif self.research_policy_hash:
             raise ShardError("licensed_only must not carry a private research hash")
+        if self.policy_version not in {"", POLICY_VERSION}:
+            raise ShardError(
+                f"unsupported policy_version {self.policy_version!r}; expected "
+                f"{POLICY_VERSION!r} or empty for legacy shards")
+        if not isinstance(self.train_eligible_under_policy, bool):
+            raise ShardError("train_eligible_under_policy must be bool")
+        external = str(self.external_license_status or "").upper()
+        if external:
+            if external not in {"ALLOWED", "RESTRICTED", "UNKNOWN"}:
+                raise ShardError(
+                    "external_license_status must be ALLOWED/RESTRICTED/UNKNOWN, "
+                    f"got {self.external_license_status!r}")
+            if external != status:
+                raise ShardError(
+                    "external_license_status must match rights_status; a local "
+                    "policy can never rewrite the external fact")
+        else:
+            external = status
+        object.__setattr__(self, "external_license_status", external)
+        if self.train_eligible_under_policy and self.research_policy == "licensed_only" \
+                and (not self.train_allowed or status != "ALLOWED"):
+            raise ShardError(
+                "licensed_only train_eligible_under_policy=True requires "
+                "train_allowed=True and rights_status=ALLOWED")
         if self.purpose == "train" and self.research_policy == "licensed_only" \
                 and (not self.train_allowed or status != "ALLOWED"):
             raise ShardRightsError(
                 "licensed training shards require train_allowed=True and rights_status=ALLOWED; "
                 f"got train_allowed={self.train_allowed}, rights_status={status}")
+        if self.purpose == "train" \
+                and self.research_policy == "operator_private_research" \
+                and not self.train_eligible_under_policy:
+            raise ShardRightsError(
+                "private training shards require train_eligible_under_policy=True; "
+                "an unauthenticated private shard cannot claim training eligibility")
         for name in ("canonical_manifest_sha256", "canonical_index_sha256",
                      "split_manifest_sha256"):
             value = getattr(self, name)
@@ -229,6 +274,9 @@ class ShardMetadata:
             "train_allowed": self.train_allowed,
             "research_policy": self.research_policy,
             "research_policy_hash": self.research_policy_hash,
+            "policy_version": self.policy_version,
+            "external_license_status": self.external_license_status,
+            "train_eligible_under_policy": self.train_eligible_under_policy,
             "canonical_manifest_sha256": self.canonical_manifest_sha256,
             "canonical_index_sha256": self.canonical_index_sha256,
             "split_manifest_sha256": self.split_manifest_sha256,
@@ -261,6 +309,10 @@ class ShardMetadata:
             source_kind=value["source_kind"], projection_version=value["projection_version"],
             research_policy=value.get("research_policy", "licensed_only"),
             research_policy_hash=value.get("research_policy_hash", ""),
+            policy_version=value.get("policy_version", ""),
+            external_license_status=value.get("external_license_status", ""),
+            train_eligible_under_policy=bool(
+                value.get("train_eligible_under_policy", False)),
             created_utc=value.get("created_utc", "1970-01-01T00:00:00Z"),
         )
 
@@ -500,6 +552,13 @@ class ShardWriter:
             if self.metadata.research_policy == "licensed_only" and (
                     not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED"):
                 raise ShardRightsError("cannot write licensed training shard from blocked source")
+            eligible = self.metadata.train_eligible_under_policy or (
+                self.metadata.research_policy == "licensed_only"
+                and self.metadata.train_allowed
+                and self.metadata.rights_status.upper() == "ALLOWED")
+            if not eligible:
+                raise ShardRightsError(
+                    "cannot write a training shard that is not eligible under policy")
             # Per-game gate: metadata alone cannot smuggle a val/blocked row into train.
             if game.split != "train":
                 raise ShardRightsError(

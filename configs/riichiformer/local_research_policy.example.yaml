@@ -1,0 +1,30 @@
+# Example operator research policy (safe to commit).
+#
+# This file records a *local research routing choice* made by the project
+# operator.  It is NOT a third-party licence, a copyright permission, or a
+# redistribution grant.  The external facts stay in source_rights.csv and are
+# never rewritten by this file.
+#
+# Copy this file to a local path (for example
+# configs/riichiformer/local_research_policy.yaml) and edit
+# operator_reference/allowed_local_sources for your own non-public research.
+# Keep release_allowed and network_upload_allowed false: a private research
+# profile can never authorize publication or upload.
+policy_version: rf-local-policy/1
+profile: operator_private_research
+scope: local_nonpublic_only
+operator_reference: example-user-authored-local-research-policy
+allowed_local_sources:
+  - tenhou_old
+  - tenhou_recent
+  - tenhou_raw_logs
+  - tenhou_to_mjai_dataset
+  - tenhou_to_mjai_code
+  - mortal_code
+  - teacher_local
+  - akochan_code
+  - selfplay_own
+  - majsoul_optional
+  - third_party_mirror_hf
+release_allowed: false
+network_upload_allowed: false

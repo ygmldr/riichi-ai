@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""PR-12 shard builder: H-02 canonical/split-v2 -> rf-shard/1.
+"""PR-12 shard builder: H-02 canonical/split-v2 -> rf-shard/3.
 
 Read-only over canonical/split/raw logs.  Default is a bounded 100k dry-run;
-writing is explicit.  Training shards require an ALLOWED source row; blocked sources
-may only be written with ``--purpose audit|diagnostic`` and are loudly labelled.
+writing is explicit.  The default research profile is the strict
+``licensed_only`` gate.  ``operator_private_research`` is an explicit operator
+opt-in that additionally requires ``--policy-config`` and checks that the
+policy allowlist covers every selected source; it records the policy version +
+canonical hash while leaving the real rights status untouched.
 """
 
 from __future__ import annotations
@@ -23,7 +26,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from riichiformer.data.decision import DecisionBuildConfig, build_decisions  # noqa: E402
-from riichiformer.policy.research_policy import ResearchPolicy
+from riichiformer.policy.config import (  # noqa: E402
+    PROFILES, PolicyConfig, PolicyConfigError, load_policy_config,
+)
+from riichiformer.policy.research_policy import (  # noqa: E402
+    PRIVATE_PROFILE, ResearchPolicyError,
+)
 from riichiformer.data.shard import (  # noqa: E402
     ACTION_HASH, FROZEN_SCHEMA, NORMALIZER_HASH, SCHEMA_HASH, ShardMetadata,
     ShardRightsError, ShardWriter, make_game_record, sample_hashes,
@@ -233,8 +241,39 @@ def select_rows(manifest_path: Path, protocol: str, limit: int,
     rows.sort(key=lambda row: row["game_id"])
     return rows
 
+def assert_policy_covers_sources(policy: PolicyConfig, sources: Iterable[str]) -> None:
+    """Fail closed when a private build selects a source outside the allowlist."""
+    uncovered = sorted(set(sources) - set(policy.allowed_local_sources))
+    if uncovered:
+        raise ShardRightsError(
+            f"policy allowlist does not cover training source(s) {uncovered}; "
+            f"profile={policy.profile} policy_hash={policy.policy_hash}; add the "
+            "source to allowed_local_sources or use --research-policy licensed_only")
+
+
+def resolve_policy(research_policy: str, policy_config: str | Path | None
+                   ) -> tuple[str, PolicyConfig | None]:
+    """Resolve the explicit profile + optional config; private never defaults open."""
+    if research_policy not in PROFILES:
+        raise ShardRightsError(
+            f"unknown research policy {research_policy!r}; choose one of {PROFILES}")
+    policy = None
+    if policy_config:
+        policy = load_policy_config(policy_config)
+    if policy is not None and policy.profile != research_policy:
+        raise ResearchPolicyError(
+            f"--research-policy {research_policy!r} does not match policy config "
+            f"profile {policy.profile!r}")
+    if research_policy == PRIVATE_PROFILE and policy is None:
+        raise ResearchPolicyError(
+            "operator_private_research requires an explicit --policy-config; "
+            "the former fail-open default is removed")
+    return research_policy, policy
+
+
 def build_metadata(rows: list[dict], canonical_dir: Path, split_manifest: Path,
-                   purpose: str, research_policy: str = "licensed_only") -> ShardMetadata:
+                   purpose: str, research_policy: str = "licensed_only",
+                   policy: PolicyConfig | None = None) -> ShardMetadata:
     canonical_manifest = canonical_dir / "manifest.json"
     canonical = read_json(canonical_manifest)
     canonical_index_sha = canonical["artifacts"]["canonical_log_index.parquet"]["sha256"]
@@ -244,30 +283,45 @@ def build_metadata(rows: list[dict], canonical_dir: Path, split_manifest: Path,
     statuses = {str(row.get("rights_status", "UNKNOWN")).upper() for row in rows}
     train_ok = all(bool(row.get("train_allowed", False)) for row in rows) \
         and statuses == {"ALLOWED"}
+    if research_policy not in PROFILES:
+        raise ShardRightsError("unknown research policy")
+    if policy is not None:
+        if not isinstance(policy, PolicyConfig):
+            raise ShardRightsError("policy must be a PolicyConfig")
+        if policy.profile != research_policy:
+            raise ResearchPolicyError(
+                f"research_policy {research_policy!r} != policy config profile "
+                f"{policy.profile!r}")
+    if research_policy == PRIVATE_PROFILE:
+        if policy is None:
+            raise ResearchPolicyError(
+                "operator_private_research requires an explicit PolicyConfig")
+        assert_policy_covers_sources(policy, sources)
     if purpose == "train" and research_policy == "licensed_only" and not train_ok:
         raise ShardRightsError("licensed training shard rows are not all ALLOWED")
-    if research_policy not in {"licensed_only", "operator_private_research"}:
-        raise ShardRightsError("unknown research policy")
     research_policy_hash = ""
-    if research_policy == "operator_private_research":
-        research_policy_hash = ResearchPolicy(
-            profile=research_policy,
-            local_source_allowlist=frozenset(sources),
-            operator_reference="user private noncommercial research preference 2026-11-21",
-        ).policy_hash
+    policy_version = ""
+    if research_policy == PRIVATE_PROFILE:
+        research_policy_hash = policy.policy_hash
+        policy_version = policy.policy_version
     if len(sources) == 1:
         source_id = sources[0]
     else:
         source_id = "mixed:" + "+".join(sources)
     rights_status = "ALLOWED" if train_ok else (
         "RESTRICTED" if "RESTRICTED" in statuses else "UNKNOWN")
+    train_eligible = purpose == "train" and (
+        train_ok if research_policy == "licensed_only" else True)
     return ShardMetadata(
         purpose=purpose,
         source_id=source_id,
         rights_status=rights_status,
+        external_license_status=rights_status,
         train_allowed=train_ok,
+        train_eligible_under_policy=train_eligible,
         research_policy=research_policy,
         research_policy_hash=research_policy_hash,
+        policy_version=policy_version,
         canonical_manifest_sha256=canonical_manifest_sha,
         canonical_index_sha256=canonical_index_sha,
         split_manifest_sha256=split_sha,
@@ -312,6 +366,10 @@ def read_events(root: str, relpath: str) -> list[dict]:
 
 
 def run(args) -> dict:
+    research_policy = getattr(args, "research_policy", "licensed_only")
+    policy = None
+    research_policy, policy = resolve_policy(
+        research_policy, getattr(args, "policy_config", None))
     assert_safe_shard_out(Path(args.out),
                           Path(getattr(args, "repo_root", REPO_ROOT)),
                           getattr(args, "protected_root", ()))
@@ -326,14 +384,13 @@ def run(args) -> dict:
     elif limit > DEFAULT_LIMIT:
         raise ShardRightsError(f"limit {limit} exceeds bounded dry-run {DEFAULT_LIMIT}; use --all")
     rights = load_rights(Path(args.source_rights))
-    research_policy = getattr(args, "research_policy", "licensed_only")
     rows = select_rows(Path(args.split_manifest), args.protocol, limit,
                        args.purpose, rights, research_policy=research_policy)
     if not rows:
         raise ShardRightsError("no representative rows selected")
     metadata = build_metadata(rows, Path(args.canonical_dir),
                               Path(args.split_manifest), args.purpose,
-                              research_policy=research_policy)
+                              research_policy=research_policy, policy=policy)
     canonical_db = Path(args.canonical_db) if args.canonical_db else (
         Path(args.canonical_dir) / "canonical_index.sqlite")
     db_meta = check_canonical_db(canonical_db, rows) if args.check_canonical_db else {}
@@ -346,9 +403,11 @@ def run(args) -> dict:
     print(f"PR12_PLAN purpose={args.purpose} rows={len(rows)} "
           f"sources={metadata.source_id} rights={metadata.rights_status} "
           f"train_allowed={metadata.train_allowed} research_policy={research_policy} "
-          f"policy_hash={metadata.research_policy_hash} dry_run={dry_run} "
-          f"estimated_bytes={estimated_bytes} free_bytes={free_bytes} "
-          f"canonical={db_meta.get('store_version', 'unchecked')}")
+          f"policy_version={metadata.policy_version} "
+          f"policy_hash={metadata.research_policy_hash} "
+          f"train_eligible_under_policy={metadata.train_eligible_under_policy} "
+          f"dry_run={dry_run} estimated_bytes={estimated_bytes} "
+          f"free_bytes={free_bytes} canonical={db_meta.get('store_version', 'unchecked')}")
     if dry_run:
         return {"selected": len(rows), "written": 0, "dry_run": True,
                 "rights_status": metadata.rights_status,
@@ -395,7 +454,7 @@ def run(args) -> dict:
             "estimated_bytes": estimated_bytes}
 
 
-def main(argv=None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--canonical-dir", default=str(DEFAULT_CANONICAL))
     parser.add_argument("--canonical-db", default=None)
@@ -411,10 +470,14 @@ def main(argv=None) -> int:
     parser.add_argument("--io-window-approval", default=None)
     parser.add_argument("--source-rights", default=str(DEFAULT_RIGHTS))
     parser.add_argument("--research-policy",
-                        choices=("licensed_only", "operator_private_research"),
-                        default="operator_private_research",
-                        help="Use operator-private local research by default and record actual source status; "
-                             "use licensed_only to require verified external permission.")
+                        choices=PROFILES,
+                        default="licensed_only",
+                        help="licensed_only (strict default) or "
+                             "operator_private_research (requires --policy-config "
+                             "and records the real rights status unchanged)")
+    parser.add_argument("--policy-config", default=None,
+                        help="strict YAML/JSON PolicyConfig; required for "
+                             "operator_private_research and hashed into metadata")
     parser.add_argument("--dry-run", action="store_true",
                         help="validate/report only (default unless --write)")
     parser.add_argument("--write", action="store_true",
@@ -425,10 +488,15 @@ def main(argv=None) -> int:
                         help="checkout root used for the read-only write guard")
     parser.add_argument("--protected-root", action="append", default=[],
                         help="extra checkout root whose data/artifact dirs are read-only")
+    return parser
+
+
+def main(argv=None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
     try:
         result = run(args)
-    except ShardRightsError as exc:
+    except (ShardRightsError, ResearchPolicyError, PolicyConfigError) as exc:
         print(f"PR12_RIGHTS_REFUSED: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # noqa: BLE001
