@@ -174,6 +174,17 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(grads)
         self.assertTrue(any(float(g.abs().sum()) > 0 for g in grads))
 
+    def test_detach_critic_cuts_actor_gradient(self):
+        model = VNextPolicy(small_config(critic_grad_mode="detach_actor"))
+        output = model(self.batch)
+        output.rank_logits.sum().backward()
+        actor_grads = [p.grad for name, p in model.named_parameters()
+                       if not name.startswith("critic") and p.grad is not None]
+        critic_grads = [p.grad for name, p in model.named_parameters()
+                        if name.startswith("critic") and p.grad is not None]
+        self.assertFalse(any(float(g.abs().sum()) > 0 for g in actor_grads))
+        self.assertTrue(any(float(g.abs().sum()) > 0 for g in critic_grads))
+
     def test_autocast_policy_output_is_fp32(self):
         if not hasattr(torch, "autocast"):
             self.skipTest("autocast unavailable")

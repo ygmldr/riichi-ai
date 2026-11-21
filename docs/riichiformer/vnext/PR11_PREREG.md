@@ -4,8 +4,8 @@
 **Experiment ID**: `VNEXT-BC-PILOT-1`  
 **Owner**: single Lead  
 **Base**: `rf/vnext-core` at `8a915d1` + VNext PRs  
-**Frozen contract hash**: `3c2d398c9870ede0dc6ffc8557e588dad42c9823508a62759f5b6a3fd1ad5325`  
-**Model architecture hash**: `a0ca7a882ee6aa25b9c4afbb5efba246b6ea9a4661fa113666f1d7c3d85cab9d`  
+**Frozen contract hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
+**Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`  
 **Model parameters**: 6,462,940
 
 This is a **plan**, not a passed gate.  No GPU training has been started.  The

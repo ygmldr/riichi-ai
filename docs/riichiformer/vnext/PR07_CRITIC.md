@@ -10,7 +10,8 @@
 * `critic_ce` is weighted CE over four rank classes; target ranks are 0..3.
 * `critic_features(z, "detach_actor")` returns `z.detach()`, so a Critic-only
   backward cannot put any gradient on the Actor trunk.
-* `critic_features(z, "joint")` leaves the graph connected.
+* `critic_features(z, "joint")` leaves the graph connected; `VNextConfig`
+  exposes the same switch to the full model (`critic_grad_mode`).
 * `expected_pt` projects rank probabilities with the frozen 5D table.
 
 ## Tests

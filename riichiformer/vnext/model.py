@@ -339,7 +339,13 @@ class VNextPolicy(nn.Module):
         logits = logits.float()
         masked = logits.masked_fill(~batch.legal_mask, float("-inf"))
         logprobs = torch.log_softmax(masked, dim=-1)
-        rank_logits = self.critic(z) if self.critic is not None else None
+        if self.critic is not None:
+            critic_input = (z.detach()
+                            if self.config.critic_grad_mode == "detach_actor"
+                            else z)
+            rank_logits = self.critic(critic_input)
+        else:
+            rank_logits = None
         output = VNextPolicyOutput(
             logits=logits, masked_logits=masked, logprobs=logprobs,
             legal_mask=batch.legal_mask, rank_logits=rank_logits)

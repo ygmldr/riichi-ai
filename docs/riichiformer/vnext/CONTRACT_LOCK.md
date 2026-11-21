@@ -4,8 +4,8 @@
 **Owner**: single Lead  
 **Base**: `rf3.3-w2` / `8a915d1`  
 **Contract module**: `riichiformer/vnext/contracts.py`  
-**Manifest hash**: `3c2d398c9870ede0dc6ffc8557e588dad42c9823508a62759f5b6a3fd1ad5325`  
-**Model architecture hash**: `a0ca7a882ee6aa25b9c4afbb5efba246b6ea9a4661fa113666f1d7c3d85cab9d`
+**Manifest hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
+**Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`
 
 ## 1. Frozen identifiers
 
@@ -22,7 +22,8 @@
 | normalizer hash | `37df861b08b3958c3030c53dcbfa27762892c41332b383060caf46788f9ad444` |
 
 The model default is `6L / d256 / 4 heads / ffn 704`, 1 cross-attention layer,
-factorized tile embedding, tile-scored 37 + other 9 head, and 4-class Critic.
+factorized tile embedding, tile-scored 37 + other 9 head, and 4-class Critic
+with `critic_grad_mode ∈ {joint, detach_actor}`.
 `cross_attn_layers=0`, `head_type=linear46`, `tile_embedding=identity` and
 `model_mode=state_only` are explicit control configurations.
 

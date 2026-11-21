@@ -212,6 +212,7 @@ class VNextConfig:
     head_type: str = "tile_scored"       # tile_scored | linear46
     model_mode: str = "event_state"      # event_state | state_only
     critic_enabled: bool = True
+    critic_grad_mode: str = "joint"  # joint | detach_actor
     tile_identity_scale: float = 1.0
     rope_base: float = 10_000.0
     rmsnorm_eps: float = 1.0e-6
@@ -223,6 +224,8 @@ class VNextConfig:
             raise ContractError("head_type must be tile_scored or linear46")
         if self.model_mode not in {"event_state", "state_only"}:
             raise ContractError("model_mode must be event_state or state_only")
+        if self.critic_grad_mode not in {"joint", "detach_actor"}:
+            raise ContractError("critic_grad_mode must be joint or detach_actor")
         if self.cross_attn_layers not in {0, 1, 2}:
             raise ContractError("cross_attn_layers must be 0, 1 or 2")
         for name in ("d_model", "n_layers", "n_heads", "ffn_hidden",

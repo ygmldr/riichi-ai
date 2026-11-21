@@ -3,16 +3,16 @@
 **Updated**: 2026-11-22  
 **Lead branch**: `rf/vnext-core` (worktree `/home/ygsldr/riichi-ai/worktrees/vnext-core`)  
 **Base**: `8a915d1` / tag `rf3.3-w2`  
-**Contract hash**: `3c2d398c9870ede0dc6ffc8557e588dad42c9823508a62759f5b6a3fd1ad5325`  
+**Contract hash**: `af7d9bb2c94228e4fda262f553a18b3c05da2e7fba1c5d51229231cd6399667d`  
 **Model params**: 6,462,940
 
 ## What exists now
 
 | Area | Code | CPU tests |
 |---|---|---|
-| Contracts | `riichiformer/vnext/contracts.py` | 18 contract tests |
+| Contracts | `riichiformer/vnext/contracts.py` | 12 contract tests |
 | Event + 34-tile state | `observable.py` | included in model suite |
-| Model / cross-attn / heads | `model.py` | 11 model tests |
+| Model / cross-attn / heads | `model.py` | 14 model tests |
 | Runtime | `runtime.py` | 4 tests |
 | GRP24 | `grp.py` | 7 tests |
 | Critic | `critic.py` | 4 tests |
@@ -20,7 +20,7 @@
 | RL contracts/toy | `rl.py` | 14 tests |
 | V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | 8 synthetic tests + 43 B0 tests |
 
-Last clean VNext-only CPU run: **61 passed** in ~2 s
+Last clean VNext-only CPU run: **62 passed** in 2.02 s
 (`logs/vnext/vnext_cpu_only.log`), with CUDA hidden.  The VNext + P1 + B0
 combined run is recorded separately; it does not substitute for a full native
 Arena.
