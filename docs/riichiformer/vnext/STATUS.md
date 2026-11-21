@@ -46,7 +46,7 @@
 * **Real-data pilot**: 1,000 games / 661,627 decisions train; 500 games /
   326,798 decisions held-out val.  1,000 steps: val BC CE 1.5983 → 1.5285.
   5,000 steps: val BC CE **1.5893 → 1.4719**, rank CE **1.3682 → 1.2956**,
-  657.5 s; a separate 200-batch validation gives 1.4957 / 1.1863.  See [`PR12_REAL_PILOT.md`](PR12_REAL_PILOT.md).  Loss only; no
+  657.5 s; a separate 500-batch validation gives 1.4934 / 1.1744.  See [`PR12_REAL_PILOT.md`](PR12_REAL_PILOT.md).  Loss only; no
   strength claim.
 
 The first GPU profile was 323.8 forward / 274.0 train decisions/s because every

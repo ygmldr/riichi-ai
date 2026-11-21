@@ -102,9 +102,9 @@ A longer 5,000-step run on the same 1,000/500 shards completed in 657.5 s:
 - train loss first/last 2.2397 / 1.5313;
 - checkpoint `runs/vnext_real_pilot1000_long/candidates/step_005000.pt`.
 
-A separate 200-batch / 12,800-decision validation of that checkpoint (not just
-the 50-batch training-time sample) gives **BC CE 1.4957**, **rank CE 1.1863**,
-total 1.6144.  The 50-batch result (1.4719 / 1.2956) was a noisier sample.
+A separate 500-batch / 32,000-decision validation of that checkpoint (not just
+the 50-batch training-time sample) gives **BC CE 1.4934**, **rank CE 1.1744**,
+total 1.6108.  The 50-batch result (1.4719 / 1.2956) was a noisier sample.
 
 Still a loss/optimisation result only; no strength claim.
 
