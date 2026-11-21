@@ -1,0 +1,13 @@
+# V3.3 resource locks (Lead-owned). No GPU job is authorized in this wave.
+gpu:
+  owner: null
+  authorized: false
+  note: "User requested GPU idle; only bounded CPU smoke is allowed."
+io:
+  heavy_rebuild: null
+  note: "Rust rebuild is CPU-only and per-lane; no full-corpus rebuild."
+lanes:
+  A: {worktree: worktrees/v33-a, branch: rf/pr46-m5d}
+  B: {worktree: worktrees/v33-b, branch: rf/pr45-47-validation}
+  C: {worktree: worktrees/v33-c, branch: rf/pr48-b0}
+  D: {worktree: worktrees/v33-d, branch: rf/pr40r-r29}
