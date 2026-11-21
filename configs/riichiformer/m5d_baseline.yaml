@@ -1,0 +1,64 @@
+action_guard: native_46_action_mask_only
+anchor_id: M5D-R0
+boltzmann_epsilon: 0.0
+canonicalization: sha256(json.dumps(payload_without_registry_hash, sort_keys=True,
+  separators=(',',':'), ensure_ascii=False).encode('utf-8'))
+checkpoint_bytes: 130781915
+checkpoint_path: /home/ygsldr/riichi-ai/checkpoints/mortal.pth
+checkpoint_sha256: 0a44613cb9c7edae1057cf6a2c160c3971c78130e18e07f28bb43e8f62abe532
+engine:
+  amp: false
+  compile: false
+  device: cpu
+  engine_type: mortal
+  is_oracle: false
+  native_driver: libriichi.arena.OneVsThree.py_vs_py
+  version: 4
+inference_mode: deterministic_argmax
+libriichi_build_sha256: ceb9287cba5e9f93cd1141ce3395d844af23a1f4cfaf68f19de25424f55a5c86
+libriichi_git_sha: 0cff2b52982be5b1163aa9a62fb01f03ce91e0d2
+model_arch: resnet{conv_channels=192,num_blocks=40}
+model_config:
+  control_version: 4
+  model:
+    event_dim: 128
+    event_ffn: 512
+    event_heads: 4
+    event_layers: 4
+    use_event_branch: false
+  resnet:
+    conv_channels: 192
+    num_blocks: 40
+model_config_hash: 837a9d9f2b924195e2acde9544611cf510d8cf01a1fb065c10693672cfd07e05
+name: mortal_selftrained_5d
+patch_manifest:
+  0001-train-grp-dataloader-num-workers-0.patch: 52a2c5142ec17e5d45e199b369342fd7a2c2f6a8d72099b096d97c3c2d71003f
+  0002-train-remove-per-step-cuda-sync.patch: 24e183445fe625f2c393cb5adfec2821040ba0ddcb9c031cd570af786be3169d
+  0003-gamma-discount-labels.patch: ce2555f20ee71b9eda14e47cb8a28c4db22f9ffd1534a53eed2541925bba79a7
+  0004-agari-guard-consistency.patch: 9a9a4437c9fc87d2e8cc85669428cac018bddbd993d5a5b923f6b5f4e59a09cf
+  0005-train-holdout-val-loss.patch: 1df6f5fffbd0f1f5b347064cd2f499472b2044ea5f67c44c68abbca54c84d6f0
+  0006-event-stream-tokens.patch: fd5f554679e10b08855ff1b75f06bc89b0522bd91c722e47af3d97c3b3c29ef3
+  0007-model-event-branch.patch: f6017db8224497189f5e25c7b1e396355091999601988692c339cbe4ac1692ca
+  0008-rl-policy-kl.patch: f05e96d6b55e4278fa1d2ab939d175b1552b871d017546edc91edb7835d7cb4c
+  0009-online-selfplay-config.patch: caff02d7cfb0cc7c253bc4d1dd26ff3c3edff53f36c1989b70d93fa7eb016a3d
+  0010-arena-event-tokens.patch: e2b2a4b12a5d17e56c4932a6eccc68b684a2618734e97a184ba9dca380211327
+  0012-1v3-seed-start.patch: c81a309776c72984266b9eb1f9e7d4744872a96d5fc46a3fbacfa096a83e99dc
+  0013-online-tail-event-pad.patch: 467dd03f6708208f292122d8d0b489be1f15554c7e254cd5ac770b18587ba454
+  0014-rule-r02-r25-r26.patch: 5eccaf72d4b340afc570e79e37762e60cb014e4eaa7cbd8643935b4fc50c1352
+patch_manifest_hash: 70b94a1bc55113726b2210b863bbb4f3a0e1e04689388cc8c27dc341b7366433
+permission: local_research_only
+permission_note: Research scope only. This registry grants no licence, no redistribution
+  right and no permission to publish the checkpoint or game logs.
+python_driver_files:
+  riichiformer/eval/mortal_anchor.py: 22a531932ade52dfcbcddbd9605268320fe4692fcc5ccee4461152489f68e6d0
+  riichiformer/eval/relative_pt.py: 1c653f687032a2a9b1d9729e89318033cf0b95c987be14ab86deaa7517eb97e5
+python_driver_git_sha: e76022600018e9adc6536ccbb904db8c9dc498b3
+registry_hash: 6642df9d115817c76bff3c6264529085d2cde34ef60698401e3195debd2da114
+registry_schema: rf-m5d-baseline-registry/1
+role: frozen_opponent
+rule_based_agari_guard: false
+ruleset_id: libriichi_tenhou_approx/1
+seed_policy: per_game_and_seat
+steps: 396000
+stochastic_latent: false
+tenhou_approx_rules_hash: 9580e4929418fb1ec190596f814b3c0cea92aba0c2a6f67ec272a589c74340c8
