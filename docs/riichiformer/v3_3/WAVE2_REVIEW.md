@@ -39,6 +39,7 @@ authoritative one. Registry tests pass after regeneration.
 | Lead scratch, M5D self-control | 1 | 4 | 25.97 s | ranks `[1,1,1,1]`, ΔPT 0 |
 | Lead scratch, 2k RF pilot | 4 | 16 | 58.37 s | ranks `[0,1,2,13]`, weak pilot |
 | Lane A M5D self-control | 4 | 16 | 43.106 s | ΔPT `0.0 [0.0,0.0]`, hist `[4,4,4,4]` |
+| **Lead A0 100-game self-control** | **25** | **100** | **95.412 s** | ΔPT `0.0 [0.0,0.0]`, hist `[25,25,25,25]`, 0 illegal/fallback, 1.048 games/s; key `9e3779b97f4a7c15`, window `[250000,250025)` |
 | Lane A weak RF pilot | 4 | 16 | 129.576 s | ΔPT `−98.75 [−131.25,−60.0]`, hist `[1,0,3,12]`, 2,298 decisions, 0 rejected |
 | Lane B corpus generation | — | 100 | 278.63 s | 73,804 engine decisions; shard 73,841 |
 | Lane B full diagnostic | — | 100 | 550.64 s | CE 1.937, top1 0.297, top3 0.511, illegal/non-finite 0 |
@@ -61,10 +62,26 @@ not evidence of strength. No arena result is a Tenhou dan/rank.
 | Gate | Evidence | Status |
 |---|---|---|
 | G-V33-W2 | tag, base suite, reviewer P1 fix | **PASS** |
-| G-V33-A0 | anchor identity, 4-seat rotation, self-control, hidden-tile tests, real native smoke | **PASS for smoke scale**; 4–20 sets only |
-| G-V33-D0 | 100-game disjoint validation, read-only diagnostics, E2E | **PASS for data/pipeline**; four-riichi/triple-ron NOT observed |
-| G-V33-B0 | protocol/selection/resume code + CPU smoke | **CODE_PASS; full train NOT_RUN** |
+| G-V33-A0 | anchor identity, 4-seat rotation, self-control, hidden-tile tests, 25-set/100-game native smoke | **PASS** |
+| G-V33-D0 | 100-game disjoint validation, read-only diagnostics, E2E with a separate train fixture | **PASS_WITH_P1/P2**; four-riichi/triple-ron NOT observed |
+| G-V33-B0 | protocol/selection/resume code + CPU smoke + validation-isolation gate | **CODE_PASS; full train NOT_RUN** |
 | G-V33-C0 | no confirm pool, no strength | **NOT_RUN** |
+
+## Reviewer P1 corrections (post-review)
+
+1. **PR-48 validation isolation**: `verify_validation_isolation` now requires
+   validation `purpose in {diagnostic,audit}`, `train_allowed=false`,
+   `train_eligible_under_policy=false`, no `split="train"` game row, and zero
+   train/validation game-id intersection. Negative test
+   `test_validation_shard_must_not_be_train_purpose`; B0 CLI fixtures use
+   diagnostic/audit validation shards. B0 tests: 29 protocol + 14 CLI = 43 passed.
+2. **PR-47 E2E training**: `run_roundtrip` no longer optimizes the diagnostic
+   validation shard. It trains on a labelled synthetic **train-purpose** fixture
+   by default, or an explicit independent `train_shard`; validation is read-only,
+   and train/validation game-id overlap is refused. `test_pr47_roundtrip` passes.
+3. **A0 100-game criterion**: Lead ran 25 sets / 100 games M5D self-control on CPU:
+   ΔPT 0.0, hist `[25,25,25,25]`, 95.412 s, 0 illegal/fallback. This satisfies the
+   Master Plan's 100-game 4-seat smoke. Log: `/tmp/v33_a_a0_100.log`.
 
 ## Not run
 
