@@ -269,6 +269,16 @@ class NativeContextTests(unittest.TestCase):
         self.assertEqual(event["target"], 3)
         self.assertIs(context.phase, ActionPhase.CALL_RESPONSE)
 
+    def test_kan_selection_mask_is_tile_only(self):
+        from riichiformer.runtime.mjai_adapter import KanOption
+        options = (
+            KanOption("ankan", TileRef(4), (TileRef(4),) * 4),
+            KanOption("ankan", TileRef(13), (TileRef(13),) * 4),
+        )
+        mask = A.kan_selection_mask(options)
+        self.assertEqual([i for i, value in enumerate(mask) if value], [4, 13])
+        self.assertTrue(all(not mask[i] for i in range(37, 46)))
+
     def test_multi_kan_requires_explicit_second_decision(self):
         hand = _hand("5m", "5m", "5m", "5m", "6p", "6p", "6p", "6p",
                      "1m", "2m", "3m", "4m", "6m", "7m")

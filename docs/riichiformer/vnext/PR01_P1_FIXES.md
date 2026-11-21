@@ -45,9 +45,10 @@ with `kan_options[0]`, silently choosing the first ankan/kakan.
 * single-candidate kan still decodes directly.
 
 **Evidence**: `rf_test_m5d_arena.NativeContextTests.test_multi_kan_requires_explicit_second_decision`
-checks the raise, the option list, the second-stage `KAN_SELECTION` decode and
-the native `validate_reaction` call.  `stats["kan_selections"]` counts the second
-decision.
+checks the raise, the option list, the mask helper and the second-stage
+`KAN_SELECTION` decode; `stats["kan_selections"]` counts the second decision.
+The full `RFMjaiLogEngine._react` path with a native multi-kan game is `NOT_RUN`
+because the new worktree has no VNext checkpoint/submodule build.
 
 ## 3. Validation reductions must not sync per decision
 

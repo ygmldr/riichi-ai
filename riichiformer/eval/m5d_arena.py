@@ -395,6 +395,20 @@ def _native_kan_options(state, hand: Sequence[TileRef], last_kawa: TileRef | Non
     return tuple(options)
 
 
+def kan_selection_mask(kan_options: Sequence[KanOption]) -> tuple[bool, ...]:
+    """Build the native KAN_SELECTION 46-mask for concrete kan candidates."""
+    mask = [False] * 46
+    for option in kan_options:
+        index = (option.tile.kind if option.tile.aka is None
+                 else 34 + option.tile.aka)
+        if not 0 <= index < 37:
+            raise BridgeError(f"kan candidate {option.tile.text} has no tile action")
+        mask[index] = True
+    if not any(mask):
+        raise BridgeError("multi-kan context has no decodable tile action")
+    return tuple(mask)
+
+
 def context_from_native(
     state,
     *,
@@ -739,14 +753,7 @@ class RFMjaiLogEngine:
                 action, state, seat=stream.pov, legal_mask=mask, phase=phase)
         except KanSelectionRequired as required:
             # Real second policy decision on the unchanged visible prefix.
-            kan_mask = [False] * 46
-            for option in required.options:
-                index = (option.tile.kind if option.tile.aka is None
-                         else 34 + option.tile.aka)
-                if 0 <= index < 37:
-                    kan_mask[index] = True
-            if not any(kan_mask):
-                raise BridgeError("multi-kan context has no decodable tile action")
+            kan_mask = kan_selection_mask(required.options)
             kan_decision, kan_meta = stream.build_decision(
                 game_state.events_json, legal_mask=kan_mask,
                 phase=ActionPhase.KAN_SELECTION)
