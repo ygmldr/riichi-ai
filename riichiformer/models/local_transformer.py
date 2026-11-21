@@ -90,16 +90,50 @@ class RotaryEmbedding(nn.Module):
         self._cos = emb.cos()
         self._sin = emb.sin()
 
-    def forward(self, q: Tensor, k: Tensor) -> tuple[Tensor, Tensor]:
+    def forward(self, q: Tensor, k: Tensor,
+                position_ids: Tensor | None = None) -> tuple[Tensor, Tensor]:
+        """Apply RoPE at ``position_ids`` (default: ``0..L-1``).
+
+        ``position_ids`` is a ``[B, L]`` long tensor.  Explicit positions let a
+        decision-marker token sit at its cursor position instead of at the end of
+        the concatenated sequence (PR-38), which keeps the marker's attention
+        geometry identical to the legacy single-prefix forward.  Positions are
+        bounded by ``max_positions`` and never silently clamped.
+        """
         length = q.size(-2)
         if length > self.max_positions:
             raise TransformerShapeError(
                 f"sequence length {length} exceeds RoPE max_positions "
                 f"{self.max_positions}; refusing to truncate"
             )
-        self._ensure_cache(length, q.device)
-        cos = self._cos[:length].to(dtype=q.dtype).unsqueeze(0).unsqueeze(0)
-        sin = self._sin[:length].to(dtype=q.dtype).unsqueeze(0).unsqueeze(0)
+        if position_ids is None:
+            self._ensure_cache(length, q.device)
+            cos = self._cos[:length].to(dtype=q.dtype).unsqueeze(0).unsqueeze(0)
+            sin = self._sin[:length].to(dtype=q.dtype).unsqueeze(0).unsqueeze(0)
+            return q * cos + _rotate_half(q) * sin, k * cos + _rotate_half(k) * sin
+        if not isinstance(position_ids, Tensor) or position_ids.dtype is not torch.long:
+            raise TransformerShapeError("position_ids must be a long torch.Tensor")
+        if position_ids.dim() != 2 \
+                or tuple(position_ids.shape) != (q.size(0), length):
+            raise TransformerShapeError(
+                f"position_ids shape {tuple(position_ids.shape)} != "
+                f"{(q.size(0), length)}"
+            )
+        if position_ids.device != q.device:
+            raise TransformerShapeError("position_ids and query must share a device")
+        minimum = int(position_ids.min())
+        maximum = int(position_ids.max())
+        if minimum < 0 or maximum >= self.max_positions:
+            raise TransformerShapeError(
+                f"position_ids must be in [0, {self.max_positions - 1}], got "
+                f"[{minimum}, {maximum}]; refusing to wrap or clamp"
+            )
+        self._ensure_cache(maximum + 1, q.device)
+        flat = position_ids.reshape(-1)
+        cos = self._cos.index_select(0, flat).view(
+            q.size(0), length, self.head_dim).to(dtype=q.dtype).unsqueeze(1)
+        sin = self._sin.index_select(0, flat).view(
+            q.size(0), length, self.head_dim).to(dtype=q.dtype).unsqueeze(1)
         return q * cos + _rotate_half(q) * sin, k * cos + _rotate_half(k) * sin
 
 
@@ -122,13 +156,14 @@ class CausalSelfAttention(nn.Module):
                                     base=rope_base)
 
     def forward(self, x: Tensor, attn_mask: Tensor | None,
-                is_causal: bool) -> Tensor:
+                is_causal: bool,
+                position_ids: Tensor | None = None) -> Tensor:
         batch, length, _ = x.shape
         qkv = self.qkv(x)
         q, k, v = qkv.view(batch, length, 3, self.n_heads, self.head_dim).permute(
             2, 0, 3, 1, 4
         ).unbind(0)
-        q, k = self.rope(q, k)
+        q, k = self.rope(q, k, position_ids)
         dropout_p = self.dropout if self.training else 0.0
         attended = F.scaled_dot_product_attention(
             q, k, v,
@@ -170,8 +205,9 @@ class TransformerBlock(nn.Module):
         self.ffn_norm = RMSNorm(d_model, eps=rmsnorm_eps)
         self.ffn = SwiGLU(d_model, ffn_hidden, dropout=dropout)
 
-    def forward(self, x: Tensor, attn_mask: Tensor | None, is_causal: bool) -> Tensor:
-        x = x + self.attn(self.attn_norm(x), attn_mask, is_causal)
+    def forward(self, x: Tensor, attn_mask: Tensor | None, is_causal: bool,
+                position_ids: Tensor | None = None) -> Tensor:
+        x = x + self.attn(self.attn_norm(x), attn_mask, is_causal, position_ids)
         x = x + self.ffn(self.ffn_norm(x))
         return x
 
@@ -227,7 +263,16 @@ class LocalTransformer(nn.Module):
         eye = torch.eye(length, dtype=torch.bool, device=padding_mask.device)
         return mask | eye.unsqueeze(0).unsqueeze(0), False
 
-    def forward(self, x: Tensor, padding_mask: Tensor) -> Tensor:
+    def forward(self, x: Tensor, padding_mask: Tensor, *,
+                attn_mask: Tensor | None = None,
+                position_ids: Tensor | None = None) -> Tensor:
+        """Run the backbone.
+
+        ``attn_mask`` (bool, True = may attend) overrides the causal/padding mask
+        computed from ``padding_mask``; it is used by the PR-38 multi-decision
+        forward so decision markers can read only their own prefix and itself.
+        ``position_ids`` overrides the RoPE positions (see :class:`RotaryEmbedding`).
+        """
         if not isinstance(x, Tensor) or x.dim() != 3:
             raise TransformerShapeError(
                 f"input must be [B, L, d_model], got "
@@ -256,9 +301,56 @@ class LocalTransformer(nn.Module):
         if not bool(padding_mask.any(dim=1).all()):
             raise TransformerShapeError("every row needs at least one real token")
 
-        attn_mask, is_causal = self.attention_mask(padding_mask)
+        if attn_mask is None:
+            mask, is_causal = self.attention_mask(padding_mask)
+        else:
+            if not isinstance(attn_mask, Tensor) or attn_mask.dtype is not torch.bool:
+                raise TransformerShapeError(
+                    "attn_mask must be a bool torch.Tensor (True = may attend)"
+                )
+            if attn_mask.dim() == 4:
+                if attn_mask.size(0) != batch \
+                        or attn_mask.size(-2) != length \
+                        or attn_mask.size(-1) != length:
+                    raise TransformerShapeError(
+                        f"attn_mask shape {tuple(attn_mask.shape)} must be "
+                        f"[{batch}, 1|H, {length}, {length}]"
+                    )
+            elif attn_mask.dim() == 3:
+                if tuple(attn_mask.shape) != (batch, length, length):
+                    raise TransformerShapeError(
+                        f"attn_mask shape {tuple(attn_mask.shape)} != "
+                        f"{(batch, length, length)}"
+                    )
+            else:
+                raise TransformerShapeError(
+                    f"attn_mask must be [B, L, L] or [B, 1|H, L, L], got "
+                    f"{tuple(attn_mask.shape)}"
+                )
+            if attn_mask.device != x.device:
+                raise TransformerShapeError(
+                    "attn_mask and input must share a device"
+                )
+            # An all-False query row would yield NaN; fail closed instead.
+            if not bool(attn_mask.any(dim=-1).all()):
+                raise TransformerShapeError(
+                    "attn_mask leaves a query row with no visible key"
+                )
+            mask, is_causal = attn_mask, False
+        if position_ids is not None:
+            if not isinstance(position_ids, Tensor) \
+                    or position_ids.dtype is not torch.long \
+                    or position_ids.dim() != 2 \
+                    or tuple(position_ids.shape) != (batch, length):
+                raise TransformerShapeError(
+                    "position_ids must be a long [B, L] tensor"
+                )
+            if position_ids.device != x.device:
+                raise TransformerShapeError(
+                    "position_ids and input must share a device"
+                )
         for block in self.blocks:
-            x = block(x, attn_mask, is_causal)
+            x = block(x, mask, is_causal, position_ids)
         return self.final_norm(x)
 
 
