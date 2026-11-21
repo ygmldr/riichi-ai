@@ -234,6 +234,25 @@ scripts/rf_train.py --shard /tmp/b0_probe100.rfshard --train \
 # step 12 hits the 4,858-event POV: tokens=4884 decisions=26; exit 0
 ```
 
+Full rf suite on this clean-pin worktree (29 `tests/rf_test_*.py`, py3.12,
+`PYTHONPATH=.../vendor/mortal/target/release`):
+
+```
+83 failed, 690 passed, 2 skipped, 1 warning, 211 subtests passed in 216.84s  (exit 1)
+```
+
+All 83 failures are **vendor-source anchor tests**, not code regressions in this
+lane: `rf_test_ruleset_parity.py` (70 `SUBFAILED` + 10 `FAILED`) and
+`rf_test_rule_fixes.py` (3 `FAILED`) read the pinned `vendor/mortal` Rust source
+and expect the local `patches/0014-rule-r02-r25-r26.patch` to be applied. This
+worktree keeps the clean vendor pin (0cff2b5) by instruction. Excluding exactly
+those two environment-dependent files (Lead runs the final full suite on the
+patched integration worktree):
+
+```
+642 passed, 1 skipped, 1 warning, 57 subtests passed in 194.91s  (exit 0)
+```
+
 The Lead's 500-game B0 shard run of `--multi-decision --batch-size 64
 --max-steps 50` completed 50 steps / 2,585 decisions / 38,719 tokens in 32.76 s
 on the GPU host (Lead-owned measurement; this lane did not run GPU).
@@ -243,8 +262,11 @@ on the GPU host (Lead-owned measurement; this lane did not run GPU).
 * **No GPU run, no CUDA parity/VRAM/throughput claim** in this lane. The Lead
   measured a 2-step/8-batch GPU smoke (tokens 58/107, 1.85 GB) and the 500-game
   50-step run; those are Lead-owned and not repeated here.
-* Full rf suite is Lead-owned after integration (this lane ran the targeted
-  133-test set; the new file is included). No push/merge.
+* The clean-pin full suite is 690 passed with 83 vendor-source-anchor failures
+  (`rf_test_ruleset_parity` / `rf_test_rule_fixes`, patches/0014 absent here).
+  The same suite excluding those two environment-dependent files is 642 passed,
+  exit 0. The Lead owns the final full-suite run on the patched integration
+  worktree. No push/merge.
 * The cheap prefix check does not rebuild the tile ledger. It detects cutoff
   tampering through the observable public state; a tamper that moves the cutoff
   only across a settlement event that changes no tracked public field is caught
