@@ -19,8 +19,9 @@ DECISIONS="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["de
 STEPS="$((DECISIONS / 64))"
 echo "[launch] $(date -Is) decisions=$DECISIONS steps=$STEPS" | tee -a "$LOG"
 
+PYTHON="${PYTHON:-/home/ygsldr/riichi-ai/.venv/bin/python}"
 export PYTHONPATH="$ROOT/vendor/mortal/target/release:$ROOT/vendor/mortal:$ROOT"
-exec .venv/bin/python scripts/rf_train_vnext.py \
+exec "$PYTHON" scripts/rf_train_vnext.py \
     --train-shard "$SHARD" \
     --val-shard "$VAL" \
     --policy-config "$POLICY" \
