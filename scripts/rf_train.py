@@ -26,6 +26,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import torch  # noqa: E402
 
+from riichiformer.data.encode import MAX_EVENTS_DEFAULT  # noqa: E402
 from riichiformer.data.loader import ShardLoadError, ShardReader  # noqa: E402
 from riichiformer.data.shard import ShardRightsError  # noqa: E402
 from riichiformer.models.policy import Policy, count_parameters  # noqa: E402
@@ -33,7 +34,9 @@ from riichiformer.policy.config import (  # noqa: E402
     PROFILES, PolicyConfig, PolicyConfigError, load_policy_config,
 )
 from riichiformer.policy.research_policy import ResearchPolicyError  # noqa: E402
-from riichiformer.train.bc import TrainingError, training_step  # noqa: E402
+from riichiformer.train.bc import (  # noqa: E402
+    TrainingError, training_step, training_step_multi,
+)
 from riichiformer.train.checkpoint import (  # noqa: E402
     CheckpointMismatch, config_hash, init_weights_only, load_checkpoint,
     save_checkpoint,
@@ -180,9 +183,30 @@ def run(args) -> int:
               f"external_license_status={meta.external_license_status}; this is "
               "not an external license or redistribution grant")
     try:
+        training_path = "multi_decisions" if args.multi_decision else "prefixes"
         if args.dry_run or not args.train:
             batches = 0
             decisions = 0
+            tokens = 0
+            if args.multi_decision:
+                dry_max_events = args.multi_max_events or MAX_EVENTS_DEFAULT
+                dry_max_positions = args.multi_max_positions or None
+                for batch in reader.iter_multi_decision_batches(
+                        batch_size=args.batch_size,
+                        max_events=dry_max_events,
+                        max_positions=dry_max_positions,
+                        verify_state_snapshots=args.multi_deep_verify):
+                    batches += 1
+                    decisions += len(batch.targets)
+                    tokens += batch.tokens
+                    if args.steps and batches >= args.steps:
+                        break
+                print(f"PR14_MULTI_DRY_RUN batches={batches} "
+                      f"decisions={decisions} tokens={tokens} shard={args.shard} "
+                      f"purpose={meta.purpose} source={meta.source_id} "
+                      f"max_events={dry_max_events} "
+                      f"max_positions={dry_max_positions} {policy_summary}")
+                return 0
             for batch in reader.iter_batches(batch_size=args.batch_size):
                 batches += 1
                 decisions += len(batch.targets)
@@ -202,6 +226,21 @@ def run(args) -> int:
         resolved = _resolve_model_config(args)
         model_config = resolved.config
         print(f"PR14_MODEL {resolved.describe()}")
+        multi_max_events = args.multi_max_events or model_config.max_positions
+        multi_max_positions = args.multi_max_positions or model_config.max_positions
+        if args.multi_decision:
+            if multi_max_events > model_config.max_positions:
+                raise TrainerRefusal(
+                    f"--multi-max-events {multi_max_events} exceeds model "
+                    f"max_positions {model_config.max_positions}")
+            if multi_max_positions > model_config.max_positions:
+                raise TrainerRefusal(
+                    f"--multi-max-positions {multi_max_positions} exceeds model "
+                    f"max_positions {model_config.max_positions}")
+            print(f"PR14_MULTI_MODEL {resolved.describe()} "
+                  f"training_path={training_path} "
+                  f"max_events={multi_max_events} "
+                  f"max_positions={multi_max_positions}")
         model = Policy(model_config).to(config.device)
         if args.init_weights_only:
             if args.resume:
@@ -238,14 +277,25 @@ def run(args) -> int:
                                "policy_version", "external_license_status",
                                "train_eligible_under_policy")
             expected_provenance = {key: hashes[key] for key in provenance_keys}
-            info, _ = load_checkpoint(
+            info, payload = load_checkpoint(
                 args.resume, model=model, optimizer=optimizer, scheduler=scheduler,
                 expected_hashes=expected, expected_provenance=expected_provenance,
                 expected_model_config=model_config,
                 expected_model_config_hash=resolved.config_hash,
                 strict_resume=True)
+            stored_path = (payload.get("extra") or {}).get("training_path")
+            if stored_path is not None and stored_path != training_path:
+                raise CheckpointMismatch(
+                    f"checkpoint training_path {stored_path!r} != requested "
+                    f"{training_path!r}; resume the same training path")
             step, tokens, decisions = info.step, info.tokens, info.decisions
-        batches = reader.iter_batches(batch_size=args.batch_size)
+        if args.multi_decision:
+            batches = reader.iter_multi_decision_batches(
+                batch_size=args.batch_size, max_events=multi_max_events,
+                max_positions=multi_max_positions,
+                verify_state_snapshots=args.multi_deep_verify)
+        else:
+            batches = reader.iter_batches(batch_size=args.batch_size)
         model.train()
         while step < args.max_steps:
             try:
@@ -253,16 +303,31 @@ def run(args) -> int:
             except StopIteration:
                 break
             model_batch = batch.batch.to(config.device)
-            result = training_step(model, model_batch, batch.targets,
-                                   optimizer=optimizer, scheduler=scheduler,
-                                   max_grad_norm=config.grad_clip, bf16=config.bf16)
+            if args.multi_decision:
+                result = training_step_multi(
+                    model, model_batch, batch.targets, optimizer=optimizer,
+                    scheduler=scheduler, max_grad_norm=config.grad_clip,
+                    bf16=config.bf16)
+                batch_tokens = batch.tokens
+            else:
+                result = training_step(
+                    model, model_batch, batch.targets, optimizer=optimizer,
+                    scheduler=scheduler, max_grad_norm=config.grad_clip,
+                    bf16=config.bf16)
+                batch_tokens = int(batch.batch.padding_mask.sum())
             if result.valid_decisions == 0:
                 continue
             step += 1
             decisions += result.valid_decisions
-            tokens += int(batch.batch.padding_mask.sum())
-            print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
-                  f"valid={result.valid_decisions}/{result.total_decisions}")
+            tokens += batch_tokens
+            if args.multi_decision:
+                print(f"PR14_MULTI_STEP step={step} "
+                      f"loss={float(result.loss):.6f} "
+                      f"valid={result.valid_decisions}/{result.total_decisions} "
+                      f"tokens={batch_tokens} decisions={len(batch.targets)}")
+            else:
+                print(f"PR14_STEP step={step} loss={float(result.loss):.6f} "
+                      f"valid={result.valid_decisions}/{result.total_decisions}")
         provenance = {key: hashes[key] for key in (
             "source_id", "split_manifest_sha256", "canonical_manifest_sha256",
             "canonical_index_sha256", "research_policy", "research_policy_hash")}
@@ -270,7 +335,14 @@ def run(args) -> int:
             args.out, model=model, optimizer=optimizer, scheduler=scheduler,
             counters={"step": step, "tokens": tokens, "decisions": decisions},
             hashes=hashes, config=config, seed=config.seed,
-            model_config=model_config, provenance=provenance)
+            model_config=model_config, provenance=provenance,
+            extra={"training_path": training_path,
+                   "token_accounting": (
+                       "shared_events_plus_markers" if args.multi_decision
+                       else "prefix_decision_tokens")})
+        if args.multi_decision:
+            print(f"PR14_MULTI_DONE step={step} tokens={tokens} "
+                  f"decisions={decisions} training_path={training_path}")
         print(f"PR14_DONE step={step} tokens={tokens} decisions={decisions} "
               f"sha256={info.sha256} model_sha256={resolved.config_hash} "
               f"parameters={resolved.parameter_count} {policy_summary}")
@@ -287,6 +359,18 @@ def main(argv=None) -> int:
     parser.add_argument("--train", action="store_true",
                         help="actually train (requires --out; the shard policy is "
                              "authenticated before a model is built)")
+    parser.add_argument("--multi-decision", action="store_true", default=False,
+                        help="PR-38 shared event stream + decision markers instead "
+                             "of one prefix row per decision (default: prefixes)")
+    parser.add_argument("--multi-max-events", type=int, default=0,
+                        help="multi-decision event-prefix cap per POV chunk "
+                             "(0 = 4096 for dry-run, model max_positions for train)")
+    parser.add_argument("--multi-max-positions", type=int, default=0,
+                        help="multi-decision joined event+marker cap per row "
+                             "(0 = model max_positions for train; unset for dry-run)")
+    parser.add_argument("--multi-deep-verify", action="store_true", default=False,
+                        help="replay the full snapshot tracker per decision (audit "
+                             "mode; slower) instead of the cheap public-state check")
     parser.add_argument("--policy", choices=PROFILES, default=None,
                         help="expected research profile; private also requires "
                              "--policy-config")
