@@ -41,6 +41,23 @@ Two loader fixes were required by the pilot:
    cannot change the already-validated values.  The old path caused host
    synchronisation on every batch.
 
+## 2b. Pilot Census (read-only, SQL)
+
+| Metric | train 1,000 | val 500 |
+|---|---:|---:|
+| games | 1,000 | 500 |
+| decisions | 661,627 | 326,798 |
+| supervised | 658,379 | 325,291 |
+| SELF_TURN / CALL_RESPONSE / KAN_SELECTION | 526,595 / 134,263 / 769 | 259,851 / 66,511 / 436 |
+| rank 1/2/3/4 | 166,431 / 165,613 / 164,883 / 164,700 | 82,132 / 81,558 / 81,573 / 81,535 |
+| prefix-token P50/P90/P99/max | 548 / 1,091 / 1,547 / 2,491 | 545 / 1,086 / 1,497 / 2,180 |
+| policy hash | `f0d472ee...` | `f0d472ee...` |
+
+Raw: `logs/VNEXT_CENSUS_TRAIN1000.json`, `logs/VNEXT_CENSUS_VAL500.json`.
+The max prefix (2,491) is below the model's 4,096 max positions; no truncation
+is needed for this pilot.  The 2,532 non-supervised/None action rows are kept
+as censored targets, not invented labels.
+
 ## 3. Pilot result
 
 Command shape: 1,000 optimizer steps, batch 64, 1000-game train shard,

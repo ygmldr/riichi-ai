@@ -36,9 +36,10 @@ is declared a winner before matched-budget results.
 
 * Reported historical corpus: 2,512,424 matches; this is **not** an eligible
   decision count.
-* Required before training: match-level Census, valid POV decisions,
-  token-length P50/P90/P99/max, phase/action distribution, source/date/rule
-  counts, duplicate count, and Match-ID Train/Val/Test overlap = 0.
+* Pilot Census (1,000 train / 500 val): 661,627 / 326,798 decisions,
+  658,379 / 325,291 supervised, prefix P99 1,547 / 1,497, max 2,491 / 2,180;
+  rank classes balanced.  The full 2.51M match-level Census remains `NOT_RUN`
+  because the full one-epoch pipeline is ~47 days at the measured data rate.
 * Train/Validation split must be by complete match, never by POV.
 * Diagnostic validation shards may not be fed to the trainer.
 * Rights: 11 registry rows, **0 `ALLOWED`**, gate
