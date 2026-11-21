@@ -122,7 +122,8 @@ def save_checkpoint(path: str | Path, *, model, optimizer, scheduler=None, scale
 
 
 def load_checkpoint(path: str | Path, *, model, optimizer=None, scheduler=None,
-                    scaler=None, ema=None, expected_hashes: Mapping | None = None):
+                    scaler=None, ema=None, expected_hashes: Mapping | None = None,
+                    expected_provenance: Mapping | None = None):
     path = Path(path)
     if not path.exists():
         raise CheckpointError(f"checkpoint not found: {path}")
@@ -149,6 +150,10 @@ def load_checkpoint(path: str | Path, *, model, optimizer=None, scheduler=None,
         for key in required:
             if expected_hashes[key] != hashes.get(key):
                 raise CheckpointMismatch(f"{key} mismatch")
+    if expected_provenance is not None:
+        for key, expected_value in expected_provenance.items():
+            if hashes.get(key) != expected_value:
+                raise CheckpointMismatch(f"checkpoint provenance mismatch for {key}")
     try:
         model.load_state_dict(payload["model"], strict=True)
     except Exception as exc:  # noqa: BLE001
