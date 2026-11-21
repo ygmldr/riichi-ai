@@ -68,8 +68,9 @@ local M5D anchor:
 - `kan_selections=0` (multi-kan end-to-end still `NOT_RUN`);
 - synthetic fixture: false; strength claim: **NONE**.
 
-The 10,500-step checkpoint was also loaded for 8 native games: 1,296
-decisions, 0 illegal/fallback, `kan_selections=0`.  This proves the trained
+The 10,500-step checkpoint was also loaded for 8 native games (1,296
+decisions) and 16 native games (2,893 decisions, 0 illegal/fallback,
+`kan_selections=0`).  This proves the trained
 checkpoint can drive the native bridge; it is not a win-rate/dan/strength
 measurement.  A 4-set/16-game extension exposed a real
 lifecycle bug: the native driver did not always forward `start_game`, so a
