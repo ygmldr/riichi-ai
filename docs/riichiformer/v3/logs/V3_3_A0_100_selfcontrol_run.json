@@ -1,0 +1,4966 @@
+{
+  "anchor": {
+    "action_guard": "native_46_action_mask_only",
+    "anchor_id": "M5D-R0",
+    "checkpoint_path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth",
+    "checkpoint_sha256": "0a44613cb9c7edae1057cf6a2c160c3971c78130e18e07f28bb43e8f62abe532",
+    "inference_mode": "deterministic_argmax",
+    "model_arch": "resnet{conv_channels=192,num_blocks=40}",
+    "model_config_hash": "837a9d9f2b924195e2acde9544611cf510d8cf01a1fb065c10693672cfd07e05",
+    "parameter_count": 10835631,
+    "rules_metadata": {
+      "calls": true,
+      "deviation_note": "pinned Mortal libriichi arena; R02/R25/R26 are settled by that engine. R29 ippatsu timing is MATCH at the PlayerState level (PR-40R, executable native fixture); a full Board-scripted R29 game is NOT_RUN and the per-decision schema still has no R29 member. Not Tenhou-parity verified.",
+      "kan": true,
+      "known_deviations": [
+        "R02",
+        "R25",
+        "R26",
+        "R29"
+      ],
+      "parity_status": "tenhou_approximate",
+      "real_mahjong_rules": true,
+      "rules_engine": "libriichi.arena.OneVsThree.py_vs_py",
+      "ruleset_id": "libriichi_tenhou_approx/1",
+      "strength_claim": "none",
+      "tenhou_equivalent": false,
+      "wins": true
+    },
+    "ruleset_id": "libriichi_tenhou_approx/1",
+    "steps": 396000,
+    "tenhou_approx_rules_hash": "9485a5394d35e9d492b885d6efe0fb242231787f21e0127e1d84720fb56c909f"
+  },
+  "candidate": {
+    "checkpoint_path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth",
+    "checkpoint_sha256": "0a44613cb9c7edae1057cf6a2c160c3971c78130e18e07f28bb43e8f62abe532",
+    "fallback": 0,
+    "illegal": 0,
+    "inference_mode": "deterministic_argmax",
+    "mode": "mortal_self_control",
+    "model_config_hash": "837a9d9f2b924195e2acde9544611cf510d8cf01a1fb065c10693672cfd07e05",
+    "rf_candidate": "NOT_RUN",
+    "self_control_only": true
+  },
+  "games": 100,
+  "games_per_second": 1.0481,
+  "ingested_at_utc": "2026-11-21T10:34:29Z",
+  "log_files": [
+    {
+      "game_id": "250000:0",
+      "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        24000,
+        55300,
+        7800,
+        12900
+      ],
+      "seed": 250000,
+      "sha256": "52aaf5096812528d899d8f1320fb84e0a6138582456fd44013ea0d9ea2f01600"
+    },
+    {
+      "game_id": "250000:1",
+      "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        24000,
+        55300,
+        7800,
+        12900
+      ],
+      "seed": 250000,
+      "sha256": "00ceba6e65578ac67424acc6274df32258b9a861373c6cd5ea8e6c12e7ca15b9"
+    },
+    {
+      "game_id": "250000:2",
+      "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        24000,
+        55300,
+        7800,
+        12900
+      ],
+      "seed": 250000,
+      "sha256": "6210885372a63db96dadde109293e629e4b8c2744a88acee3fd089010fd20489"
+    },
+    {
+      "game_id": "250000:3",
+      "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        24000,
+        55300,
+        7800,
+        12900
+      ],
+      "seed": 250000,
+      "sha256": "6b42c87672c6706efbeae7f4e02907b4faf4c932f6b6806e83c47c2e6c16c038"
+    },
+    {
+      "game_id": "250001:0",
+      "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_a.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        20300,
+        33800,
+        37500,
+        8400
+      ],
+      "seed": 250001,
+      "sha256": "40292739383dc16837aeb717c32e04c6da0edd394efceecfaa003beb534148b7"
+    },
+    {
+      "game_id": "250001:1",
+      "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_b.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        20300,
+        33800,
+        37500,
+        8400
+      ],
+      "seed": 250001,
+      "sha256": "85cd0b0f141cdf48fd22e2b78095f4f733353cae614abc607452e0ffe51201c2"
+    },
+    {
+      "game_id": "250001:2",
+      "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_c.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        20300,
+        33800,
+        37500,
+        8400
+      ],
+      "seed": 250001,
+      "sha256": "8c3f3c3a7bac63362de898525e153d3aab794742d0afc118172d868af69ba3f4"
+    },
+    {
+      "game_id": "250001:3",
+      "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_d.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        20300,
+        33800,
+        37500,
+        8400
+      ],
+      "seed": 250001,
+      "sha256": "38458a045f1841f69b0aeeaa396d65d5905102e03c1a4690c48a26b588e9fc78"
+    },
+    {
+      "game_id": "250002:0",
+      "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        36500,
+        41200,
+        12400,
+        9900
+      ],
+      "seed": 250002,
+      "sha256": "70e8ca4451163f686d775bb2e5019d8618b891dc46531d70a41231e21c76e4a8"
+    },
+    {
+      "game_id": "250002:1",
+      "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        36500,
+        41200,
+        12400,
+        9900
+      ],
+      "seed": 250002,
+      "sha256": "ddb4d2f21d9f6fe86959fb4637224799b5b7bc5b40842a912586fd1b5621f9c5"
+    },
+    {
+      "game_id": "250002:2",
+      "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        36500,
+        41200,
+        12400,
+        9900
+      ],
+      "seed": 250002,
+      "sha256": "e2c9291a62a4ea65d454ef4a8ec75a75723c618c1af65cd33aaac24c0387e12f"
+    },
+    {
+      "game_id": "250002:3",
+      "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        36500,
+        41200,
+        12400,
+        9900
+      ],
+      "seed": 250002,
+      "sha256": "a6dd31cadf2ae6e9c715325e06b5347e34162af648f0a87698d8eea6d95fd9fa"
+    },
+    {
+      "game_id": "250003:0",
+      "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        3,
+        4,
+        1
+      ],
+      "rotation": 0,
+      "scores": [
+        17500,
+        15400,
+        10900,
+        56200
+      ],
+      "seed": 250003,
+      "sha256": "b61636827f9d05f01f61b9534d20897922a7b037e17339d7707ffad2d9d0c6d8"
+    },
+    {
+      "game_id": "250003:1",
+      "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        3,
+        4,
+        1
+      ],
+      "rotation": 1,
+      "scores": [
+        17500,
+        15400,
+        10900,
+        56200
+      ],
+      "seed": 250003,
+      "sha256": "b545113c4351a72b14a10196314f99006ca112e74670d064345410d95ca7d21c"
+    },
+    {
+      "game_id": "250003:2",
+      "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        3,
+        4,
+        1
+      ],
+      "rotation": 2,
+      "scores": [
+        17500,
+        15400,
+        10900,
+        56200
+      ],
+      "seed": 250003,
+      "sha256": "9924f7c181580a4bdb3d7eaaa723d67a15f439e78ae02e3b530f5c34eb8213e6"
+    },
+    {
+      "game_id": "250003:3",
+      "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        3,
+        4,
+        1
+      ],
+      "rotation": 3,
+      "scores": [
+        17500,
+        15400,
+        10900,
+        56200
+      ],
+      "seed": 250003,
+      "sha256": "ec0b7f20b82e42b0110ac51357a5596255bd2bdfea344cbf1d30ec82f321a4ba"
+    },
+    {
+      "game_id": "250004:0",
+      "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_a.json.gz",
+      "ranks": [
+        4,
+        2,
+        1,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        0,
+        30800,
+        44000,
+        25200
+      ],
+      "seed": 250004,
+      "sha256": "9bfc724e43e41d3fc045e308d922fc8cb6ac6059ff0154ecf52d284f650a303f"
+    },
+    {
+      "game_id": "250004:1",
+      "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_b.json.gz",
+      "ranks": [
+        4,
+        2,
+        1,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        0,
+        30800,
+        44000,
+        25200
+      ],
+      "seed": 250004,
+      "sha256": "17f1a07b289a48643a08e0d82cbbf2601033962b895f43114157e147eac5dbdf"
+    },
+    {
+      "game_id": "250004:2",
+      "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_c.json.gz",
+      "ranks": [
+        4,
+        2,
+        1,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        0,
+        30800,
+        44000,
+        25200
+      ],
+      "seed": 250004,
+      "sha256": "fa5885f6a425fa83b2674ae1afa453dd2eb5d6cd4de1eeba439dd5f75f38e950"
+    },
+    {
+      "game_id": "250004:3",
+      "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_d.json.gz",
+      "ranks": [
+        4,
+        2,
+        1,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        0,
+        30800,
+        44000,
+        25200
+      ],
+      "seed": 250004,
+      "sha256": "26adad2167ba77e496d2c46b5e8b7d3632003e05a8fbcadaaa5f0e2ed567492a"
+    },
+    {
+      "game_id": "250005:0",
+      "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_a.json.gz",
+      "ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        48600,
+        47500,
+        14600,
+        -10700
+      ],
+      "seed": 250005,
+      "sha256": "c17bc1664dc9d36e21b53073eb1381d4d0a70a69691e65302dd8e95612c8eed6"
+    },
+    {
+      "game_id": "250005:1",
+      "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_b.json.gz",
+      "ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        48600,
+        47500,
+        14600,
+        -10700
+      ],
+      "seed": 250005,
+      "sha256": "96cbeb234231952a60f4893630514d5054fe7c59b4373c26545520b6838f294f"
+    },
+    {
+      "game_id": "250005:2",
+      "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_c.json.gz",
+      "ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        48600,
+        47500,
+        14600,
+        -10700
+      ],
+      "seed": 250005,
+      "sha256": "efd5389cc108ddc7e80c2b21a3e9ddf04ff8350c3c40f90078f3ac552fbfee27"
+    },
+    {
+      "game_id": "250005:3",
+      "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_d.json.gz",
+      "ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        48600,
+        47500,
+        14600,
+        -10700
+      ],
+      "seed": 250005,
+      "sha256": "054f1d8d86e464ea6aa1f22af471d38663afb21deed3f0f858564e9a2ce2db8b"
+    },
+    {
+      "game_id": "250006:0",
+      "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_a.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        45800,
+        100,
+        28500,
+        25600
+      ],
+      "seed": 250006,
+      "sha256": "d5b633755caa250762b93933853aff705a84dae02829d0b6a530c78718844d3b"
+    },
+    {
+      "game_id": "250006:1",
+      "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_b.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        45800,
+        100,
+        28500,
+        25600
+      ],
+      "seed": 250006,
+      "sha256": "820150b2d2d8e3506ae01cf2061c0ce1c3ec656f60dfc2f0d4e8e573fc1e30c7"
+    },
+    {
+      "game_id": "250006:2",
+      "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_c.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        45800,
+        100,
+        28500,
+        25600
+      ],
+      "seed": 250006,
+      "sha256": "cba698deefa4cc1fe90b30b7c66793a8885d5da8b5e15f4f3b5849804fce9a08"
+    },
+    {
+      "game_id": "250006:3",
+      "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_d.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        45800,
+        100,
+        28500,
+        25600
+      ],
+      "seed": 250006,
+      "sha256": "1c129ee9483eb7ab25880d5f2d2ee7d0bd509786600d0986796a4318da07a2c2"
+    },
+    {
+      "game_id": "250007:0",
+      "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_a.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 0,
+      "scores": [
+        -1600,
+        44000,
+        17100,
+        40500
+      ],
+      "seed": 250007,
+      "sha256": "c0dd1f9449f633aa5cd19885551bc514421dcd1cd90e0746c6c96df784878045"
+    },
+    {
+      "game_id": "250007:1",
+      "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_b.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 1,
+      "scores": [
+        -1600,
+        44000,
+        17100,
+        40500
+      ],
+      "seed": 250007,
+      "sha256": "866796f2653cd51bc90b97d4e98a4b87a1ee8c5ab49c11420965128cfde08081"
+    },
+    {
+      "game_id": "250007:2",
+      "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_c.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 2,
+      "scores": [
+        -1600,
+        44000,
+        17100,
+        40500
+      ],
+      "seed": 250007,
+      "sha256": "97b6ca3866bcdb62569004edbafbd4b1e2a1bfb8e454990cb6fed722ea8945fd"
+    },
+    {
+      "game_id": "250007:3",
+      "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_d.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 3,
+      "scores": [
+        -1600,
+        44000,
+        17100,
+        40500
+      ],
+      "seed": 250007,
+      "sha256": "4826a0da9a56e8aedd4ecb4e0804ec304958e08a52b93fea8c8ae3c8c9d98c32"
+    },
+    {
+      "game_id": "250008:0",
+      "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_a.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 0,
+      "scores": [
+        -3000,
+        41700,
+        26000,
+        35300
+      ],
+      "seed": 250008,
+      "sha256": "afe10ec0e5a3544aaa62499fc333637e10437bbe5975c05beab4e4ec637f7858"
+    },
+    {
+      "game_id": "250008:1",
+      "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_b.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 1,
+      "scores": [
+        -3000,
+        41700,
+        26000,
+        35300
+      ],
+      "seed": 250008,
+      "sha256": "cd7c52259b02b9077473969dfafb11d98947f802e7f36458f3ada83c40de5327"
+    },
+    {
+      "game_id": "250008:2",
+      "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_c.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 2,
+      "scores": [
+        -3000,
+        41700,
+        26000,
+        35300
+      ],
+      "seed": 250008,
+      "sha256": "d05bc3a8486caa9edcc90acd7a200641aa6bacf6501a963c622adb7aa5eb95c9"
+    },
+    {
+      "game_id": "250008:3",
+      "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_d.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 3,
+      "scores": [
+        -3000,
+        41700,
+        26000,
+        35300
+      ],
+      "seed": 250008,
+      "sha256": "ce2e2a0dbf00d7e7bea316d60a7690911daa4cd034ee77fad4e16a9e490b366e"
+    },
+    {
+      "game_id": "250009:0",
+      "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_a.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        9700,
+        24700,
+        71300,
+        -5700
+      ],
+      "seed": 250009,
+      "sha256": "395649cacd24e1701333c502257784ae29697df2210fc734108934f53ad56460"
+    },
+    {
+      "game_id": "250009:1",
+      "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_b.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        9700,
+        24700,
+        71300,
+        -5700
+      ],
+      "seed": 250009,
+      "sha256": "23f466ebe0af2b6955879b84c6f8001eb5804e31e63ecdb1b3f9d0b8205efcd9"
+    },
+    {
+      "game_id": "250009:2",
+      "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_c.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        9700,
+        24700,
+        71300,
+        -5700
+      ],
+      "seed": 250009,
+      "sha256": "930889b096656052371e59c2c175fa05176953ac87ffe3856b646e401f55b01c"
+    },
+    {
+      "game_id": "250009:3",
+      "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_d.json.gz",
+      "ranks": [
+        3,
+        2,
+        1,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        9700,
+        24700,
+        71300,
+        -5700
+      ],
+      "seed": 250009,
+      "sha256": "f2f00e0ae46d7778d6e116abe0b0f2cf5fbcef0fed9724053cfd462e5a3cb383"
+    },
+    {
+      "game_id": "250010:0",
+      "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        32800,
+        36300,
+        25600,
+        5300
+      ],
+      "seed": 250010,
+      "sha256": "69c418a8293f723b845a8d973896d1b5dc9b03d5c1a997c3e0b072591af9ed12"
+    },
+    {
+      "game_id": "250010:1",
+      "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        32800,
+        36300,
+        25600,
+        5300
+      ],
+      "seed": 250010,
+      "sha256": "68a783dd162b3ab5fe124974926f0a31980a6fc3d8ffaa71191c085074659a03"
+    },
+    {
+      "game_id": "250010:2",
+      "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        32800,
+        36300,
+        25600,
+        5300
+      ],
+      "seed": 250010,
+      "sha256": "283989d217de6e3c3f9983f1cf271af1f4df6436fd0cd0e07fb5c5075a92f9c0"
+    },
+    {
+      "game_id": "250010:3",
+      "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        32800,
+        36300,
+        25600,
+        5300
+      ],
+      "seed": 250010,
+      "sha256": "92e091cf54eca3ec27711451a8d615f188f3f2c46dc62df5592f5bfc0f18b744"
+    },
+    {
+      "game_id": "250011:0",
+      "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        27700,
+        26100,
+        34800,
+        11400
+      ],
+      "seed": 250011,
+      "sha256": "6ea7a2341f9765b6f0f013dd15535b4be0b89fc6cfa42b4a24dbd5dfc70a480f"
+    },
+    {
+      "game_id": "250011:1",
+      "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        27700,
+        26100,
+        34800,
+        11400
+      ],
+      "seed": 250011,
+      "sha256": "d62adc2005cefc860cba0a226902bea88bd3fa1a5d4a23df96918d1cbe6514c7"
+    },
+    {
+      "game_id": "250011:2",
+      "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        27700,
+        26100,
+        34800,
+        11400
+      ],
+      "seed": 250011,
+      "sha256": "5be989a9b1e5cc48969e86dbb2791811c28f4250d26270372bf0b7d9947b3dd6"
+    },
+    {
+      "game_id": "250011:3",
+      "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        27700,
+        26100,
+        34800,
+        11400
+      ],
+      "seed": 250011,
+      "sha256": "f6215f33e68953e5f0e51bd95585148581fceb59e9952a00c2450f6fbea2d28a"
+    },
+    {
+      "game_id": "250012:0",
+      "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        27600,
+        49600,
+        3600,
+        19200
+      ],
+      "seed": 250012,
+      "sha256": "951fced0c03698ea493fd48d06f2715d81876e3638bd545e907e6aeb3b8811ff"
+    },
+    {
+      "game_id": "250012:1",
+      "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        27600,
+        49600,
+        3600,
+        19200
+      ],
+      "seed": 250012,
+      "sha256": "62ab6893efe4087e400679a255e97dea204ce72de3889111caaccd8535c8817b"
+    },
+    {
+      "game_id": "250012:2",
+      "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        27600,
+        49600,
+        3600,
+        19200
+      ],
+      "seed": 250012,
+      "sha256": "c505e51f9dcafec5a53999d5a2f48ad4f1697f8d1ff3ceba43d834466aeaaafd"
+    },
+    {
+      "game_id": "250012:3",
+      "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        4,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        27600,
+        49600,
+        3600,
+        19200
+      ],
+      "seed": 250012,
+      "sha256": "c0720de7e701c79c9d64ec84002f162bb708f8921d4f68cf9d62e7026bed1bbe"
+    },
+    {
+      "game_id": "250013:0",
+      "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        33300,
+        22800,
+        36500,
+        7400
+      ],
+      "seed": 250013,
+      "sha256": "d9e5d253c751889440b4b2cc12df26688793e0e864fc329f9f360ce463663eeb"
+    },
+    {
+      "game_id": "250013:1",
+      "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        33300,
+        22800,
+        36500,
+        7400
+      ],
+      "seed": 250013,
+      "sha256": "b43946bc753ceda48fd1dec7db118aecfa7a253b49551e649d9e0b898f9798ef"
+    },
+    {
+      "game_id": "250013:2",
+      "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        33300,
+        22800,
+        36500,
+        7400
+      ],
+      "seed": 250013,
+      "sha256": "389b108302433e057efc7be1fb4d04764feeb1b0a47386aa8ca6dc61817c359f"
+    },
+    {
+      "game_id": "250013:3",
+      "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        3,
+        1,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        33300,
+        22800,
+        36500,
+        7400
+      ],
+      "seed": 250013,
+      "sha256": "ab55aaa0ab19da4835c12c4e8312145de69f7fd764af5ebb07fc482e44a556fe"
+    },
+    {
+      "game_id": "250014:0",
+      "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_a.json.gz",
+      "ranks": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "rotation": 0,
+      "scores": [
+        -5300,
+        22300,
+        35700,
+        47300
+      ],
+      "seed": 250014,
+      "sha256": "d70f65aebbb9e2d14b2a7b9023e9dcdae5609f961f19b1758151863de089a5af"
+    },
+    {
+      "game_id": "250014:1",
+      "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_b.json.gz",
+      "ranks": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "rotation": 1,
+      "scores": [
+        -5300,
+        22300,
+        35700,
+        47300
+      ],
+      "seed": 250014,
+      "sha256": "0e94bdcaed3abeeb6ba44101be070cee61587480166280a010d1716637328ecc"
+    },
+    {
+      "game_id": "250014:2",
+      "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_c.json.gz",
+      "ranks": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "rotation": 2,
+      "scores": [
+        -5300,
+        22300,
+        35700,
+        47300
+      ],
+      "seed": 250014,
+      "sha256": "bde45bf4c8bb3820a973550e58d4f6a187ff8498b91f172fe843bc6cbba9e918"
+    },
+    {
+      "game_id": "250014:3",
+      "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_d.json.gz",
+      "ranks": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "rotation": 3,
+      "scores": [
+        -5300,
+        22300,
+        35700,
+        47300
+      ],
+      "seed": 250014,
+      "sha256": "df11d15a9e0bbbb012c6b10e15beee377d5c9d4c0b16891e27698fae6e9a5e5a"
+    },
+    {
+      "game_id": "250015:0",
+      "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        4,
+        3,
+        1
+      ],
+      "rotation": 0,
+      "scores": [
+        29700,
+        16100,
+        17200,
+        37000
+      ],
+      "seed": 250015,
+      "sha256": "2ea63a092b44fc5f916c3df9a4234534454fbdc5334f22bb404b9ca2944e2cb1"
+    },
+    {
+      "game_id": "250015:1",
+      "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        4,
+        3,
+        1
+      ],
+      "rotation": 1,
+      "scores": [
+        29700,
+        16100,
+        17200,
+        37000
+      ],
+      "seed": 250015,
+      "sha256": "3ce515b588a6b11ce69bd7057b7d2878bcb2053203b6457d333db78f59bae50e"
+    },
+    {
+      "game_id": "250015:2",
+      "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        4,
+        3,
+        1
+      ],
+      "rotation": 2,
+      "scores": [
+        29700,
+        16100,
+        17200,
+        37000
+      ],
+      "seed": 250015,
+      "sha256": "ede2bcecca54a0417d4f60b5300db2bbe821c76e2c0be57d733be46a6d327107"
+    },
+    {
+      "game_id": "250015:3",
+      "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        4,
+        3,
+        1
+      ],
+      "rotation": 3,
+      "scores": [
+        29700,
+        16100,
+        17200,
+        37000
+      ],
+      "seed": 250015,
+      "sha256": "bb78ea9a379df23351291d1f4c681430ee3b78cb1ab90ecccd20bc69ed3f14df"
+    },
+    {
+      "game_id": "250016:0",
+      "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_a.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        37600,
+        17900,
+        23800,
+        20700
+      ],
+      "seed": 250016,
+      "sha256": "367d1f6911e4d042c2e8c531e2ed3cf63cfb77f8178b6b4b59c45160c712b4da"
+    },
+    {
+      "game_id": "250016:1",
+      "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_b.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        37600,
+        17900,
+        23800,
+        20700
+      ],
+      "seed": 250016,
+      "sha256": "768f83a909f99dea7dc46e6da1031977b566f342edb93add8c1963c075d87468"
+    },
+    {
+      "game_id": "250016:2",
+      "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_c.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        37600,
+        17900,
+        23800,
+        20700
+      ],
+      "seed": 250016,
+      "sha256": "4d7c3b46f097339811e29b803c214c35a58fa8f1cf70d6785bfd1357f1da0207"
+    },
+    {
+      "game_id": "250016:3",
+      "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_d.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        37600,
+        17900,
+        23800,
+        20700
+      ],
+      "seed": 250016,
+      "sha256": "e8aa91b1380b35019f0226418fdb2167c3bf4299ffd23f2fc2202bb45b34f2b0"
+    },
+    {
+      "game_id": "250017:0",
+      "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        4,
+        1,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        31800,
+        9900,
+        32200,
+        26100
+      ],
+      "seed": 250017,
+      "sha256": "6aec318345e15575bc248ba17800c1a551c2b76bc37e359f07e53279a4fe3e6c"
+    },
+    {
+      "game_id": "250017:1",
+      "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        4,
+        1,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        31800,
+        9900,
+        32200,
+        26100
+      ],
+      "seed": 250017,
+      "sha256": "54a5c0faef7746b763a642e84e195cdd31fd842d3cf780827bf49ca3dbcb8bf6"
+    },
+    {
+      "game_id": "250017:2",
+      "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        4,
+        1,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        31800,
+        9900,
+        32200,
+        26100
+      ],
+      "seed": 250017,
+      "sha256": "670c2fe248f4d7ed167a3aa6c5378b0c07bad299283ba449672dde33db272c4a"
+    },
+    {
+      "game_id": "250017:3",
+      "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        4,
+        1,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        31800,
+        9900,
+        32200,
+        26100
+      ],
+      "seed": 250017,
+      "sha256": "fdf5194decb5181bbac57695f12d979970dc205a64b3513865080ad5acbb7225"
+    },
+    {
+      "game_id": "250018:0",
+      "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_a.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 0,
+      "scores": [
+        13200,
+        35100,
+        1800,
+        49900
+      ],
+      "seed": 250018,
+      "sha256": "835e1ddee2d22b9d37a87a507ae65a6227828c029aab45a8b3dadac46623beeb"
+    },
+    {
+      "game_id": "250018:1",
+      "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_b.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 1,
+      "scores": [
+        13200,
+        35100,
+        1800,
+        49900
+      ],
+      "seed": 250018,
+      "sha256": "0e43deb8edb636fe9e1e4f70b9561ba809f52e0d6ff647daae25a313d9c9e3e9"
+    },
+    {
+      "game_id": "250018:2",
+      "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_c.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 2,
+      "scores": [
+        13200,
+        35100,
+        1800,
+        49900
+      ],
+      "seed": 250018,
+      "sha256": "bf1b0c3ef5a2ab103610edc19aad630dd2a608e573f83e7c742ed996f0af7644"
+    },
+    {
+      "game_id": "250018:3",
+      "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_d.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 3,
+      "scores": [
+        13200,
+        35100,
+        1800,
+        49900
+      ],
+      "seed": 250018,
+      "sha256": "df15d07d723223ef7ad2b97c98f08cdfb97b36a7425c63f31ded93ef45a265d9"
+    },
+    {
+      "game_id": "250019:0",
+      "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        36900,
+        38500,
+        26500,
+        -1900
+      ],
+      "seed": 250019,
+      "sha256": "abe01c9b76f14e86c32d80f600c425546f7ed3ccfac8d08a57da2c045ca3f2c6"
+    },
+    {
+      "game_id": "250019:1",
+      "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        36900,
+        38500,
+        26500,
+        -1900
+      ],
+      "seed": 250019,
+      "sha256": "e8cbf459c0dd0c3ab7ecfa8b4397ccc257713295406e65182963a4c94e5b6d53"
+    },
+    {
+      "game_id": "250019:2",
+      "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        36900,
+        38500,
+        26500,
+        -1900
+      ],
+      "seed": 250019,
+      "sha256": "ae6f12ef1cf670cfca622bd1ded230a95cf162289501eb08297934b9c6918297"
+    },
+    {
+      "game_id": "250019:3",
+      "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        36900,
+        38500,
+        26500,
+        -1900
+      ],
+      "seed": 250019,
+      "sha256": "d29a8dec199e13f736862ea839f343eda319da36007e079360ca399fe7253ffb"
+    },
+    {
+      "game_id": "250020:0",
+      "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_a.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 0,
+      "scores": [
+        17100,
+        31100,
+        25600,
+        26200
+      ],
+      "seed": 250020,
+      "sha256": "6ef6eeef7e62c79040d631c1c21683956dd790caf99a191b2aae27bd0aa8275b"
+    },
+    {
+      "game_id": "250020:1",
+      "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_b.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 1,
+      "scores": [
+        17100,
+        31100,
+        25600,
+        26200
+      ],
+      "seed": 250020,
+      "sha256": "80bf104d7857dcf1f80b8bd050feba7cadf1c6999456206494f9c220a9779efe"
+    },
+    {
+      "game_id": "250020:2",
+      "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_c.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 2,
+      "scores": [
+        17100,
+        31100,
+        25600,
+        26200
+      ],
+      "seed": 250020,
+      "sha256": "0671787053446352da8769733b867cf79d37421dbc94c155f2a039a9d14bb8d4"
+    },
+    {
+      "game_id": "250020:3",
+      "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_d.json.gz",
+      "ranks": [
+        4,
+        1,
+        3,
+        2
+      ],
+      "rotation": 3,
+      "scores": [
+        17100,
+        31100,
+        25600,
+        26200
+      ],
+      "seed": 250020,
+      "sha256": "477a9096d0dbfb33bca061b99e25e50c6e99fe0e4dd7816d8f58e34717426bab"
+    },
+    {
+      "game_id": "250021:0",
+      "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_a.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 0,
+      "scores": [
+        28100,
+        41100,
+        16600,
+        14200
+      ],
+      "seed": 250021,
+      "sha256": "3593454ceb5ad891c800f0cd6e8ff2293eaddd0ce68fc75f3ca26b7d4cf265fb"
+    },
+    {
+      "game_id": "250021:1",
+      "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_b.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 1,
+      "scores": [
+        28100,
+        41100,
+        16600,
+        14200
+      ],
+      "seed": 250021,
+      "sha256": "3178da3f3439d207397aa2eadd04918540f535e4dbaf0d31503889f129c923ed"
+    },
+    {
+      "game_id": "250021:2",
+      "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_c.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 2,
+      "scores": [
+        28100,
+        41100,
+        16600,
+        14200
+      ],
+      "seed": 250021,
+      "sha256": "c7f3572ddb5186de54d1b98bcae9f69b4e6136dc00cfcf3089a7e9c2b4d3f537"
+    },
+    {
+      "game_id": "250021:3",
+      "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_d.json.gz",
+      "ranks": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "rotation": 3,
+      "scores": [
+        28100,
+        41100,
+        16600,
+        14200
+      ],
+      "seed": 250021,
+      "sha256": "e75f3f0697721f4e74e99d484091b89d8b84ac7e94a481bea70382ae3f973034"
+    },
+    {
+      "game_id": "250022:0",
+      "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_a.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 0,
+      "scores": [
+        19800,
+        36700,
+        1500,
+        42000
+      ],
+      "seed": 250022,
+      "sha256": "9d6ef8c6b87972c4aee4609eed7aca7b9068f95ce789f72a5e70de0ce47c163c"
+    },
+    {
+      "game_id": "250022:1",
+      "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_b.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 1,
+      "scores": [
+        19800,
+        36700,
+        1500,
+        42000
+      ],
+      "seed": 250022,
+      "sha256": "a84c6cf775613a46d8986dad189a528a4ae28339ea30d14de205229ccb1e8d1d"
+    },
+    {
+      "game_id": "250022:2",
+      "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_c.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 2,
+      "scores": [
+        19800,
+        36700,
+        1500,
+        42000
+      ],
+      "seed": 250022,
+      "sha256": "b0f956a4ba898d3dc0e9b74222a6fdfa03c6594f5594c4fcba07eeb501243864"
+    },
+    {
+      "game_id": "250022:3",
+      "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_d.json.gz",
+      "ranks": [
+        3,
+        2,
+        4,
+        1
+      ],
+      "rotation": 3,
+      "scores": [
+        19800,
+        36700,
+        1500,
+        42000
+      ],
+      "seed": 250022,
+      "sha256": "a42caf7eb98d013752f8fc21ed13e8ab20b428a372fe39c3982ac812f9301369"
+    },
+    {
+      "game_id": "250023:0",
+      "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_a.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        34800,
+        14800,
+        25900,
+        24500
+      ],
+      "seed": 250023,
+      "sha256": "c9d9001e620164d73b15c824fc28ba944b3438466833149acc59598b6e7711e5"
+    },
+    {
+      "game_id": "250023:1",
+      "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_b.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        34800,
+        14800,
+        25900,
+        24500
+      ],
+      "seed": 250023,
+      "sha256": "8c69e3b559b23d778435d65cffb15667eae4d43ac9eb89a66d488d504d1af5a2"
+    },
+    {
+      "game_id": "250023:2",
+      "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_c.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        34800,
+        14800,
+        25900,
+        24500
+      ],
+      "seed": 250023,
+      "sha256": "b3d7bc84af20ec21f127d6cd0bb5ddc6f408c99b6f332af6cf460e015a2e40c9"
+    },
+    {
+      "game_id": "250023:3",
+      "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_d.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        34800,
+        14800,
+        25900,
+        24500
+      ],
+      "seed": 250023,
+      "sha256": "195d9f552ef7b5e091af13f4c134a1f5de41de4cabb71d95df06ae7e839dc9f0"
+    },
+    {
+      "game_id": "250024:0",
+      "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_a.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 0,
+      "scores": [
+        34900,
+        9000,
+        30700,
+        25400
+      ],
+      "seed": 250024,
+      "sha256": "08988b5ee039a029577393aaa6ff0231501a5677e4d9ffe9a563fff4b207f62c"
+    },
+    {
+      "game_id": "250024:1",
+      "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_b.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 1,
+      "scores": [
+        34900,
+        9000,
+        30700,
+        25400
+      ],
+      "seed": 250024,
+      "sha256": "d7fe74bdb9e9925a1d408ce73df629fcb392bd340056b591c5930ab81b16014b"
+    },
+    {
+      "game_id": "250024:2",
+      "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_c.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 2,
+      "scores": [
+        34900,
+        9000,
+        30700,
+        25400
+      ],
+      "seed": 250024,
+      "sha256": "5790b7c18b497913a88c00c92c3a58c53f1ba19ab5eb7ebdcbdde34c005b755a"
+    },
+    {
+      "game_id": "250024:3",
+      "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_d.json.gz",
+      "ranks": [
+        1,
+        4,
+        2,
+        3
+      ],
+      "rotation": 3,
+      "scores": [
+        34900,
+        9000,
+        30700,
+        25400
+      ],
+      "seed": 250024,
+      "sha256": "a0763fcfdae807802b7d3b2110a985ece87ebb70e316932cd8cd5b52f7449f3e"
+    }
+  ],
+  "mode": "mortal_self_control",
+  "not_run": [
+    "no real-Tenhou dan/rank mapping from delta_pt5",
+    "no confirm pool: this is a smoke/trend/select scale estimate",
+    "RF candidate quality: no checkpoint was provided (self-control only)"
+  ],
+  "rank_counts": [
+    25,
+    25,
+    25,
+    25
+  ],
+  "registry_hash": "70f420a8f45996e341aa971bb7e0c35baebc867006bae4934626288314ddcb3f",
+  "report": {
+    "anchor": {
+      "action_guard": "native_46_action_mask_only",
+      "anchor_id": "M5D-R0",
+      "checkpoint_path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth",
+      "checkpoint_sha256": "0a44613cb9c7edae1057cf6a2c160c3971c78130e18e07f28bb43e8f62abe532",
+      "inference_mode": "deterministic_argmax",
+      "model_arch": "resnet{conv_channels=192,num_blocks=40}",
+      "model_config_hash": "837a9d9f2b924195e2acde9544611cf510d8cf01a1fb065c10693672cfd07e05",
+      "parameter_count": 10835631,
+      "rules_metadata": {
+        "calls": true,
+        "deviation_note": "pinned Mortal libriichi arena; R02/R25/R26 are settled by that engine. R29 ippatsu timing is MATCH at the PlayerState level (PR-40R, executable native fixture); a full Board-scripted R29 game is NOT_RUN and the per-decision schema still has no R29 member. Not Tenhou-parity verified.",
+        "kan": true,
+        "known_deviations": [
+          "R02",
+          "R25",
+          "R26",
+          "R29"
+        ],
+        "parity_status": "tenhou_approximate",
+        "real_mahjong_rules": true,
+        "rules_engine": "libriichi.arena.OneVsThree.py_vs_py",
+        "ruleset_id": "libriichi_tenhou_approx/1",
+        "strength_claim": "none",
+        "tenhou_equivalent": false,
+        "wins": true
+      },
+      "ruleset_id": "libriichi_tenhou_approx/1",
+      "steps": 396000,
+      "tenhou_approx_rules_hash": "9485a5394d35e9d492b885d6efe0fb242231787f21e0127e1d84720fb56c909f"
+    },
+    "avg_rank": 2.5,
+    "avg_rank_ci95": {
+      "ci": 0.95,
+      "high": 2.5,
+      "low": 2.5,
+      "method": "percentile_over_complete_sets",
+      "point": 2.5,
+      "resamples": 2000,
+      "seed": 1380333121,
+      "sets": 25,
+      "unit": "complete_seed_set"
+    },
+    "candidate": {
+      "checkpoint_path": "/home/ygsldr/riichi-ai/checkpoints/mortal.pth",
+      "checkpoint_sha256": "0a44613cb9c7edae1057cf6a2c160c3971c78130e18e07f28bb43e8f62abe532",
+      "fallback": 0,
+      "illegal": 0,
+      "inference_mode": "deterministic_argmax",
+      "mode": "mortal_self_control",
+      "model_config_hash": "837a9d9f2b924195e2acde9544611cf510d8cf01a1fb065c10693672cfd07e05",
+      "rf_candidate": "NOT_RUN",
+      "self_control_only": true
+    },
+    "context_scope": "full_game_visible_prefix",
+    "delta_pt5": 0.0,
+    "delta_pt5_ci95": {
+      "ci": 0.95,
+      "high": 0.0,
+      "low": 0.0,
+      "method": "percentile_over_complete_sets",
+      "point": 0.0,
+      "resamples": 2000,
+      "seed": 1380333121,
+      "sets": 25,
+      "unit": "complete_seed_set"
+    },
+    "delta_pt7": 0.0,
+    "delta_pt7_ci95": {
+      "ci": 0.95,
+      "high": 0.0,
+      "low": 0.0,
+      "method": "percentile_over_complete_sets",
+      "point": 0.0,
+      "resamples": 2000,
+      "seed": 1380333121,
+      "sets": 25,
+      "unit": "complete_seed_set"
+    },
+    "failed_games": 0,
+    "games_per_second": 1.0481,
+    "libriichi_build_sha256": "582e36734b10c3d3b1230a834eacc494f94e40f6d642c712eadc23f6cabfaf4e",
+    "libriichi_git_sha": "0cff2b52982be5b1163aa9a62fb01f03ce91e0d2",
+    "log_files": [
+      {
+        "game_id": "250000:0",
+        "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          24000,
+          55300,
+          7800,
+          12900
+        ],
+        "seed": 250000,
+        "sha256": "52aaf5096812528d899d8f1320fb84e0a6138582456fd44013ea0d9ea2f01600"
+      },
+      {
+        "game_id": "250000:1",
+        "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          24000,
+          55300,
+          7800,
+          12900
+        ],
+        "seed": 250000,
+        "sha256": "00ceba6e65578ac67424acc6274df32258b9a861373c6cd5ea8e6c12e7ca15b9"
+      },
+      {
+        "game_id": "250000:2",
+        "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          24000,
+          55300,
+          7800,
+          12900
+        ],
+        "seed": 250000,
+        "sha256": "6210885372a63db96dadde109293e629e4b8c2744a88acee3fd089010fd20489"
+      },
+      {
+        "game_id": "250000:3",
+        "path": "/tmp/v33_a_a0_100/games/250000_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          24000,
+          55300,
+          7800,
+          12900
+        ],
+        "seed": 250000,
+        "sha256": "6b42c87672c6706efbeae7f4e02907b4faf4c932f6b6806e83c47c2e6c16c038"
+      },
+      {
+        "game_id": "250001:0",
+        "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_a.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          20300,
+          33800,
+          37500,
+          8400
+        ],
+        "seed": 250001,
+        "sha256": "40292739383dc16837aeb717c32e04c6da0edd394efceecfaa003beb534148b7"
+      },
+      {
+        "game_id": "250001:1",
+        "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_b.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          20300,
+          33800,
+          37500,
+          8400
+        ],
+        "seed": 250001,
+        "sha256": "85cd0b0f141cdf48fd22e2b78095f4f733353cae614abc607452e0ffe51201c2"
+      },
+      {
+        "game_id": "250001:2",
+        "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_c.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          20300,
+          33800,
+          37500,
+          8400
+        ],
+        "seed": 250001,
+        "sha256": "8c3f3c3a7bac63362de898525e153d3aab794742d0afc118172d868af69ba3f4"
+      },
+      {
+        "game_id": "250001:3",
+        "path": "/tmp/v33_a_a0_100/games/250001_11400714819323198485_d.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          20300,
+          33800,
+          37500,
+          8400
+        ],
+        "seed": 250001,
+        "sha256": "38458a045f1841f69b0aeeaa396d65d5905102e03c1a4690c48a26b588e9fc78"
+      },
+      {
+        "game_id": "250002:0",
+        "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          36500,
+          41200,
+          12400,
+          9900
+        ],
+        "seed": 250002,
+        "sha256": "70e8ca4451163f686d775bb2e5019d8618b891dc46531d70a41231e21c76e4a8"
+      },
+      {
+        "game_id": "250002:1",
+        "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          36500,
+          41200,
+          12400,
+          9900
+        ],
+        "seed": 250002,
+        "sha256": "ddb4d2f21d9f6fe86959fb4637224799b5b7bc5b40842a912586fd1b5621f9c5"
+      },
+      {
+        "game_id": "250002:2",
+        "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          36500,
+          41200,
+          12400,
+          9900
+        ],
+        "seed": 250002,
+        "sha256": "e2c9291a62a4ea65d454ef4a8ec75a75723c618c1af65cd33aaac24c0387e12f"
+      },
+      {
+        "game_id": "250002:3",
+        "path": "/tmp/v33_a_a0_100/games/250002_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          36500,
+          41200,
+          12400,
+          9900
+        ],
+        "seed": 250002,
+        "sha256": "a6dd31cadf2ae6e9c715325e06b5347e34162af648f0a87698d8eea6d95fd9fa"
+      },
+      {
+        "game_id": "250003:0",
+        "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          3,
+          4,
+          1
+        ],
+        "rotation": 0,
+        "scores": [
+          17500,
+          15400,
+          10900,
+          56200
+        ],
+        "seed": 250003,
+        "sha256": "b61636827f9d05f01f61b9534d20897922a7b037e17339d7707ffad2d9d0c6d8"
+      },
+      {
+        "game_id": "250003:1",
+        "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          3,
+          4,
+          1
+        ],
+        "rotation": 1,
+        "scores": [
+          17500,
+          15400,
+          10900,
+          56200
+        ],
+        "seed": 250003,
+        "sha256": "b545113c4351a72b14a10196314f99006ca112e74670d064345410d95ca7d21c"
+      },
+      {
+        "game_id": "250003:2",
+        "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          3,
+          4,
+          1
+        ],
+        "rotation": 2,
+        "scores": [
+          17500,
+          15400,
+          10900,
+          56200
+        ],
+        "seed": 250003,
+        "sha256": "9924f7c181580a4bdb3d7eaaa723d67a15f439e78ae02e3b530f5c34eb8213e6"
+      },
+      {
+        "game_id": "250003:3",
+        "path": "/tmp/v33_a_a0_100/games/250003_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          3,
+          4,
+          1
+        ],
+        "rotation": 3,
+        "scores": [
+          17500,
+          15400,
+          10900,
+          56200
+        ],
+        "seed": 250003,
+        "sha256": "ec0b7f20b82e42b0110ac51357a5596255bd2bdfea344cbf1d30ec82f321a4ba"
+      },
+      {
+        "game_id": "250004:0",
+        "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_a.json.gz",
+        "ranks": [
+          4,
+          2,
+          1,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          0,
+          30800,
+          44000,
+          25200
+        ],
+        "seed": 250004,
+        "sha256": "9bfc724e43e41d3fc045e308d922fc8cb6ac6059ff0154ecf52d284f650a303f"
+      },
+      {
+        "game_id": "250004:1",
+        "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_b.json.gz",
+        "ranks": [
+          4,
+          2,
+          1,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          0,
+          30800,
+          44000,
+          25200
+        ],
+        "seed": 250004,
+        "sha256": "17f1a07b289a48643a08e0d82cbbf2601033962b895f43114157e147eac5dbdf"
+      },
+      {
+        "game_id": "250004:2",
+        "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_c.json.gz",
+        "ranks": [
+          4,
+          2,
+          1,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          0,
+          30800,
+          44000,
+          25200
+        ],
+        "seed": 250004,
+        "sha256": "fa5885f6a425fa83b2674ae1afa453dd2eb5d6cd4de1eeba439dd5f75f38e950"
+      },
+      {
+        "game_id": "250004:3",
+        "path": "/tmp/v33_a_a0_100/games/250004_11400714819323198485_d.json.gz",
+        "ranks": [
+          4,
+          2,
+          1,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          0,
+          30800,
+          44000,
+          25200
+        ],
+        "seed": 250004,
+        "sha256": "26adad2167ba77e496d2c46b5e8b7d3632003e05a8fbcadaaa5f0e2ed567492a"
+      },
+      {
+        "game_id": "250005:0",
+        "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_a.json.gz",
+        "ranks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          48600,
+          47500,
+          14600,
+          -10700
+        ],
+        "seed": 250005,
+        "sha256": "c17bc1664dc9d36e21b53073eb1381d4d0a70a69691e65302dd8e95612c8eed6"
+      },
+      {
+        "game_id": "250005:1",
+        "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_b.json.gz",
+        "ranks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          48600,
+          47500,
+          14600,
+          -10700
+        ],
+        "seed": 250005,
+        "sha256": "96cbeb234231952a60f4893630514d5054fe7c59b4373c26545520b6838f294f"
+      },
+      {
+        "game_id": "250005:2",
+        "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_c.json.gz",
+        "ranks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          48600,
+          47500,
+          14600,
+          -10700
+        ],
+        "seed": 250005,
+        "sha256": "efd5389cc108ddc7e80c2b21a3e9ddf04ff8350c3c40f90078f3ac552fbfee27"
+      },
+      {
+        "game_id": "250005:3",
+        "path": "/tmp/v33_a_a0_100/games/250005_11400714819323198485_d.json.gz",
+        "ranks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          48600,
+          47500,
+          14600,
+          -10700
+        ],
+        "seed": 250005,
+        "sha256": "054f1d8d86e464ea6aa1f22af471d38663afb21deed3f0f858564e9a2ce2db8b"
+      },
+      {
+        "game_id": "250006:0",
+        "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_a.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          45800,
+          100,
+          28500,
+          25600
+        ],
+        "seed": 250006,
+        "sha256": "d5b633755caa250762b93933853aff705a84dae02829d0b6a530c78718844d3b"
+      },
+      {
+        "game_id": "250006:1",
+        "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_b.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          45800,
+          100,
+          28500,
+          25600
+        ],
+        "seed": 250006,
+        "sha256": "820150b2d2d8e3506ae01cf2061c0ce1c3ec656f60dfc2f0d4e8e573fc1e30c7"
+      },
+      {
+        "game_id": "250006:2",
+        "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_c.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          45800,
+          100,
+          28500,
+          25600
+        ],
+        "seed": 250006,
+        "sha256": "cba698deefa4cc1fe90b30b7c66793a8885d5da8b5e15f4f3b5849804fce9a08"
+      },
+      {
+        "game_id": "250006:3",
+        "path": "/tmp/v33_a_a0_100/games/250006_11400714819323198485_d.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          45800,
+          100,
+          28500,
+          25600
+        ],
+        "seed": 250006,
+        "sha256": "1c129ee9483eb7ab25880d5f2d2ee7d0bd509786600d0986796a4318da07a2c2"
+      },
+      {
+        "game_id": "250007:0",
+        "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_a.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 0,
+        "scores": [
+          -1600,
+          44000,
+          17100,
+          40500
+        ],
+        "seed": 250007,
+        "sha256": "c0dd1f9449f633aa5cd19885551bc514421dcd1cd90e0746c6c96df784878045"
+      },
+      {
+        "game_id": "250007:1",
+        "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_b.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 1,
+        "scores": [
+          -1600,
+          44000,
+          17100,
+          40500
+        ],
+        "seed": 250007,
+        "sha256": "866796f2653cd51bc90b97d4e98a4b87a1ee8c5ab49c11420965128cfde08081"
+      },
+      {
+        "game_id": "250007:2",
+        "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_c.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 2,
+        "scores": [
+          -1600,
+          44000,
+          17100,
+          40500
+        ],
+        "seed": 250007,
+        "sha256": "97b6ca3866bcdb62569004edbafbd4b1e2a1bfb8e454990cb6fed722ea8945fd"
+      },
+      {
+        "game_id": "250007:3",
+        "path": "/tmp/v33_a_a0_100/games/250007_11400714819323198485_d.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 3,
+        "scores": [
+          -1600,
+          44000,
+          17100,
+          40500
+        ],
+        "seed": 250007,
+        "sha256": "4826a0da9a56e8aedd4ecb4e0804ec304958e08a52b93fea8c8ae3c8c9d98c32"
+      },
+      {
+        "game_id": "250008:0",
+        "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_a.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 0,
+        "scores": [
+          -3000,
+          41700,
+          26000,
+          35300
+        ],
+        "seed": 250008,
+        "sha256": "afe10ec0e5a3544aaa62499fc333637e10437bbe5975c05beab4e4ec637f7858"
+      },
+      {
+        "game_id": "250008:1",
+        "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_b.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 1,
+        "scores": [
+          -3000,
+          41700,
+          26000,
+          35300
+        ],
+        "seed": 250008,
+        "sha256": "cd7c52259b02b9077473969dfafb11d98947f802e7f36458f3ada83c40de5327"
+      },
+      {
+        "game_id": "250008:2",
+        "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_c.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 2,
+        "scores": [
+          -3000,
+          41700,
+          26000,
+          35300
+        ],
+        "seed": 250008,
+        "sha256": "d05bc3a8486caa9edcc90acd7a200641aa6bacf6501a963c622adb7aa5eb95c9"
+      },
+      {
+        "game_id": "250008:3",
+        "path": "/tmp/v33_a_a0_100/games/250008_11400714819323198485_d.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 3,
+        "scores": [
+          -3000,
+          41700,
+          26000,
+          35300
+        ],
+        "seed": 250008,
+        "sha256": "ce2e2a0dbf00d7e7bea316d60a7690911daa4cd034ee77fad4e16a9e490b366e"
+      },
+      {
+        "game_id": "250009:0",
+        "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_a.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          9700,
+          24700,
+          71300,
+          -5700
+        ],
+        "seed": 250009,
+        "sha256": "395649cacd24e1701333c502257784ae29697df2210fc734108934f53ad56460"
+      },
+      {
+        "game_id": "250009:1",
+        "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_b.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          9700,
+          24700,
+          71300,
+          -5700
+        ],
+        "seed": 250009,
+        "sha256": "23f466ebe0af2b6955879b84c6f8001eb5804e31e63ecdb1b3f9d0b8205efcd9"
+      },
+      {
+        "game_id": "250009:2",
+        "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_c.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          9700,
+          24700,
+          71300,
+          -5700
+        ],
+        "seed": 250009,
+        "sha256": "930889b096656052371e59c2c175fa05176953ac87ffe3856b646e401f55b01c"
+      },
+      {
+        "game_id": "250009:3",
+        "path": "/tmp/v33_a_a0_100/games/250009_11400714819323198485_d.json.gz",
+        "ranks": [
+          3,
+          2,
+          1,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          9700,
+          24700,
+          71300,
+          -5700
+        ],
+        "seed": 250009,
+        "sha256": "f2f00e0ae46d7778d6e116abe0b0f2cf5fbcef0fed9724053cfd462e5a3cb383"
+      },
+      {
+        "game_id": "250010:0",
+        "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          32800,
+          36300,
+          25600,
+          5300
+        ],
+        "seed": 250010,
+        "sha256": "69c418a8293f723b845a8d973896d1b5dc9b03d5c1a997c3e0b072591af9ed12"
+      },
+      {
+        "game_id": "250010:1",
+        "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          32800,
+          36300,
+          25600,
+          5300
+        ],
+        "seed": 250010,
+        "sha256": "68a783dd162b3ab5fe124974926f0a31980a6fc3d8ffaa71191c085074659a03"
+      },
+      {
+        "game_id": "250010:2",
+        "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          32800,
+          36300,
+          25600,
+          5300
+        ],
+        "seed": 250010,
+        "sha256": "283989d217de6e3c3f9983f1cf271af1f4df6436fd0cd0e07fb5c5075a92f9c0"
+      },
+      {
+        "game_id": "250010:3",
+        "path": "/tmp/v33_a_a0_100/games/250010_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          32800,
+          36300,
+          25600,
+          5300
+        ],
+        "seed": 250010,
+        "sha256": "92e091cf54eca3ec27711451a8d615f188f3f2c46dc62df5592f5bfc0f18b744"
+      },
+      {
+        "game_id": "250011:0",
+        "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          27700,
+          26100,
+          34800,
+          11400
+        ],
+        "seed": 250011,
+        "sha256": "6ea7a2341f9765b6f0f013dd15535b4be0b89fc6cfa42b4a24dbd5dfc70a480f"
+      },
+      {
+        "game_id": "250011:1",
+        "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          27700,
+          26100,
+          34800,
+          11400
+        ],
+        "seed": 250011,
+        "sha256": "d62adc2005cefc860cba0a226902bea88bd3fa1a5d4a23df96918d1cbe6514c7"
+      },
+      {
+        "game_id": "250011:2",
+        "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          27700,
+          26100,
+          34800,
+          11400
+        ],
+        "seed": 250011,
+        "sha256": "5be989a9b1e5cc48969e86dbb2791811c28f4250d26270372bf0b7d9947b3dd6"
+      },
+      {
+        "game_id": "250011:3",
+        "path": "/tmp/v33_a_a0_100/games/250011_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          27700,
+          26100,
+          34800,
+          11400
+        ],
+        "seed": 250011,
+        "sha256": "f6215f33e68953e5f0e51bd95585148581fceb59e9952a00c2450f6fbea2d28a"
+      },
+      {
+        "game_id": "250012:0",
+        "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          27600,
+          49600,
+          3600,
+          19200
+        ],
+        "seed": 250012,
+        "sha256": "951fced0c03698ea493fd48d06f2715d81876e3638bd545e907e6aeb3b8811ff"
+      },
+      {
+        "game_id": "250012:1",
+        "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          27600,
+          49600,
+          3600,
+          19200
+        ],
+        "seed": 250012,
+        "sha256": "62ab6893efe4087e400679a255e97dea204ce72de3889111caaccd8535c8817b"
+      },
+      {
+        "game_id": "250012:2",
+        "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          27600,
+          49600,
+          3600,
+          19200
+        ],
+        "seed": 250012,
+        "sha256": "c505e51f9dcafec5a53999d5a2f48ad4f1697f8d1ff3ceba43d834466aeaaafd"
+      },
+      {
+        "game_id": "250012:3",
+        "path": "/tmp/v33_a_a0_100/games/250012_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          4,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          27600,
+          49600,
+          3600,
+          19200
+        ],
+        "seed": 250012,
+        "sha256": "c0720de7e701c79c9d64ec84002f162bb708f8921d4f68cf9d62e7026bed1bbe"
+      },
+      {
+        "game_id": "250013:0",
+        "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          33300,
+          22800,
+          36500,
+          7400
+        ],
+        "seed": 250013,
+        "sha256": "d9e5d253c751889440b4b2cc12df26688793e0e864fc329f9f360ce463663eeb"
+      },
+      {
+        "game_id": "250013:1",
+        "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          33300,
+          22800,
+          36500,
+          7400
+        ],
+        "seed": 250013,
+        "sha256": "b43946bc753ceda48fd1dec7db118aecfa7a253b49551e649d9e0b898f9798ef"
+      },
+      {
+        "game_id": "250013:2",
+        "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          33300,
+          22800,
+          36500,
+          7400
+        ],
+        "seed": 250013,
+        "sha256": "389b108302433e057efc7be1fb4d04764feeb1b0a47386aa8ca6dc61817c359f"
+      },
+      {
+        "game_id": "250013:3",
+        "path": "/tmp/v33_a_a0_100/games/250013_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          3,
+          1,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          33300,
+          22800,
+          36500,
+          7400
+        ],
+        "seed": 250013,
+        "sha256": "ab55aaa0ab19da4835c12c4e8312145de69f7fd764af5ebb07fc482e44a556fe"
+      },
+      {
+        "game_id": "250014:0",
+        "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_a.json.gz",
+        "ranks": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "rotation": 0,
+        "scores": [
+          -5300,
+          22300,
+          35700,
+          47300
+        ],
+        "seed": 250014,
+        "sha256": "d70f65aebbb9e2d14b2a7b9023e9dcdae5609f961f19b1758151863de089a5af"
+      },
+      {
+        "game_id": "250014:1",
+        "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_b.json.gz",
+        "ranks": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "rotation": 1,
+        "scores": [
+          -5300,
+          22300,
+          35700,
+          47300
+        ],
+        "seed": 250014,
+        "sha256": "0e94bdcaed3abeeb6ba44101be070cee61587480166280a010d1716637328ecc"
+      },
+      {
+        "game_id": "250014:2",
+        "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_c.json.gz",
+        "ranks": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "rotation": 2,
+        "scores": [
+          -5300,
+          22300,
+          35700,
+          47300
+        ],
+        "seed": 250014,
+        "sha256": "bde45bf4c8bb3820a973550e58d4f6a187ff8498b91f172fe843bc6cbba9e918"
+      },
+      {
+        "game_id": "250014:3",
+        "path": "/tmp/v33_a_a0_100/games/250014_11400714819323198485_d.json.gz",
+        "ranks": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "rotation": 3,
+        "scores": [
+          -5300,
+          22300,
+          35700,
+          47300
+        ],
+        "seed": 250014,
+        "sha256": "df11d15a9e0bbbb012c6b10e15beee377d5c9d4c0b16891e27698fae6e9a5e5a"
+      },
+      {
+        "game_id": "250015:0",
+        "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          4,
+          3,
+          1
+        ],
+        "rotation": 0,
+        "scores": [
+          29700,
+          16100,
+          17200,
+          37000
+        ],
+        "seed": 250015,
+        "sha256": "2ea63a092b44fc5f916c3df9a4234534454fbdc5334f22bb404b9ca2944e2cb1"
+      },
+      {
+        "game_id": "250015:1",
+        "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          4,
+          3,
+          1
+        ],
+        "rotation": 1,
+        "scores": [
+          29700,
+          16100,
+          17200,
+          37000
+        ],
+        "seed": 250015,
+        "sha256": "3ce515b588a6b11ce69bd7057b7d2878bcb2053203b6457d333db78f59bae50e"
+      },
+      {
+        "game_id": "250015:2",
+        "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          4,
+          3,
+          1
+        ],
+        "rotation": 2,
+        "scores": [
+          29700,
+          16100,
+          17200,
+          37000
+        ],
+        "seed": 250015,
+        "sha256": "ede2bcecca54a0417d4f60b5300db2bbe821c76e2c0be57d733be46a6d327107"
+      },
+      {
+        "game_id": "250015:3",
+        "path": "/tmp/v33_a_a0_100/games/250015_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          4,
+          3,
+          1
+        ],
+        "rotation": 3,
+        "scores": [
+          29700,
+          16100,
+          17200,
+          37000
+        ],
+        "seed": 250015,
+        "sha256": "bb78ea9a379df23351291d1f4c681430ee3b78cb1ab90ecccd20bc69ed3f14df"
+      },
+      {
+        "game_id": "250016:0",
+        "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_a.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          37600,
+          17900,
+          23800,
+          20700
+        ],
+        "seed": 250016,
+        "sha256": "367d1f6911e4d042c2e8c531e2ed3cf63cfb77f8178b6b4b59c45160c712b4da"
+      },
+      {
+        "game_id": "250016:1",
+        "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_b.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          37600,
+          17900,
+          23800,
+          20700
+        ],
+        "seed": 250016,
+        "sha256": "768f83a909f99dea7dc46e6da1031977b566f342edb93add8c1963c075d87468"
+      },
+      {
+        "game_id": "250016:2",
+        "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_c.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          37600,
+          17900,
+          23800,
+          20700
+        ],
+        "seed": 250016,
+        "sha256": "4d7c3b46f097339811e29b803c214c35a58fa8f1cf70d6785bfd1357f1da0207"
+      },
+      {
+        "game_id": "250016:3",
+        "path": "/tmp/v33_a_a0_100/games/250016_11400714819323198485_d.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          37600,
+          17900,
+          23800,
+          20700
+        ],
+        "seed": 250016,
+        "sha256": "e8aa91b1380b35019f0226418fdb2167c3bf4299ffd23f2fc2202bb45b34f2b0"
+      },
+      {
+        "game_id": "250017:0",
+        "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          4,
+          1,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          31800,
+          9900,
+          32200,
+          26100
+        ],
+        "seed": 250017,
+        "sha256": "6aec318345e15575bc248ba17800c1a551c2b76bc37e359f07e53279a4fe3e6c"
+      },
+      {
+        "game_id": "250017:1",
+        "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          4,
+          1,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          31800,
+          9900,
+          32200,
+          26100
+        ],
+        "seed": 250017,
+        "sha256": "54a5c0faef7746b763a642e84e195cdd31fd842d3cf780827bf49ca3dbcb8bf6"
+      },
+      {
+        "game_id": "250017:2",
+        "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          4,
+          1,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          31800,
+          9900,
+          32200,
+          26100
+        ],
+        "seed": 250017,
+        "sha256": "670c2fe248f4d7ed167a3aa6c5378b0c07bad299283ba449672dde33db272c4a"
+      },
+      {
+        "game_id": "250017:3",
+        "path": "/tmp/v33_a_a0_100/games/250017_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          4,
+          1,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          31800,
+          9900,
+          32200,
+          26100
+        ],
+        "seed": 250017,
+        "sha256": "fdf5194decb5181bbac57695f12d979970dc205a64b3513865080ad5acbb7225"
+      },
+      {
+        "game_id": "250018:0",
+        "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_a.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 0,
+        "scores": [
+          13200,
+          35100,
+          1800,
+          49900
+        ],
+        "seed": 250018,
+        "sha256": "835e1ddee2d22b9d37a87a507ae65a6227828c029aab45a8b3dadac46623beeb"
+      },
+      {
+        "game_id": "250018:1",
+        "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_b.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 1,
+        "scores": [
+          13200,
+          35100,
+          1800,
+          49900
+        ],
+        "seed": 250018,
+        "sha256": "0e43deb8edb636fe9e1e4f70b9561ba809f52e0d6ff647daae25a313d9c9e3e9"
+      },
+      {
+        "game_id": "250018:2",
+        "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_c.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 2,
+        "scores": [
+          13200,
+          35100,
+          1800,
+          49900
+        ],
+        "seed": 250018,
+        "sha256": "bf1b0c3ef5a2ab103610edc19aad630dd2a608e573f83e7c742ed996f0af7644"
+      },
+      {
+        "game_id": "250018:3",
+        "path": "/tmp/v33_a_a0_100/games/250018_11400714819323198485_d.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 3,
+        "scores": [
+          13200,
+          35100,
+          1800,
+          49900
+        ],
+        "seed": 250018,
+        "sha256": "df15d07d723223ef7ad2b97c98f08cdfb97b36a7425c63f31ded93ef45a265d9"
+      },
+      {
+        "game_id": "250019:0",
+        "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          36900,
+          38500,
+          26500,
+          -1900
+        ],
+        "seed": 250019,
+        "sha256": "abe01c9b76f14e86c32d80f600c425546f7ed3ccfac8d08a57da2c045ca3f2c6"
+      },
+      {
+        "game_id": "250019:1",
+        "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          36900,
+          38500,
+          26500,
+          -1900
+        ],
+        "seed": 250019,
+        "sha256": "e8cbf459c0dd0c3ab7ecfa8b4397ccc257713295406e65182963a4c94e5b6d53"
+      },
+      {
+        "game_id": "250019:2",
+        "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          36900,
+          38500,
+          26500,
+          -1900
+        ],
+        "seed": 250019,
+        "sha256": "ae6f12ef1cf670cfca622bd1ded230a95cf162289501eb08297934b9c6918297"
+      },
+      {
+        "game_id": "250019:3",
+        "path": "/tmp/v33_a_a0_100/games/250019_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          36900,
+          38500,
+          26500,
+          -1900
+        ],
+        "seed": 250019,
+        "sha256": "d29a8dec199e13f736862ea839f343eda319da36007e079360ca399fe7253ffb"
+      },
+      {
+        "game_id": "250020:0",
+        "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_a.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 0,
+        "scores": [
+          17100,
+          31100,
+          25600,
+          26200
+        ],
+        "seed": 250020,
+        "sha256": "6ef6eeef7e62c79040d631c1c21683956dd790caf99a191b2aae27bd0aa8275b"
+      },
+      {
+        "game_id": "250020:1",
+        "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_b.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 1,
+        "scores": [
+          17100,
+          31100,
+          25600,
+          26200
+        ],
+        "seed": 250020,
+        "sha256": "80bf104d7857dcf1f80b8bd050feba7cadf1c6999456206494f9c220a9779efe"
+      },
+      {
+        "game_id": "250020:2",
+        "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_c.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 2,
+        "scores": [
+          17100,
+          31100,
+          25600,
+          26200
+        ],
+        "seed": 250020,
+        "sha256": "0671787053446352da8769733b867cf79d37421dbc94c155f2a039a9d14bb8d4"
+      },
+      {
+        "game_id": "250020:3",
+        "path": "/tmp/v33_a_a0_100/games/250020_11400714819323198485_d.json.gz",
+        "ranks": [
+          4,
+          1,
+          3,
+          2
+        ],
+        "rotation": 3,
+        "scores": [
+          17100,
+          31100,
+          25600,
+          26200
+        ],
+        "seed": 250020,
+        "sha256": "477a9096d0dbfb33bca061b99e25e50c6e99fe0e4dd7816d8f58e34717426bab"
+      },
+      {
+        "game_id": "250021:0",
+        "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_a.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 0,
+        "scores": [
+          28100,
+          41100,
+          16600,
+          14200
+        ],
+        "seed": 250021,
+        "sha256": "3593454ceb5ad891c800f0cd6e8ff2293eaddd0ce68fc75f3ca26b7d4cf265fb"
+      },
+      {
+        "game_id": "250021:1",
+        "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_b.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 1,
+        "scores": [
+          28100,
+          41100,
+          16600,
+          14200
+        ],
+        "seed": 250021,
+        "sha256": "3178da3f3439d207397aa2eadd04918540f535e4dbaf0d31503889f129c923ed"
+      },
+      {
+        "game_id": "250021:2",
+        "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_c.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 2,
+        "scores": [
+          28100,
+          41100,
+          16600,
+          14200
+        ],
+        "seed": 250021,
+        "sha256": "c7f3572ddb5186de54d1b98bcae9f69b4e6136dc00cfcf3089a7e9c2b4d3f537"
+      },
+      {
+        "game_id": "250021:3",
+        "path": "/tmp/v33_a_a0_100/games/250021_11400714819323198485_d.json.gz",
+        "ranks": [
+          2,
+          1,
+          3,
+          4
+        ],
+        "rotation": 3,
+        "scores": [
+          28100,
+          41100,
+          16600,
+          14200
+        ],
+        "seed": 250021,
+        "sha256": "e75f3f0697721f4e74e99d484091b89d8b84ac7e94a481bea70382ae3f973034"
+      },
+      {
+        "game_id": "250022:0",
+        "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_a.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 0,
+        "scores": [
+          19800,
+          36700,
+          1500,
+          42000
+        ],
+        "seed": 250022,
+        "sha256": "9d6ef8c6b87972c4aee4609eed7aca7b9068f95ce789f72a5e70de0ce47c163c"
+      },
+      {
+        "game_id": "250022:1",
+        "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_b.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 1,
+        "scores": [
+          19800,
+          36700,
+          1500,
+          42000
+        ],
+        "seed": 250022,
+        "sha256": "a84c6cf775613a46d8986dad189a528a4ae28339ea30d14de205229ccb1e8d1d"
+      },
+      {
+        "game_id": "250022:2",
+        "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_c.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 2,
+        "scores": [
+          19800,
+          36700,
+          1500,
+          42000
+        ],
+        "seed": 250022,
+        "sha256": "b0f956a4ba898d3dc0e9b74222a6fdfa03c6594f5594c4fcba07eeb501243864"
+      },
+      {
+        "game_id": "250022:3",
+        "path": "/tmp/v33_a_a0_100/games/250022_11400714819323198485_d.json.gz",
+        "ranks": [
+          3,
+          2,
+          4,
+          1
+        ],
+        "rotation": 3,
+        "scores": [
+          19800,
+          36700,
+          1500,
+          42000
+        ],
+        "seed": 250022,
+        "sha256": "a42caf7eb98d013752f8fc21ed13e8ab20b428a372fe39c3982ac812f9301369"
+      },
+      {
+        "game_id": "250023:0",
+        "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_a.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          34800,
+          14800,
+          25900,
+          24500
+        ],
+        "seed": 250023,
+        "sha256": "c9d9001e620164d73b15c824fc28ba944b3438466833149acc59598b6e7711e5"
+      },
+      {
+        "game_id": "250023:1",
+        "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_b.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          34800,
+          14800,
+          25900,
+          24500
+        ],
+        "seed": 250023,
+        "sha256": "8c69e3b559b23d778435d65cffb15667eae4d43ac9eb89a66d488d504d1af5a2"
+      },
+      {
+        "game_id": "250023:2",
+        "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_c.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          34800,
+          14800,
+          25900,
+          24500
+        ],
+        "seed": 250023,
+        "sha256": "b3d7bc84af20ec21f127d6cd0bb5ddc6f408c99b6f332af6cf460e015a2e40c9"
+      },
+      {
+        "game_id": "250023:3",
+        "path": "/tmp/v33_a_a0_100/games/250023_11400714819323198485_d.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          34800,
+          14800,
+          25900,
+          24500
+        ],
+        "seed": 250023,
+        "sha256": "195d9f552ef7b5e091af13f4c134a1f5de41de4cabb71d95df06ae7e839dc9f0"
+      },
+      {
+        "game_id": "250024:0",
+        "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_a.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 0,
+        "scores": [
+          34900,
+          9000,
+          30700,
+          25400
+        ],
+        "seed": 250024,
+        "sha256": "08988b5ee039a029577393aaa6ff0231501a5677e4d9ffe9a563fff4b207f62c"
+      },
+      {
+        "game_id": "250024:1",
+        "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_b.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 1,
+        "scores": [
+          34900,
+          9000,
+          30700,
+          25400
+        ],
+        "seed": 250024,
+        "sha256": "d7fe74bdb9e9925a1d408ce73df629fcb392bd340056b591c5930ab81b16014b"
+      },
+      {
+        "game_id": "250024:2",
+        "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_c.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 2,
+        "scores": [
+          34900,
+          9000,
+          30700,
+          25400
+        ],
+        "seed": 250024,
+        "sha256": "5790b7c18b497913a88c00c92c3a58c53f1ba19ab5eb7ebdcbdde34c005b755a"
+      },
+      {
+        "game_id": "250024:3",
+        "path": "/tmp/v33_a_a0_100/games/250024_11400714819323198485_d.json.gz",
+        "ranks": [
+          1,
+          4,
+          2,
+          3
+        ],
+        "rotation": 3,
+        "scores": [
+          34900,
+          9000,
+          30700,
+          25400
+        ],
+        "seed": 250024,
+        "sha256": "a0763fcfdae807802b7d3b2110a985ece87ebb70e316932cd8cd5b52f7449f3e"
+      }
+    ],
+    "missing_sets": 0,
+    "mode": "mortal_self_control",
+    "n_complete_sets": 25,
+    "n_games": 100,
+    "not_run": [
+      "no real-Tenhou dan/rank mapping from delta_pt5",
+      "no confirm pool: this is a smoke/trend/select scale estimate",
+      "RF candidate quality: no checkpoint was provided (self-control only)"
+    ],
+    "official_rank": false,
+    "patch_manifest_hash": "fb2d57f19b8ffb2be8de7785225ca96064ef0b25162c2aa46ec121529b1ae55f",
+    "per_set": [
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250000:0",
+          "250000:1",
+          "250000:2",
+          "250000:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250000
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250001:0",
+          "250001:1",
+          "250001:2",
+          "250001:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250001
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250002:0",
+          "250002:1",
+          "250002:2",
+          "250002:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250002
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250003:0",
+          "250003:1",
+          "250003:2",
+          "250003:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250003
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250004:0",
+          "250004:1",
+          "250004:2",
+          "250004:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250004
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250005:0",
+          "250005:1",
+          "250005:2",
+          "250005:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250005
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250006:0",
+          "250006:1",
+          "250006:2",
+          "250006:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250006
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250007:0",
+          "250007:1",
+          "250007:2",
+          "250007:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250007
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250008:0",
+          "250008:1",
+          "250008:2",
+          "250008:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250008
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250009:0",
+          "250009:1",
+          "250009:2",
+          "250009:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250009
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250010:0",
+          "250010:1",
+          "250010:2",
+          "250010:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250010
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250011:0",
+          "250011:1",
+          "250011:2",
+          "250011:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250011
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250012:0",
+          "250012:1",
+          "250012:2",
+          "250012:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250012
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250013:0",
+          "250013:1",
+          "250013:2",
+          "250013:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250013
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250014:0",
+          "250014:1",
+          "250014:2",
+          "250014:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250014
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250015:0",
+          "250015:1",
+          "250015:2",
+          "250015:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250015
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250016:0",
+          "250016:1",
+          "250016:2",
+          "250016:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250016
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250017:0",
+          "250017:1",
+          "250017:2",
+          "250017:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250017
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250018:0",
+          "250018:1",
+          "250018:2",
+          "250018:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250018
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250019:0",
+          "250019:1",
+          "250019:2",
+          "250019:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250019
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250020:0",
+          "250020:1",
+          "250020:2",
+          "250020:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250020
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250021:0",
+          "250021:1",
+          "250021:2",
+          "250021:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250021
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250022:0",
+          "250022:1",
+          "250022:2",
+          "250022:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250022
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250023:0",
+          "250023:1",
+          "250023:2",
+          "250023:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250023
+      },
+      {
+        "avg_rank": 2.5,
+        "candidate_seats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "complete_4_of_4": true,
+        "delta_pt5": 0.0,
+        "delta_pt7": 0.0,
+        "game_ids": [
+          "250024:0",
+          "250024:1",
+          "250024:2",
+          "250024:3"
+        ],
+        "n_games": 4,
+        "pt5_candidate": 0.0,
+        "pt7_candidate": 0.0,
+        "rank1_rate": 0.25,
+        "rank4_rate": 0.25,
+        "rank_hist": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "rotations": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "seed_key": "9e3779b97f4a7c15",
+        "wall_seed": 250024
+      }
+    ],
+    "pt5_candidate": 0.0,
+    "pt5_candidate_ci95": {
+      "ci": 0.95,
+      "high": 0.0,
+      "low": 0.0,
+      "method": "percentile_over_complete_sets",
+      "point": 0.0,
+      "resamples": 2000,
+      "seed": 1380333121,
+      "sets": 25,
+      "unit": "complete_seed_set"
+    },
+    "pt7_candidate": 0.0,
+    "rank1_rate": 0.25,
+    "rank4_rate": 0.25,
+    "rank_counts": [
+      25,
+      25,
+      25,
+      25
+    ],
+    "rank_hist": [
+      25,
+      25,
+      25,
+      25
+    ],
+    "registry_hash": "70f420a8f45996e341aa971bb7e0c35baebc867006bae4934626288314ddcb3f",
+    "score_policy": {
+      "bootstrap": {
+        "ci": 0.95,
+        "method": "percentile_over_complete_sets",
+        "resamples": 2000,
+        "seed": 1380333121
+      },
+      "delta_formula": "delta_pt = (4/3) * pt_candidate",
+      "primary_profile": "TOKUJOU_5D_HANCHAN",
+      "profile": "TOKUJOU_5D_HANCHAN",
+      "pt_table": [
+        75,
+        30,
+        0,
+        -105
+      ],
+      "rotations": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "schema": "rf-relative-pt/1",
+      "score_sum": 100000,
+      "secondary_profile": "HOUOU_7D_HANCHAN",
+      "tie_rule": "scores_descending_then_lower_absolute_seat",
+      "unit": "complete_seed_set"
+    },
+    "score_policy_hash": "17d3ebe108fe0513bbebe1cd3d26c1b6b145b2bd7c60b0da49db7b578908378f",
+    "score_policy_id": "TOKUJOU_5D_HANCHAN",
+    "seed_key": "9e3779b97f4a7c15",
+    "seed_window": [
+      250000,
+      250025
+    ],
+    "self_control_only": true,
+    "sem_set": 0.0,
+    "std_set": 0.0,
+    "strength_claim": "relative_to_frozen_M5D-R0_pool_only",
+    "task": "PR-46B",
+    "wall_seconds": 95.412
+  },
+  "seed_key": "9e3779b97f4a7c15",
+  "seed_key_decimal": 11400714819323198485,
+  "seed_window": [
+    250000,
+    250025
+  ],
+  "self_control_only": true,
+  "sets": 25,
+  "task": "PR-46B",
+  "wall_seconds": 95.412
+}
