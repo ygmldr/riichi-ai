@@ -722,7 +722,8 @@ def _run(protocol: B0Protocol, args) -> int:
                "executed_seeds": [run["seed"] for run in runs],
                "data": {key: {"shard_sha256": value["shard_sha256"],
                               "manifest_sha256": value["manifest_sha256"]}
-                        for key, value in data.items()}})
+                        for key, value in data.items()
+                        if key in ("train", "validation")}})
     print(f"B0_DONE status={status} runs={len(runs)} "
           f"candidates={len(candidates)} "
           f"not_run={','.join(manifest['not_run'])} "

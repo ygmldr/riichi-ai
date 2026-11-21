@@ -1222,6 +1222,65 @@ def build_protocol_from_files(
                                                  time.gmtime()))
 
 
+def _shard_metadata_and_games(path: str | Path) -> tuple[dict, list[tuple[str, str]]]:
+    """Read only metadata/game ids for validation-isolation checks (no training)."""
+    import sqlite3
+
+    source = Path(path)
+    conn = sqlite3.connect(f"file:{source}?mode=ro", uri=True)
+    try:
+        row = conn.execute("SELECT value FROM meta WHERE key='metadata'").fetchone()
+        if row is None:
+            raise B0Refusal(f"shard {source} has no metadata row")
+        metadata = json.loads(row[0])
+        games = [tuple(item) for item in conn.execute(
+            "SELECT game_id, split FROM games ORDER BY game_id")]
+    finally:
+        conn.close()
+    return metadata, games
+
+
+def verify_validation_isolation(protocol: B0Protocol) -> dict:
+    """Refuse a validation shard that is train-purpose/split or overlaps train.
+
+    The training loader's own purpose gate is necessary but not sufficient: a B0
+    prereg must also refuse a *train-purpose* shard in the validation slot and any
+    game-id overlap between the two corpora.  This function reads sqlite metadata
+    and game ids only; it never yields a training row.
+    """
+    train_meta, train_games = _shard_metadata_and_games(protocol.train_shard)
+    val_meta, val_games = _shard_metadata_and_games(protocol.validation_shard)
+    purpose = val_meta.get("purpose")
+    if purpose not in ("diagnostic", "audit"):
+        raise B0Refusal(
+            f"validation shard purpose={purpose!r}; B0 requires diagnostic/audit")
+    if val_meta.get("train_allowed") is not False:
+        raise B0Refusal("validation shard must have train_allowed=false")
+    if val_meta.get("train_eligible_under_policy") is not False:
+        raise B0Refusal(
+            "validation shard must have train_eligible_under_policy=false")
+    val_train_games = [game_id for game_id, split in val_games if split == "train"]
+    if val_train_games:
+        raise B0Refusal(
+            f"validation shard contains {len(val_train_games)} train-split game(s)")
+    train_ids = {game_id for game_id, _split in train_games}
+    val_ids = {game_id for game_id, _split in val_games}
+    overlap = sorted(train_ids & val_ids)
+    if overlap:
+        raise B0Refusal(
+            f"train/validation game-id intersection is non-empty: {overlap[:5]}")
+    return {
+        "validation_purpose": purpose,
+        "train_allowed": False,
+        "train_eligible_under_policy": False,
+        "train_games": len(train_ids),
+        "validation_games": len(val_ids),
+        "game_id_intersection": 0,
+        "train_source": train_meta.get("source_id"),
+        "validation_source": val_meta.get("source_id"),
+    }
+
+
 def verify_data_fingerprints(protocol: B0Protocol) -> dict:
     """Refuse a protocol whose shard files no longer match the prereg."""
     if not isinstance(protocol, B0Protocol):
@@ -1256,6 +1315,7 @@ def verify_data_fingerprints(protocol: B0Protocol) -> dict:
         result[label] = {"shard_sha256": actual,
                          "manifest_sha256": actual_manifest,
                          "metadata": manifest.get("metadata", {})}
+    result["isolation"] = verify_validation_isolation(protocol)
     return result
 
 

@@ -937,15 +937,22 @@ def private_metadata(policy: PolicyConfig) -> ShardMetadata:
     )
 
 
-def build_private_shard(path: Path, policy: PolicyConfig, games: int = 2) -> None:
+def build_private_shard(path: Path, policy: PolicyConfig, games: int = 2,
+                        *, validation: bool = False) -> None:
     raw = raw_four()
     samples = build_decisions(raw)
-    writer = ShardWriter(path, private_metadata(policy))
+    meta = private_metadata(policy)
+    if validation:
+        meta = dataclasses.replace(
+            meta, purpose="diagnostic", train_eligible_under_policy=False)
+    writer = ShardWriter(path, meta)
     for index in range(games):
+        prefix = "pv" if validation else "p"
         record = make_game_record(
-            raw, samples, game_id=f"p{index:02d}",
-            component_id=f"pcomp-{index}", component_sha256="d" * 64,
-            split="train", source_id="tenhou_old", train_allowed=False,
+            raw, samples, game_id=f"{prefix}{index:02d}",
+            component_id=f"{prefix}comp-{index}", component_sha256="d" * 64,
+            split="validation" if validation else "train",
+            source_id="tenhou_old", train_allowed=False,
             rights_status="RESTRICTED")
         writer.add_game(record)
     writer.finalize()

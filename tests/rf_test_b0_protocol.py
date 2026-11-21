@@ -95,17 +95,35 @@ def metadata() -> ShardMetadata:
         action_map_hash=ACTION_HASH, normalizer_hash=NORMALIZER_HASH)
 
 
-def build_shard(path: Path, games: int, prefix: str) -> None:
+def validation_metadata() -> ShardMetadata:
+    return ShardMetadata(
+        purpose="diagnostic", source_id="synthetic_validation",
+        rights_status="UNKNOWN", train_allowed=False,
+        canonical_manifest_sha256="a" * 64,
+        canonical_index_sha256="b" * 64,
+        split_manifest_sha256="c" * 64,
+        split_version="rf-split/2",
+        schema_version="rf-schema-v3/2", schema_hash=SCHEMA_HASH,
+        action_map_hash=ACTION_HASH, normalizer_hash=NORMALIZER_HASH,
+        research_policy="licensed_only",
+        research_policy_hash="",
+        train_eligible_under_policy=False)
+
+
+def build_shard(path: Path, games: int, prefix: str, *, validation: bool = False) -> None:
     raw = raw_game()
     samples = build_decisions(raw)
-    writer = ShardWriter(path, metadata())
+    meta = validation_metadata() if validation else metadata()
+    split = "validation" if validation else "train"
+    allowed = False if validation else True
+    writer = ShardWriter(path, meta)
     for index in range(games):
         writer.add_game(make_game_record(
             raw, samples, game_id=f"{prefix}{index:03d}",
             component_id=f"{prefix}-comp-{index}",
-            component_sha256="d" * 64, split="train",
-            source_id="synthetic_allowed", train_allowed=True,
-            rights_status="ALLOWED"))
+            component_sha256="d" * 64, split=split,
+            source_id=meta.source_id, train_allowed=allowed,
+            rights_status="UNKNOWN" if validation else "ALLOWED"))
     writer.finalize()
 
 
@@ -134,7 +152,7 @@ def make_protocol(tmp: Path, *, max_steps: int = 6,
     train_shard = tmp / "train.rfshard"
     val_shard = tmp / "val.rfshard"
     build_shard(train_shard, train_games, "g")
-    build_shard(val_shard, val_games, "v")
+    build_shard(val_shard, val_games, "v", validation=True)
     return build_protocol_from_files(
         experiment_id="EXP-B0-TEST",
         train_shard=str(train_shard), validation_shard=str(val_shard),
@@ -317,6 +335,24 @@ class ProtocolValidationTests(unittest.TestCase):
 
 
 class DataFingerprintTests(unittest.TestCase):
+    def test_validation_shard_must_not_be_train_purpose(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            train = root / "train.rfshard"
+            val = root / "val_trainpurpose.rfshard"
+            build_shard(train, 8, "g")
+            build_shard(val, 4, "v")  # deliberately train-purpose/split
+            protocol = build_protocol_from_files(
+                experiment_id="EXP-B0-TEST",
+                train_shard=str(train), validation_shard=str(val),
+                model_config=tiny_config(), train=settings(max_steps=4),
+                seeds=(11, 22), validation_steps=(2, 4),
+                candidate_steps=(4,), selection=B0SelectionRule(),
+                stop_policy=B0StopPolicy(max_wall_seconds=120.0),
+                created_utc="2026-11-21T00:00:00Z")
+            with self.assertRaises(B0Refusal):
+                verify_data_fingerprints(protocol)
+
     def test_wrong_shard_and_manifest_hashes_are_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             protocol = make_protocol(Path(temp))

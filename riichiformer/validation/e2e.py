@@ -26,8 +26,18 @@ from pathlib import Path
 
 import torch
 
-from ..data.loader import ShardLoadError
-from ..data.shard import ShardError
+from ..data.decision import build_decisions
+from ..data.loader import ShardLoadError, ShardReader
+from ..data.shard import (
+    ACTION_HASH,
+    NORMALIZER_HASH,
+    SCHEMA_HASH,
+    ShardError,
+    ShardMetadata,
+    ShardRightsError,
+    ShardWriter,
+    make_game_record,
+)
 from ..models.policy import Policy, count_parameters
 from ..policy.config import PolicyConfig
 from ..schemas.decision_v3 import RulesetId, SourceKind
@@ -197,13 +207,79 @@ def tamper_cutoff(source: str | Path, target: str | Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# roundtrip
+# train-only fixture
 # ---------------------------------------------------------------------------
+_SYNTH_HANDS = (
+    ("1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+     "1p", "2p", "3p", "4p"),
+    ("1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+     "E", "S", "W", "N"),
+    ("P", "F", "C", "1m", "2m", "3m", "4m", "5m", "6m",
+     "7m", "8m", "9m", "1p"),
+    ("2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+     "1s", "2s", "3s", "4s", "5s"),
+)
+
+
+def _synthetic_raw_game() -> list[dict]:
+    return [
+        {"type": "start_game", "names": ["a", "b", "c", "d"]},
+        {"type": "start_kyoku", "bakaze": "E", "dora_marker": "1p",
+         "kyoku": 1, "honba": 0, "kyotaku": 0, "oya": 0,
+         "scores": [25000] * 4,
+         "tehais": [list(hand) for hand in _SYNTH_HANDS]},
+        {"type": "tsumo", "actor": 0, "pai": "5mr"},
+        {"type": "dahai", "actor": 0, "pai": "5mr", "tsumogiri": True},
+        {"type": "tsumo", "actor": 1, "pai": "1s"},
+        {"type": "dahai", "actor": 1, "pai": "1s", "tsumogiri": True},
+        {"type": "tsumo", "actor": 2, "pai": "P"},
+        {"type": "dahai", "actor": 2, "pai": "P", "tsumogiri": True},
+        {"type": "tsumo", "actor": 3, "pai": "2p"},
+        {"type": "dahai", "actor": 3, "pai": "2p", "tsumogiri": True},
+        {"type": "end_kyoku"},
+        {"type": "end_game"},
+    ]
+
+
+def _write_synthetic_train_shard(workdir: Path) -> Path:
+    """A labelled synthetic *train-purpose* fixture, never validation data.
+
+    PR-47 must exercise a real optimizer step, but it must not optimize on the
+    diagnostic validation corpus.  This tiny fixture has its own synthetic source
+    and ``purpose=train``; it is not the self-play corpus and cannot be used for
+    strength or selection.  Callers may pass a real independent train shard
+    instead.
+    """
+    path = workdir / "synthetic_train.rfshard"
+    metadata = ShardMetadata(
+        purpose="train", source_id="synthetic_allowed",
+        rights_status="ALLOWED", train_allowed=True,
+        canonical_manifest_sha256="a" * 64,
+        canonical_index_sha256="b" * 64,
+        split_manifest_sha256="c" * 64,
+        split_version="rf-split/2", schema_version="rf-schema-v3/2",
+        schema_hash=SCHEMA_HASH, action_map_hash=ACTION_HASH,
+        normalizer_hash=NORMALIZER_HASH)
+    raw = _synthetic_raw_game()
+    samples = build_decisions(raw)
+    writer = ShardWriter(path, metadata)
+    for index in range(2):
+        writer.add_game(make_game_record(
+            raw, samples, game_id=f"pr47-synthetic-train-{index:03d}",
+            component_id=f"pr47-synthetic-component-{index}",
+            component_sha256="d" * 64, split="train",
+            source_id="synthetic_allowed", train_allowed=True,
+            rights_status="ALLOWED"))
+    writer.finalize()
+    return path
+
+
 def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
                   workdir: str | Path, policy: PolicyConfig,
                   spec: ValidationShardSpec, steps: int = 2,
                   batch_size: int = 2, seed: int = 20261121,
-                  device: str = "cpu") -> dict:
+                  device: str = "cpu",
+                  train_shard: str | Path | None = None) -> dict:
     """Build the shard and run the full CPU roundtrip; returns a JSON report."""
     if steps <= 0 or steps > 10:
         raise E2EError("steps must be in 1..10 for this smoke")
@@ -243,10 +319,29 @@ def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
     optimizer = make_optimizer(model, config)
     scheduler = make_scheduler(optimizer, config)
 
+    # PR-47 must not optimize on the diagnostic validation corpus.  A caller can
+    # pass a real independent train-purpose shard; the default is a labelled
+    # synthetic train fixture (never the validation window).
+    explicit_train = train_shard is not None
+    train_path = (Path(train_shard) if explicit_train
+                  else _write_synthetic_train_shard(workdir))
+    try:
+        train_reader = ShardReader(
+            train_path, purpose="train",
+            expected_policy_hash=(policy.policy_hash if explicit_train else None))
+    except (ShardError, ShardLoadError, ShardRightsError) as exc:
+        raise E2EError(f"cannot open train-purpose fixture {train_path}: {exc}") from exc
+    train_metadata = train_reader.metadata
+    if train_metadata.purpose != "train":
+        train_reader.close()
+        raise E2EError("training fixture is not purpose=train")
+    if not any(game["split"] == "train" for game in train_reader.games()):
+        train_reader.close()
+        raise E2EError("training fixture has no train-split game")
+
     losses = []
     decisions = 0
     tokens = 0
-    kept_batch = None
     reader = ValidationReader(
         shard_path, expected_policy_hash=policy.policy_hash,
         batch_size=batch_size, max_positions=model_config.max_positions)
@@ -254,45 +349,54 @@ def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
         describe = reader.describe()
         if describe["train_eligible_under_policy"]:
             raise E2EError("validation shard became train-eligible")
+        overlap = sorted(set(reader.game_ids) & {
+            game["game_id"] for game in train_reader.games()})
+        if overlap:
+            raise E2EError(
+                f"train/validation game-id overlap: {overlap[:5]}")
+        validation_iterator = reader.iter_batches()
+        try:
+            kept_batch = next(validation_iterator)
+        except StopIteration:
+            raise E2EError("validation reader produced no inference batch")
         model.train()
-        iterator = reader.iter_batches()
+        iterator = train_reader.iter_multi_decision_batches(
+            batch_size=batch_size,
+            max_events=model_config.max_positions,
+            max_positions=model_config.max_positions)
         while len(losses) < steps:
             try:
                 item = next(iterator)
             except StopIteration:
                 raise E2EError(
-                    f"loader ran out of batches after {len(losses)} steps")
-            if kept_batch is None:
-                kept_batch = item
+                    f"train loader ran out of batches after {len(losses)} steps")
             result = training_step_multi(
-                model, item.batch.batch.to(device), item.batch.targets,
+                model, item.batch.to(device), item.targets,
                 optimizer=optimizer, scheduler=scheduler,
                 max_grad_norm=config.grad_clip, bf16=False)
             if result.valid_decisions == 0:
                 continue
             losses.append(float(result.loss.detach()))
             decisions += result.valid_decisions
-            tokens += item.batch.tokens
-        if kept_batch is None:
-            raise E2EError("no batch was retained for inference")
+            tokens += item.tokens
         model.eval()
         with torch.no_grad():
             before = model.forward_multi(kept_batch.batch.batch.to(device))
             before_logits = before.logits.detach().cpu().clone()
         hashes = {
-            "schema_hash": metadata["schema_hash"],
-            "action_map_hash": metadata["action_map_hash"],
-            "normalizer_hash": metadata["normalizer_hash"],
-            "split_manifest_sha256": metadata["split_manifest_sha256"],
-            "canonical_manifest_sha256": metadata["canonical_manifest_sha256"],
-            "canonical_index_sha256": metadata["canonical_index_sha256"],
-            "source_id": metadata["source_id"],
-            "research_policy": metadata["research_policy"],
-            "research_policy_hash": metadata["research_policy_hash"],
-            "policy_version": metadata["policy_version"],
-            "external_license_status": metadata["external_license_status"],
-            "train_eligible_under_policy": metadata["train_eligible_under_policy"],
-            "rights_status": metadata["rights_status"],
+            "schema_hash": train_metadata.schema_hash,
+            "action_map_hash": train_metadata.action_map_hash,
+            "normalizer_hash": train_metadata.normalizer_hash,
+            "split_manifest_sha256": train_metadata.split_manifest_sha256,
+            "canonical_manifest_sha256": train_metadata.canonical_manifest_sha256,
+            "canonical_index_sha256": train_metadata.canonical_index_sha256,
+            "source_id": train_metadata.source_id,
+            "research_policy": train_metadata.research_policy,
+            "research_policy_hash": train_metadata.research_policy_hash,
+            "policy_version": train_metadata.policy_version,
+            "external_license_status": train_metadata.external_license_status,
+            "train_eligible_under_policy": train_metadata.train_eligible_under_policy,
+            "rights_status": train_metadata.rights_status,
         }
         provenance = {key: hashes[key] for key in (
             "source_id", "split_manifest_sha256", "canonical_manifest_sha256",
@@ -305,8 +409,10 @@ def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
             provenance=provenance,
             extra={"training_path": "multi_decisions",
                    "token_accounting": "shared_events_plus_markers",
-                   "pr47_roundtrip": "validation",
-                   "shard_sha256": build["shard_sha256"]})
+                   "pr47_roundtrip": "validation_readonly_train_fixture",
+                   "validation_shard_sha256": build["shard_sha256"],
+                   "train_shard_sha256": _sha_file(train_path),
+                   "train_source": train_metadata.source_id})
         reloaded = Policy(model_config).to(device)
         load_checkpoint(checkpoint_path, model=reloaded,
                         expected_model_config=model_config,
@@ -326,11 +432,10 @@ def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
             raise E2EError("post-build integrity audit failed")
     finally:
         reader.close()
+        train_reader.close()
 
     # The training loader must not open this shard at all.
     training_refused = None
-    from ..data.loader import ShardReader
-    from ..data.shard import ShardRightsError
 
     try:
         ShardReader(shard_path, purpose="train",
@@ -367,6 +472,9 @@ def run_roundtrip(*, games_dir: str | Path, shard_path: str | Path,
                    "content_sha256", "sample_hashes", "scenario_totals",
                    "visibility", "integrity")},
         "training_loader_refusal": training_refused,
+        "train_fixture": str(train_path),
+        "train_source": train_metadata.source_id,
+        "train_purpose": train_metadata.purpose,
         "gpu_used": False,
     }
 

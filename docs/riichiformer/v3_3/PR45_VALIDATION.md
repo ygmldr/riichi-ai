@@ -338,3 +338,11 @@ Logs: `/tmp/v33_b_smoke/build100.log`, `/tmp/v33_b_smoke/diag100.log`,
 * `G-V33-D0` data half (100–200 disjoint validation games + E2E roundtrip):
   **evidence complete for this lane**; the official gate decision belongs to the
   Lead/Reviewer.
+
+## 12. Post-merge P1 correction
+
+The independent reviewer found that the original PR-47 roundtrip trained two steps
+on this diagnostic validation shard. The merged `run_roundtrip` now trains only on a
+separate train-purpose fixture (or an explicit independent train shard), keeps this
+shard read-only, and refuses train/validation game-id overlap. See
+`PR47_SELFPLAY_ROUNDTRIP.md` §13 and `WAVE2_REVIEW.md`.

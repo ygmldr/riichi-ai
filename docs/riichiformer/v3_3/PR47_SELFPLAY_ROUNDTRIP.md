@@ -143,3 +143,26 @@ Logs: `/tmp/v33_b_smoke/e2e_coverage.log` and
 * Duplicate arena (PR-46) and relative PT: not run.
 * Strength/dan/rank/Mortal comparison: not run; 2 CE steps on a random init are
   not evidence of strength.
+
+## 13. Post-merge P1 correction (Lead, 2026-11-21)
+
+The independent reviewer found that the original `run_roundtrip` executed its two
+optimizer steps on the diagnostic validation shard (`purpose=diagnostic`,
+`train_allowed=false`). That is a data-isolation defect even though it used a fresh
+random model and no result was selected. The merged implementation now **never
+optimizes the validation shard**:
+
+- validation shard: built `purpose=diagnostic`, opened only through
+  `ValidationReader`, used for forward/inference and diagnostics;
+- optimizer steps: a separate labelled synthetic **train-purpose** shard
+  (`purpose=train`, `split=train`, `source_id=synthetic_allowed`) by default, or an
+  explicitly supplied independent `train_shard` (e.g. a real B0 train shard);
+- train/validation game-id intersection is refused; the diagnostic shard is still
+  refused by `ShardReader(purpose="train")`;
+- checkpoint provenance comes from the train shard, and `extra` records both the
+  train and validation shard hashes.
+
+The historical 2-step numbers in §? above were produced before this correction and
+are retained as pipeline evidence only. `tests/rf_test_validation_e2e.py::test_pr47_roundtrip`
+now exercises the corrected path; full suite after the fix is recorded in
+`WAVE2_REVIEW.md`.

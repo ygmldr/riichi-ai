@@ -50,7 +50,7 @@ def make_protocol(root: Path, *, name: str = "EXP-B0-CLI", max_steps: int = 10,
     train = root / f"{name}-train.rfshard"
     val = root / f"{name}-val.rfshard"
     build_shard(train, 24, f"g{name[-3:]}")
-    build_shard(val, 8, f"v{name[-3:]}")
+    build_shard(val, 8, f"v{name[-3:]}", validation=True)
     protocol = build_protocol_from_files(
         experiment_id=name, train_shard=str(train), validation_shard=str(val),
         model_config=tiny_config(),
@@ -361,7 +361,7 @@ class B0WrapperTests(unittest.TestCase):
         train = root / "private_train.rfshard"
         validation = root / "private_validation.rfshard"
         build_private_shard(train, policy, games=16)
-        build_private_shard(validation, policy, games=6)
+        build_private_shard(validation, policy, games=6, validation=True)
         protocol = build_protocol_from_files(
             experiment_id="EXP-B0-PRIVATE", train_shard=str(train),
             validation_shard=str(validation), model_config=tiny_config(),

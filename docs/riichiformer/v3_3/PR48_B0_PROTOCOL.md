@@ -446,3 +446,21 @@ GPU/real-data claim is made.
 
 Until those happen: **full B0 train `NOT_RUN`; arena `NOT_RUN`; strength
 `NOT_RUN`.**
+
+## 15. Post-merge P1 correction — validation isolation
+
+The independent reviewer found that the initial B0 gate compared only paths and
+file hashes, so a train-purpose/train-split shard could be supplied as validation.
+Commit `e81ed1f`/follow-up `fix(pr48)` adds **`verify_validation_isolation`**:
+
+- validation metadata must be `purpose in {"diagnostic","audit"}`;
+- `train_allowed` and `train_eligible_under_policy` must both be false;
+- no `split="train"` game row is allowed;
+- train/validation game-id intersection must be empty;
+- the check runs in `verify_data_fingerprints`, so dry-run, validate-only and train
+  all refuse a bad prereg before any model/optimizer is built.
+
+A negative regression (`test_validation_shard_must_not_be_train_purpose`) builds a
+train-purpose validation fixture and expects `B0Refusal`. The B0 CLI tests now build
+diagnostic/audit validation fixtures; the private-policy test uses a private
+diagnostic shard. This closes the reviewer P1; no full B0 epoch is claimed.
