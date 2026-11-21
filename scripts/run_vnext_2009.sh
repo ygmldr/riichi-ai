@@ -16,8 +16,17 @@ while [ ! -f "$MANIFEST" ]; do
 done
 
 DECISIONS="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["decision_count"])' "$MANIFEST")"
+GAMES="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["game_count"])' "$MANIFEST")"
+if [ "$GAMES" -ne 6897 ]; then
+    echo "[abort] $(date -Is) expected 6897 games, manifest has $GAMES" | tee -a "$LOG"
+    exit 1
+fi
+if [ "$DECISIONS" -le 0 ]; then
+    echo "[abort] $(date -Is) manifest has no decisions" | tee -a "$LOG"
+    exit 1
+fi
 STEPS="$((DECISIONS / 64))"
-echo "[launch] $(date -Is) decisions=$DECISIONS steps=$STEPS" | tee -a "$LOG"
+echo "[launch] $(date -Is) games=$GAMES decisions=$DECISIONS steps=$STEPS" | tee -a "$LOG"
 
 PYTHON="${PYTHON:-/home/ygsldr/riichi-ai/.venv/bin/python}"
 export PYTHONPATH="$ROOT/vendor/mortal/target/release:$ROOT/vendor/mortal:$ROOT"
