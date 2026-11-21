@@ -213,7 +213,8 @@ def train_step(model: VNextPolicy, batch: VNextModelBatch,
 
 def save_vnext_checkpoint(path: str | Path, *, model: VNextPolicy,
                           optimizer, config: VNextTrainConfig,
-                          counters: Mapping[str, int], provenance: Mapping) -> str:
+                          counters: Mapping[str, int], provenance: Mapping,
+                          extra: Mapping | None = None) -> str:
     config_dict = config.__dict__.copy()
     model_config = model.config.as_dict()
     schema = load_schema()
@@ -227,7 +228,7 @@ def save_vnext_checkpoint(path: str | Path, *, model: VNextPolicy,
         path, model=model, optimizer=optimizer,
         counters=dict(counters), hashes=hashes, config=config_dict,
         seed=int(config.seed), model_config=model_config,
-        provenance=provenance)
+        provenance=provenance, extra=extra)
     return info.sha256
 
 

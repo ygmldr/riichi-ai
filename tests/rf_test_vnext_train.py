@@ -16,7 +16,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from riichiformer.data.decision import build_decisions  # noqa: E402
 from riichiformer.vnext.contracts import VNextConfig  # noqa: E402
-from riichiformer.vnext.data import VNextBatchAdapter, targets_from_dicts  # noqa: E402
+from riichiformer.vnext.data import (  # noqa: E402
+    VNextBatchAdapter, normalise_rank, targets_from_dicts,
+)
 from riichiformer.vnext.model import VNextPolicy  # noqa: E402
 from riichiformer.vnext.train import (  # noqa: E402
     VNextTrainConfig, make_optimizer, masked_bc_loss, save_vnext_checkpoint,
@@ -108,6 +110,10 @@ class AdapterTests(unittest.TestCase):
         batches = list(VNextBatchAdapter(OneBased(), batch_size=2,
                                         rank_base=1).iter_batches())
         self.assertEqual([t["rank_final"] for t in batches[0].targets], [0, 1])
+        self.assertEqual(normalise_rank(4, rank_base=1), 3)
+        self.assertEqual(normalise_rank(0, rank_base=0), 0)
+        with self.assertRaises(ValueError):
+            normalise_rank(4, rank_base=0)
 
     def test_interleaved_reader_targets_follow_batch_rows(self):
         batch = list(VNextBatchAdapter(InterleavedReader(), batch_size=4)

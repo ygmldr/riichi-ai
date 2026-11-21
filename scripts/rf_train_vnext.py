@@ -64,7 +64,8 @@ def _open_reader(path: str | Path, *, purpose: str,
         raise VNextTrainError(f"{purpose} shard refused: {exc}") from exc
 
 
-def _provenance(metadata) -> dict:
+def _provenance(metadata, *, train_shard_sha256: str,
+                val_shard_sha256: str | None) -> dict:
     return {
         "source_id": metadata.source_id,
         "split_manifest_sha256": metadata.split_manifest_sha256,
@@ -74,6 +75,8 @@ def _provenance(metadata) -> dict:
         "research_policy_hash": metadata.research_policy_hash or (
             "" if metadata.research_policy == "licensed_only" else
             "missing-policy-hash"),
+        "train_shard_sha256": train_shard_sha256,
+        "val_shard_sha256": val_shard_sha256 or "none",
     }
 
 
@@ -123,13 +126,16 @@ def _validation(reader: ShardReader, model: VNextPolicy, *,
 
 def _save(model: VNextPolicy, optimizer, train_config: VNextTrainConfig,
           out: Path, *, step: int, tokens: int, decisions: int,
-          metadata, history: list[dict]) -> Path:
+          metadata, history: list[dict], extra: dict) -> Path:
     path = out / "candidates" / f"step_{step:06d}.pt"
-    provenance = _provenance(metadata)
+    provenance = _provenance(
+        metadata,
+        train_shard_sha256=extra["train_shard_sha256"],
+        val_shard_sha256=extra.get("val_shard_sha256"))
     sha = save_vnext_checkpoint(
         path, model=model, optimizer=optimizer, config=train_config,
         counters={"step": step, "tokens": tokens, "decisions": decisions},
-        provenance=provenance)
+        provenance=provenance, extra=extra)
     record = {
         "step": step, "tokens": tokens, "decisions": decisions,
         "sha256": sha, "path": str(path),
@@ -141,23 +147,40 @@ def _save(model: VNextPolicy, optimizer, train_config: VNextTrainConfig,
 
 
 def _resume(path: str | Path, model: VNextPolicy, optimizer, config: VNextConfig,
-            train_config: VNextTrainConfig) -> tuple[int, dict]:
+            train_config: VNextTrainConfig, *, expected_provenance: dict,
+            train_shard_sha256: str, val_shard_sha256: str | None,
+            ) -> tuple[int, dict, int, dict]:
     schema = load_schema()
     hashes = {key: schema[key] for key in
               ("schema_hash", "action_map_hash", "normalizer_hash")}
-    info, _payload = load_checkpoint(
+    info, payload = load_checkpoint(
         path, model=model, optimizer=optimizer,
         expected_hashes=hashes,
         expected_model_config=config.as_dict(),
         expected_model_config_hash=config_hash(config.as_dict()),
-        strict_resume=False,
+        expected_provenance=expected_provenance,
+        strict_resume=True,
     )
-    counters = _payload.get("counters") or {}
-    return int(counters.get("step", info.step)), {
-        "step": int(counters.get("step", info.step)),
-        "tokens": int(counters.get("tokens", 0)),
-        "decisions": int(counters.get("decisions", 0)),
-    }
+    counters = payload.get("counters") or {}
+    extra = payload.get("extra") or {}
+    if extra.get("train_shard_sha256") != train_shard_sha256:
+        raise VNextTrainError("checkpoint was trained on a different train shard")
+    if extra.get("val_shard_sha256", "none") != (val_shard_sha256 or "none"):
+        raise VNextTrainError("checkpoint was validated on a different val shard")
+    batches_seen = int(extra.get("batches_seen", -1))
+    if batches_seen < 0:
+        raise VNextTrainError(
+            "checkpoint has no batches_seen; cannot resume without replaying data")
+    return (
+        int(counters.get("step", info.step)),
+        {
+            "step": int(counters.get("step", info.step)),
+            "tokens": int(counters.get("tokens", 0)),
+            "decisions": int(counters.get("decisions", 0)),
+        },
+        batches_seen,
+        extra,
+    )
 
 
 def main(argv=None) -> int:
@@ -190,12 +213,32 @@ def main(argv=None) -> int:
 
     if args.steps <= 0:
         raise SystemExit("--steps must be positive")
+    if args.batch_size <= 0:
+        raise SystemExit("--batch-size must be positive")
+    if args.warmup < 0:
+        raise SystemExit("--warmup must be >= 0")
+    if not 0.0 <= args.min_lr_ratio <= 1.0:
+        raise SystemExit("--min-lr-ratio must be in [0,1]")
+    if args.save_every < 0 or args.val_every < 0:
+        raise SystemExit("--save-every/--val-every must be >= 0")
     out = Path(args.out).resolve()
-    for frozen in ("datasets", "checkpoints", "vendor", ".git"):
-        root = (REPO_ROOT / frozen).resolve()
-        if out == root or root in out.parents:
-            raise SystemExit(f"refusing to write under {root}")
-    out.mkdir(parents=True, exist_ok=True)
+    root = REPO_ROOT.resolve()
+    if out == root:
+        raise SystemExit(f"refusing to write the repository root {root}")
+    frozen = [
+        (root / "datasets").resolve(),
+        (root / "checkpoints").resolve(),
+        (root / "vendor").resolve(),
+        (root / ".git").resolve(),
+        (root / "runs" / "1v3").resolve(),
+        (root / "runs" / "variance").resolve(),
+        (root / "runs" / "exp" / "PINNED").resolve(),
+    ]
+    for forbidden in frozen:
+        if out == forbidden or forbidden in out.parents:
+            raise SystemExit(f"refusing to write frozen path {forbidden}")
+    if out.exists() and any(out.iterdir()) and not args.resume:
+        raise SystemExit(f"refusing to overwrite non-empty run dir {out}")
 
     policy = None
     if args.policy_config:
@@ -212,6 +255,18 @@ def main(argv=None) -> int:
         meta = train_reader.metadata
         if meta.research_policy == "operator_private_research" and policy is None:
             raise SystemExit("private shard requires --policy-config")
+        train_sha = str(train_reader.manifest["shard_sha256"])
+        val_sha = None
+        if val_reader is not None:
+            val_meta = val_reader.metadata
+            if val_meta.purpose != "diagnostic":
+                raise SystemExit(
+                    f"val shard purpose {val_meta.purpose!r} is not diagnostic")
+            if val_meta.split_manifest_sha256 == meta.split_manifest_sha256:
+                raise SystemExit("val shard uses the train split manifest")
+            if val_reader.manifest.get("shard_sha256") == train_sha:
+                raise SystemExit("val shard is the train shard")
+            val_sha = str(val_reader.manifest["shard_sha256"])
         if args.dry_run:
             print(json.dumps({
                 "train_shard": args.train_shard,
@@ -243,12 +298,25 @@ def main(argv=None) -> int:
             learning_rate=args.lr, rank_loss_weight=args.rank_weight,
             seed=args.seed, accumulation_count=1)
         optimizer = make_optimizer(model, train_config)
-        start_step, counters = 0, {"step": 0, "tokens": 0, "decisions": 0}
+        start_step, start_batches = 0, 0
+        counters = {"step": 0, "tokens": 0, "decisions": 0}
+        extra = {
+            "train_shard_sha256": train_sha,
+            "val_shard_sha256": val_sha or "none",
+            "batches_seen": 0,
+        }
         history: list[dict] = []
         if args.resume:
-            start_step, counters = _resume(
-                args.resume, model, optimizer, model_config, train_config)
-            print(f"resumed at step {start_step}")
+            expected = _provenance(
+                meta, train_shard_sha256=train_sha, val_shard_sha256=val_sha)
+            start_step, counters, start_batches, extra = _resume(
+                args.resume, model, optimizer, model_config, train_config,
+                expected_provenance=expected,
+                train_shard_sha256=train_sha, val_shard_sha256=val_sha)
+            extra = dict(extra)
+            extra["train_shard_sha256"] = train_sha
+            extra["val_shard_sha256"] = val_sha or "none"
+            print(f"resumed at step {start_step} batches_seen {start_batches}")
 
         out.mkdir(parents=True, exist_ok=True)
         (out / "run.json").write_text(json.dumps({
@@ -260,8 +328,11 @@ def main(argv=None) -> int:
             "batch_size": args.batch_size,
             "device": str(device),
             "seed": args.seed,
+            "train_shard_sha256": train_sha,
+            "val_shard_sha256": val_sha,
             "model_config": model_config.as_dict(),
-            "provenance": _provenance(meta),
+            "provenance": _provenance(
+                meta, train_shard_sha256=train_sha, val_shard_sha256=val_sha),
         }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
         model.train()
@@ -269,12 +340,18 @@ def main(argv=None) -> int:
                                     rank_base=args.rank_base)
         batches = adapter.iter_batches()
         step = start_step
+        batches_seen = 0
         started = time.perf_counter()
         losses: list[float] = []
         last_validation = None
+        last_saved_step = -1
+        saved_path = None
         exhausted = False
+        no_progress = 0
+        stopped = "target_reached"
         while step < args.steps:
             if args.max_hours > 0 and (time.perf_counter() - started) >= args.max_hours * 3600:
+                stopped = "wall_cap"
                 print(f"stopping at step {step}: max-hours reached")
                 break
             try:
@@ -285,6 +362,10 @@ def main(argv=None) -> int:
                     train_reader, batch_size=args.batch_size,
                     rank_base=args.rank_base)
                 batches = adapter.iter_batches()
+                continue
+            batches_seen += 1
+            extra["batches_seen"] = batches_seen
+            if batches_seen <= start_batches:
                 continue
             if not args.constant_lr:
                 if step < args.warmup:
@@ -300,7 +381,13 @@ def main(argv=None) -> int:
             info = train_step(model, batch, item.targets, optimizer=optimizer,
                               config=train_config, accumulation_step=step)
             if not info["optimizer_stepped"]:
+                no_progress += 1
+                if no_progress >= 1000:
+                    raise VNextTrainError(
+                        "1000 consecutive batches had no supervised/rank update; "
+                        "refusing an all-censored or empty shard")
                 continue
+            no_progress = 0
             step += 1
             counters["step"] = step
             counters["decisions"] += item.batch.n_decisions
@@ -313,27 +400,36 @@ def main(argv=None) -> int:
                     val_reader, model, batch_size=args.batch_size, device=device,
                     rank_weight=args.rank_weight, max_batches=args.val_batches,
                     rank_base=args.rank_base)
-                (out / "validation.jsonl").open("a", encoding="utf-8").write(
-                    json.dumps({"step": step, **last_validation},
-                               sort_keys=True) + "\n")
+                with (out / "validation.jsonl").open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({"step": step, **last_validation},
+                                            sort_keys=True) + "\n")
                 print(f"step={step} val={last_validation}")
             if args.save_every > 0 and step % args.save_every == 0:
-                path = _save(model, optimizer, train_config, out, step=step,
-                             tokens=counters["tokens"],
-                             decisions=counters["decisions"], metadata=meta,
-                             history=history)
-                print(f"saved {path}")
-        final = _save(model, optimizer, train_config, out, step=step,
-                      tokens=counters["tokens"],
-                      decisions=counters["decisions"], metadata=meta,
-                      history=history)
+                saved_path = _save(
+                    model, optimizer, train_config, out, step=step,
+                    tokens=counters["tokens"],
+                    decisions=counters["decisions"], metadata=meta,
+                    history=history, extra=extra)
+                last_saved_step = step
+                print(f"saved {saved_path}")
+        if step != last_saved_step:
+            saved_path = _save(
+                model, optimizer, train_config, out, step=step,
+                tokens=counters["tokens"],
+                decisions=counters["decisions"], metadata=meta,
+                history=history, extra=extra)
+            last_saved_step = step
+        final = saved_path
         report = {
-            "status": "PASS", "steps": step, "start_step": start_step,
+            "status": ("COMPLETED" if step >= args.steps else "STOPPED"),
+            "stopped_reason": ("target_reached" if step >= args.steps else stopped),
+            "steps": step, "target_steps": args.steps, "start_step": start_step,
+            "batches_seen": batches_seen, "start_batches": start_batches,
             "exhausted": exhausted, "loss_first": losses[0] if losses else None,
             "loss_last": losses[-1] if losses else None,
             "loss_mean": (sum(losses) / len(losses)) if losses else None,
             "last_validation": last_validation,
-            "checkpoint": str(final),
+            "checkpoint": str(final) if final is not None else None,
             "wall_seconds": time.perf_counter() - started,
             "device": str(device),
         }

@@ -24,6 +24,19 @@ class VNextDataError(ValueError):
     pass
 
 
+def normalise_rank(rank, *, rank_base: int) -> int:
+    """Map a shard rank label to the Critic class axis (0..3)."""
+    if isinstance(rank, bool) or not isinstance(rank, int):
+        raise VNextDataError(f"rank_final must be int, got {type(rank).__name__}")
+    if rank_base == 0:
+        if 0 <= rank <= 3:
+            return rank
+    elif rank_base == 1:
+        if 1 <= rank <= 4:
+            return rank - 1
+    raise VNextDataError(f"rank_final={rank} is invalid for rank_base={rank_base}")
+
+
 @dataclass(frozen=True)
 class VNextBCBatch:
     batch: VNextModelBatch
@@ -86,14 +99,10 @@ class VNextBatchAdapter:
                 target, game_id, pov, decision_index, kyoku = record
                 ordered_ids.append(key)
                 target = dict(target)
-                if self.rank_base == 1:
-                    # Real rf-shard targets use Tenhou ranks 1..4; the Critic
-                    # class axis is 0..3.  Synthetic fixtures default to
-                    # rank_base=0 and are left unchanged.
-                    rank = target.get("rank_final")
-                    if isinstance(rank, int) and not isinstance(rank, bool) \
-                            and 1 <= rank <= 4:
-                        target["rank_final"] = rank - 1
+                rank = target.get("rank_final")
+                if rank is not None:
+                    target["rank_final"] = normalise_rank(
+                        rank, rank_base=self.rank_base)
                 targets.append(target)
                 game_ids.append(game_id)
                 povs.append(pov)
@@ -169,4 +178,4 @@ def targets_from_dicts(targets: tuple[dict, ...], *, device=None) -> VNextTarget
 
 
 __all__ = ["VNextBCBatch", "VNextBatchAdapter", "VNextDataError",
-           "targets_from_dicts"]
+           "normalise_rank", "targets_from_dicts"]

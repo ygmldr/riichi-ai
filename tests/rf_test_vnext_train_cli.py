@@ -29,6 +29,7 @@ class _FakeReader:
             canonical_manifest_sha256="c" * 64,
             canonical_index_sha256="d" * 64,
         )
+        self.manifest = {"shard_sha256": "e" * 64}
         self.closed = False
 
     def close(self):
@@ -56,6 +57,33 @@ class TrainerCliTests(unittest.TestCase):
                 "--out", str(REPO_ROOT / "datasets" / "vnext"),
                 "--dry-run",
             ])
+
+    def test_rejects_train_shard_as_validation(self):
+        train = _FakeReader()
+        val = _FakeReader()
+        val.metadata.purpose = "train"
+        val.metadata.split_manifest_sha256 = train.metadata.split_manifest_sha256
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(T, "_open_reader", side_effect=[train, val]):
+            with self.assertRaises(SystemExit):
+                T.main([
+                    "--train-shard", "x", "--val-shard", "y",
+                    "--policy-config",
+                    "configs/riichiformer/local_research_policy.yaml",
+                    "--out", str(Path(tmp) / "run"), "--dry-run",
+                ])
+
+        for target in (REPO_ROOT / "runs" / "1v3" / "x",
+                       REPO_ROOT / "runs" / "variance" / "x"):
+            with self.assertRaises(SystemExit):
+                T.main(["--train-shard", "x", "--out", str(target),
+                        "--dry-run"])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "busy"
+            out.mkdir()
+            (out / "keep.txt").write_text("x", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                T.main(["--train-shard", "x", "--out", str(out), "--dry-run"])
 
 
 if __name__ == "__main__":

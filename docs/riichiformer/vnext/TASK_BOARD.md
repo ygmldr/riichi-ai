@@ -39,7 +39,9 @@ tests (or recorded `NOT_RUN`), and received an independent review verdict.
 
 ## Non-negotiable stop line
 
-No real-data training, no full B0 epoch, no broad GRP fit, no GPU arena league,
-and no Confirm-pool consumption until the rights gate and an audited Train
-subset exist.  Synthetic profiles may continue without a data licence, but they
-must stay labelled `SYNTHETIC_ONLY`.
+No unmeasured full-corpus run, no Confirm-pool consumption, and no strength
+claim without paired Arena evidence.  The operator explicitly authorised local
+research on the existing copies; this is an operator routing decision, not an
+upstream licence.  The 1,000-game pilot and the 2009 full-year build are inside
+that authorisation; the 2.51M-match corpus remains `NOT_RUN` because its measured
+one-epoch cost is ~47 days at the current data rate.

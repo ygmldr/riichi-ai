@@ -23,9 +23,9 @@
 
 ## Current measured evidence
 
-* VNext-only CPU: **76 passed** in 1.86 s
+* VNext-only CPU: **77 passed** in 1.83 s
   (`logs/VNEXT_REAL_TRAIN_SUITE.log`), including the real-trainer CLI tests.
-* Combined VNext + B0 + arena/bridge + anchor CPU: **145 passed, 6 skipped,
+* Combined VNext + B0 + arena/bridge + anchor CPU: **146 passed, 6 skipped,
   13 subtests** (`logs/VNEXT_COMBINED_REAL.log`).
 * M5D anchor tests alone: **9 passed, 1 skipped, 7 subtests**; the skip is the
   documented frozen-registry driver/build drift below.

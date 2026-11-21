@@ -33,7 +33,7 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 |---|---|
 | model | frozen VNext default, 6,538,716 params |
 | loss | masked BC + rank CE 0.1, rank_base 1 |
-| optimizer | AdamW, lr 1e-4, grad clip 1.0 |
+| optimizer | AdamW, lr 1e-4, warmup 1,000 + cosine to 10%, grad clip 1.0 |
 | batch | 64 decisions |
 | steps | one epoch, `floor(decisions/64)` (about 71k) |
 | validation | every 5,000 steps, 50 batches |
@@ -44,12 +44,14 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 
 ## Acceptance / reporting
 
-* finite losses, no NaN/Inf;
+* finite losses, no NaN/Inf; wall-cap stops are reported as `STOPPED`, not
+  `COMPLETED`;
 * validation CE recorded at the fixed schedule;
 * checkpoint provenance carries source/split/canonical/policy hashes;
 * no strength, dan, Arena or Confirm claim;
-* if the wall cap triggers, resume from the last checkpoint rather than
-  pretending the epoch completed.
+* if the wall cap triggers, resume from the last checkpoint; resume skips the
+  exact `batches_seen`, requires the same train/val shard hashes and strict
+  optimizer/RNG state, and never replays the prefix silently.
 
 ## Stop rule
 
