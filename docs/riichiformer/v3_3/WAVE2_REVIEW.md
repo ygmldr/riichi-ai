@@ -1,6 +1,6 @@
 # RiichiFormer V3.3 Wave 2 — Lead review
 
-Status: **MERGED, AWAITING INDEPENDENT REVIEWER**. This file records operations
+Status: **MERGED, INDEPENDENT REVIEW PASS**. This file records operations
 actually run on this host. It is not a strength report and not a licence.
 
 ## Base and freeze

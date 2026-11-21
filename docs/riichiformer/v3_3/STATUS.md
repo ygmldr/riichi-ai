@@ -61,6 +61,8 @@ only; Dev-D is CPU Rust build/tests only.
 | `G-V33-B0` | **CODE_PASS / FULL_TRAIN NOT_RUN** — 43 B0 tests, 2 seeds × 2 CPU steps, validation-isolation gate; full 6,191-step epoch not run |
 | `G-V33-C0` | **NOT_RUN** — no confirm pool, no strength claim |
 
+Final tagged state: `rf3.3-w2`; independent reviewer: **PASS**, no P1; full B0/arena/strength NOT_RUN.
+
 `STRENGTH_NOT_RUN` remains true for the project. No ΔPT, rank, dan, or Mortal-superiority
 claim is made from loss or mock runs.
 
