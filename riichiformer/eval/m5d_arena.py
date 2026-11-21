@@ -237,26 +237,28 @@ class _Opportunity:
 
 
 class PovDecisionStream:
-    """Incrementally project one seat's visible per-kyoku arena log.
+    """Incrementally project one seat's visible arena log.
 
     The native arena hands the agent ``events_json`` for the **current kyoku**
-    (``Board::take_log`` clears it at ``end_kyoku``), so this class resets its
-    projector/tracker when a new kyoku log appears and otherwise only appends the
-    new events.  The resulting :class:`DecisionInput` contains only projected public
-    events and the seat's own haipai.
+    (``Board::take_log`` clears it at ``end_kyoku``).  This class keeps the completed
+    kyoku logs and rebuilds the projection over the whole visible game history, so
+    the RF policy sees the same full-game prefix shape it was trained on.  Within a
+    kyoku only the new events are projected.  A rewritten prefix is a contract
+    failure, never a silent rewind.
     """
 
     def __init__(self, pov: int):
         if isinstance(pov, bool) or not isinstance(pov, int) or not 0 <= pov <= 3:
             raise BridgeError(f"pov must be int 0..3, got {pov!r}")
         self.pov = pov
-        self._reset()
+        self.history: list[dict] = []
+        self.current: list[dict] = []
+        self._reset_projection()
 
-    def _reset(self) -> None:
+    def _reset_projection(self) -> None:
         self.projector = pov_module.POVProjector(
             self.pov, policy=_ARENA_PROJECTION_POLICY)
         self.tracker = _SnapshotTracker(_DEFAULT_BUILD_CONFIG)
-        self.raw: list[dict] = []
         self.projected: list = []
 
     def _project_new(self, events: Sequence[Mapping]) -> None:
@@ -266,6 +268,10 @@ class PovDecisionStream:
             projected = self.projector.project(dict(raw_event))
             self.tracker.apply(projected)
             self.projected.append(projected)
+
+    def _rebuild(self) -> None:
+        self._reset_projection()
+        self._project_new(self.history + self.current)
 
     def update(self, events_json: str) -> tuple[tuple, StreamMeta]:
         try:
@@ -277,19 +283,25 @@ class PovDecisionStream:
         if not all(isinstance(event, dict) for event in raw):
             raise BridgeError("events_json contains a non-object event")
 
-        if len(raw) < len(self.raw) or raw[:len(self.raw)] != self.raw:
-            # ``Board::take_log`` clears the log at end_kyoku: a new kyoku starts with
-            # a short prefix beginning at start_kyoku.  A changed prefix for the same
-            # kyoku is a contract failure, never a silent rewind.
+        if self.current and (len(raw) < len(self.current)
+                             or raw[:len(self.current)] != self.current):
+            # A new kyoku must start at start_kyoku and must not be a rewrite of the
+            # same kyoku (same identity + changed prefix).
             if not (raw and raw[0].get("type") == "start_kyoku"):
                 raise BridgeError("arena event log changed its already-visible prefix")
-            if self.raw and _kyoku_identity(raw[0]) == _kyoku_identity(self.raw[0]) \
-                    and self.raw[0].get("type") == "start_kyoku":
+            if (self.current[0].get("type") == "start_kyoku"
+                    and _kyoku_identity(raw[0]) == _kyoku_identity(self.current[0])):
                 raise BridgeError("arena event log changed mid-kyoku")
-            self._reset()
-        if len(raw) > len(self.raw):
-            self._project_new(raw[len(self.raw):])
-            self.raw = raw
+            self.history.extend(self.current)
+            self.current = raw
+            self._rebuild()
+        elif not self.current:
+            self.current = raw
+            self._rebuild()
+        elif len(raw) > len(self.current):
+            new_events = raw[len(self.current):]
+            self.current = raw
+            self._project_new(new_events)
         if not self.projected:
             raise BridgeError("no projected events at a decision")
         header = self.projector.header
@@ -1029,7 +1041,7 @@ def run_arena(
         "not_run": list(report.get("not_run", [])) + (
             ["RF candidate quality: no checkpoint was provided (self-control only)"]
             if self_control_only else []),
-        "context_scope": "current_kyoku_visible_prefix",
+        "context_scope": "full_game_visible_prefix",
     })
 
     run = ArenaRun(
