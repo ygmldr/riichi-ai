@@ -1,0 +1,47 @@
+{
+  "backend_decisions": 765,
+  "candidate": {
+    "decisions": 765,
+    "device": "cpu",
+    "fallback": 0,
+    "illegal": 0,
+    "inference_mode": "deterministic_argmax",
+    "kan_selections": 0,
+    "mode": "vnext_trained_bc",
+    "name": "vnext-bc-trained",
+    "rf_candidate": "RUN",
+    "self_control_only": false,
+    "strength_claim": "NONE",
+    "synthetic_fixture": false
+  },
+  "checkpoint": {
+    "path": "/home/ygsldr/riichi-ai/worktrees/vnext-core/runs/vnext_real_pilot1000_long/candidates/step_005000.pt",
+    "sha256": "9149b84d09c0197fd31eee4ce0076bd5f9f556ecf8bf1c1fdc8879f77ddd3115"
+  },
+  "games": 4,
+  "kind": "native_vnext_trained_checkpoint_smoke",
+  "native": {
+    "libriichi_build_sha256": "171bd45a5859d89a5e06175785e4eb39004aa9a4f4d15543a1574c8e7c6875ff",
+    "libriichi_git_sha": "0cff2b52982be5b1163aa9a62fb01f03ce91e0d2",
+    "patch_manifest_hash": "fb2d57f19b8ffb2be8de7785225ca96064ef0b25162c2aa46ec121529b1ae55f",
+    "registry_hash": "70fc7a8bd0b2dfc6e1e5b50a56cc5393123e25c15cb87e2d439bec18829f93b4"
+  },
+  "not_run": [
+    "multi_kan_native_end_to_end"
+  ],
+  "note": "four games, loss-trained checkpoint; integration smoke only, no strength result",
+  "rank_counts": [
+    0,
+    1,
+    1,
+    2
+  ],
+  "seed_key": "0x5eedf00d5eedf00e",
+  "seed_window": [
+    991000,
+    991001
+  ],
+  "status": "PASS",
+  "strength_claim": "NONE",
+  "synthetic_fixture": false
+}

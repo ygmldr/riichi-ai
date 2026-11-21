@@ -29,7 +29,9 @@ action 42 with multiple candidates and then performs a real second
 ankan and one kakan, but each had one candidate (`kan_selections=0`), so the
 multi-kan branch is still `NOT_RUN`.  This smoke used a local smoke-only
 registry because the worktree native build/patch identity differs from the
-frozen M5D registry.
+frozen M5D registry.  A second 4-game smoke loaded the 5,000-step BC checkpoint
+(765 decisions, 0 illegal/fallback); it is an integration result, not a
+strength measurement, and still had `kan_selections=0`.
 
 ## Parity policy
 

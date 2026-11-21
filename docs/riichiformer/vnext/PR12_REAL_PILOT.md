@@ -58,6 +58,19 @@ The max prefix (2,491) is below the model's 4,096 max positions; no truncation
 is needed for this pilot.  The 2,532 non-supervised/None action rows are kept
 as censored targets, not invented labels.
 
+## 2c. Native smoke with the trained checkpoint
+
+The 5,000-step checkpoint (`9149b84d...`) was loaded through
+`load_vnext_checkpoint` and played four native `OneVsThree` games against the
+local M5D anchor:
+
+- 4 games, 765 decisions, 0 illegal, 0 fallback;
+- `kan_selections=0` (multi-kan end-to-end still `NOT_RUN`);
+- synthetic fixture: false; strength claim: **NONE**.
+
+This proves the trained checkpoint can drive the native bridge; it is not a
+win-rate/dan/strength measurement.
+
 ## 3. Pilot result
 
 Command shape: 1,000 optimizer steps, batch 64, 1000-game train shard,
