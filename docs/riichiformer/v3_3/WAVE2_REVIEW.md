@@ -28,8 +28,8 @@ The registry YAML conflicted on merge because A's registry was built against the
 0014-only `.so` and the integration tree uses D's 0015 build. The Lead regenerated
 it from the merged sources and the rebuilt `.so`:
 `libriichi_build_sha256 = 582e36734b10c3d3b1230a834eacc494f94e40f6d642c712eadc23f6cabfaf4e`,
-`registry_hash = 42fd9a930532956cceee704e8e9fd1b4bb4b92b9455fd7c696b99ed4879f22ba`.
-A's lane report lists the 0014-only `ceb9287c…` hash; the merged value is the
+`registry_hash = 70f420a8f45996e341aa971bb7e0c35baebc867006bae4934626288314ddcb3f` (after the R29 provenance correction; an intermediate merge value was `42fd9a93…`).
+A's lane report lists the 0014-only `ceb9287c…` hash and lane registry `4df5c825…`; the merged value is the
 authoritative one. Registry tests pass after regeneration.
 
 ## Actual CPU smoke (no strength claim)

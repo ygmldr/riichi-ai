@@ -56,7 +56,7 @@ python_driver_files:
   riichiformer/eval/relative_pt.py: 1c653f687032a2a9b1d9729e89318033cf0b95c987be14ab86deaa7517eb97e5
   scripts/rf_eval_m5d.py: 53b32fd759d5f2864f7cf20ef9282fb99127cd101942ec0490a789087c36e2c8
 python_driver_git_sha: e76022600018e9adc6536ccbb904db8c9dc498b3
-registry_hash: 42fd9a930532956cceee704e8e9fd1b4bb4b92b9455fd7c696b99ed4879f22ba
+registry_hash: 70f420a8f45996e341aa971bb7e0c35baebc867006bae4934626288314ddcb3f
 registry_schema: rf-m5d-baseline-registry/1
 role: frozen_opponent
 rule_based_agari_guard: false
@@ -64,4 +64,4 @@ ruleset_id: libriichi_tenhou_approx/1
 seed_policy: per_game_and_seat
 steps: 396000
 stochastic_latent: false
-tenhou_approx_rules_hash: 9580e4929418fb1ec190596f814b3c0cea92aba0c2a6f67ec272a589c74340c8
+tenhou_approx_rules_hash: 9485a5394d35e9d492b885d6efe0fb242231787f21e0127e1d84720fb56c909f

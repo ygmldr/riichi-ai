@@ -79,8 +79,10 @@ RULESET_METADATA: dict[str, dict[str, Any]] = {
         "wins": True,
         "known_deviations": ["R02", "R25", "R26", "R29"],
         "deviation_note": (
-            "pinned Mortal libriichi arena; R02/R25/R26 are settled by that engine and "
-            "R29 ippatsu timing is UNVERIFIED (PR-40). Not Tenhou-parity verified."
+            "pinned Mortal libriichi arena; R02/R25/R26 are settled by that engine. "
+            "R29 ippatsu timing is MATCH at the PlayerState level (PR-40R, executable "
+            "native fixture); a full Board-scripted R29 game is NOT_RUN and the "
+            "per-decision schema still has no R29 member. Not Tenhou-parity verified."
         ),
         "strength_claim": "none",
     },

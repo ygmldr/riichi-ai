@@ -39,3 +39,9 @@ Append-only. Times are Asia/Shanghai. Each entry records commands actually run.
 - Full suite (CUDA disabled) at `e81ed1f`: **TBD**; the earlier merged-tree run
   (before the CLI fix) was 839 passed, 6 skipped, 319 subtests, 326.62 s.
 - The earlier 708-test base suite was 708 passed, 2 skipped, 281 subtests, 182.23 s.
+
+- Post-merge R29 consistency: `selfplay/provenance.py` still said `R29 UNVERIFIED`; corrected to
+  `MATCH` at the PlayerState level with the Board-scripted caveat. Registry regenerated:
+  `tenhou_approx_rules_hash=9485a5394d35e9d492b885d6efe0fb242231787f21e0127e1d84720fb56c909f`,
+  `registry_hash=70f420a8f45996e341aa971bb7e0c35baebc867006bae4934626288314ddcb3f`.
+  A's lane doc retains its pre-merge `4df5c825…`/`ceb9287c…` values as historical evidence.

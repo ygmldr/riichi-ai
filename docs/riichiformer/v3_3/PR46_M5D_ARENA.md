@@ -5,7 +5,7 @@ branch `rf/pr46-m5d`. Base: `e76022600018e9adc6536ccbb904db8c9dc498b3`.
 
 Status: implementation + CPU-only tests + a real 4-set native smoke for both the
 anchor self-control and a weak RF pilot candidate. **No strength claim.** No GPU,
-no training, no writes to historical eval corpora. `R29` remains `UNVERIFIED`; the
+no training, no writes to historical eval corpora. `R29` is `MATCH` at the PlayerState level (PR-40R); the Board-scripted R29 game remains `NOT_RUN`; the
 arena ruleset is `libriichi_tenhou_approx/1` ("tenhou_approx"), not Tenhou-parity
 certified.
 
@@ -157,7 +157,7 @@ Native CPU smoke (`/tmp/v33_a_smoke/`, not committed):
 * **P2:** `PovDecisionStream` reuses `data.decision._SnapshotTracker` (private); if
   that helper moves, the bridge needs an update. Its full-history rebuild is
   O(game events) once per kyoku, not once per decision.
-* **P2:** R29 (consecutive kakan/chankan ippatsu timing) remains `UNVERIFIED` from
+* **P2:** R29 (consecutive kakan/chankan ippatsu timing) is `MATCH` at the PlayerState level (PR-40R), while a full Board-scripted game remains `NOT_RUN`; the shard-level metadata still lists it as a known deviation because the frozen per-decision enum has no R29 member (PR-40)
   PR-40; arena results are `tenhou_approx`, not parity-certified.
 
 ## 6. NOT_RUN
