@@ -1,8 +1,8 @@
 # PR-01 — V3.3 P1 fixes
 
-**Owner**: Lead / Runtime lane  
-**Base**: `8a915d1`  
-**Tests**: `tests/rf_test_vnext_pr01.py`, `tests/rf_test_m5d_arena.py -k NativeContextTests`
+**Owner**: Lead / Runtime lane
+**Base**: `8a915d1`
+**Tests**: `tests/rf_test_vnext_pr01.py`, `tests/rf_test_m5d_arena.py -k "NativeContextTests or OutputGuardTests or PovSafetyTests"`
 
 ## 1. EMA Arena must load `ema.shadow`
 

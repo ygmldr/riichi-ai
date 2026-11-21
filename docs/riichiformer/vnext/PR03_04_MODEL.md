@@ -53,16 +53,16 @@ opponent hand, ura, final rank or future event enters `x_tile`/`x_global`.
 
 | Item | Value |
 |---|---|
-| default trainable parameters | **6,472,924** |
+| default trainable parameters | **6,538,716** |
 | default layers/width/heads | 6 / 256 / 4 |
-| CPU forward, 32 decisions × 128 tokens, 4 threads | **2,247 decisions/s**, 287,618 event-tokens/s |
-| CPU train step, same synthetic batch | **340 decisions/s**, 43,477 event-tokens/s |
-| peak RSS in this microbench | 802.6 MiB |
+| CPU forward, 32 decisions × 128 tokens, 4 threads | **2,141 decisions/s**, 273,996 event-tokens/s |
+| CPU train step, same synthetic batch | **340 decisions/s**, 43,513 event-tokens/s |
+| peak RSS in this microbench | 806.0 MiB |
 | device | CPU only; no CUDA in this measured run |
 
 These are synthetic contract-valid batches, not a full-epoch projection and not
 a strength result.  Script: `scripts/rf_bench_vnext.py`; raw:
-`logs/vnext/profile_cpu.json`.
+`docs/riichiformer/vnext/logs/VNEXT_CPU_PROFILE.json`.
 
 ## Tests (all passing, CPU)
 

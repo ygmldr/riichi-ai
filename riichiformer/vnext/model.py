@@ -25,6 +25,7 @@ from torch import Tensor, nn
 
 from ..models.local_transformer import LocalTransformer
 from ..schemas.action_v3 import ACTION_SPACE, AKA_KINDS, TILE_KIND_COUNT
+from .critic import DecisionRankCritic
 from .contracts import (
     EVENT_ACTOR_VOCAB,
     EVENT_AKA_VOCAB,
@@ -298,7 +299,8 @@ class VNextPolicy(nn.Module):
         self.tile_head = TileScoredHead(c.d_model, 64, dropout=c.dropout)
         self.other_head = OtherHead(c.d_model, dropout=c.dropout)
         self.linear_head = Linear46Head(c.d_model)
-        self.critic = nn.Linear(c.d_model, 4) if c.critic_enabled else None
+        self.critic = (DecisionRankCritic(c.d_model, dropout=c.dropout)
+                       if c.critic_enabled else None)
 
     def event_states(self, batch: VNextModelBatch) -> Tensor:
         if self.config.model_mode == "state_only":

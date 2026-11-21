@@ -1,7 +1,7 @@
 # PR-08 — VNext BC data adapter and trainer
 
-**Code**: `riichiformer/vnext/data.py`, `riichiformer/vnext/train.py`  
-**Tests**: `tests/rf_test_vnext_train.py` (5 passing, CPU)
+**Code**: `riichiformer/vnext/data.py`, `riichiformer/vnext/train.py`
+**Tests**: `tests/rf_test_vnext_train.py` (7 passing, CPU)
 
 ## Data adapter
 
@@ -18,7 +18,10 @@ ranges, supervision, weights and forced flags.
 ## Trainer
 
 * masked BC: `-sum(w_i log pi(a_i)) / sum(w_i)`;
-* optional low-weight rank CE when the Critic is enabled;
+* optional low-weight rank CE when the Critic is enabled; labels are the four
+  rank classes for the corresponding decision rows, never row indices; the rank
+  numerator is additive for accumulation and a rank-only batch can update the
+  Critic without inventing a BC denominator;
 * AdamW with no weight decay on biases/norms/embeddings;
 * gradient accumulation requires the whole-window weight denominator and
   performs a no-op for an all-censored batch instead of stepping on zero;

@@ -1,12 +1,12 @@
 # PR-11 — VNext BC Preregistration (DRAFT, NOT AUTHORIZED)
 
-**Status**: `DRAFT_NO_GPU_AUTHORIZATION`  
-**Experiment ID**: `VNEXT-BC-PILOT-1`  
-**Owner**: single Lead  
-**Base**: `rf/vnext-core` at `8a915d1` + VNext PRs  
-**Frozen contract hash**: `c6e15a7cb6a6e885ccb434e2380ab10616de50d0cfe71679e7f7f77a5d931f1d`  
-**Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`  
-**Model parameters**: 6,472,924
+**Status**: `DRAFT_NO_GPU_AUTHORIZATION`
+**Experiment ID**: `VNEXT-BC-PILOT-1`
+**Owner**: single Lead
+**Base**: `rf/vnext-core` at `8a915d1` + VNext PRs
+**Frozen contract hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
+**Model architecture hash**: `012f037139346913433c5129f6720f70e7708618a31af75fcd206f05d719f5df`
+**Model parameters**: 6,538,716
 
 This is a **plan**, not a passed gate.  No GPU training has been started.  The
 full 2.51M-match Census and the real Train/Validation split audit are still
@@ -51,27 +51,30 @@ From `scripts/rf_bench_vnext.py`, 32 decisions × 128 tokens, 4 CPU threads:
 
 | Mode | Decisions/s | Event tokens/s |
 |---|---:|---:|
-| forward-only | 2,247 | 287,618 |
-| one training step | 340 | 43,477 |
+| forward-only | 2,141 | 273,996 |
+| one training step | 340 | 43,513 |
 
-Peak RSS: 802.6 MiB.  Raw: `logs/vnext/profile_cpu.json`.
+Peak RSS: 806.0 MiB.  Raw: `docs/riichiformer/vnext/logs/VNEXT_CPU_PROFILE.json`.
 
 These numbers **must not** be extrapolated into an 8-hour guarantee or a 2.51M
 epoch promise.  They only show that the CPU reference path runs and that the
 real GPU profile is the next measurement, not a guessed training budget.
 
-## 4. Requested resource authorization (not granted)
+## 4. Resource request status (not granted, not currently requested)
 
-I request authorization only for a **bounded profiling/pilot**, not a full epoch:
+**No training authorization is requested while the rights gate is
+`BLOCKED_FOR_NEW_TRAINING`.**  The following is the shape of a *future*
+request, only after a rights-cleared, audited Train subset exists:
 
-1. a GPU short profile of 200–500 optimizer steps on a small, pre-audited Train
-   subset, with a hard wall-clock cap (e.g. 1 hour) and no checkpoint promoted;
+1. a bounded GPU profile of 200–500 optimizer steps on that subset, with a hard
+   wall-clock cap and no checkpoint promotion;
 2. a measured VRAM/throughput record (decisions/s, tokens/s, peak VRAM,
    validation overhead);
 3. a written stop/abort rule; no Arena/Confirm run in this step.
 
 A full B0-BC epoch, a broad GRP fit, a GPU arena league, or any Confirm use
-requires a **separate explicit approval** after the short profile is reported.
+requires a separate explicit approval after the short profile and the rights
+gate are reported.
 
 ## 5. Checkpoint / selection protocol
 

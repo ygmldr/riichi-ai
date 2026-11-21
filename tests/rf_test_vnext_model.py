@@ -90,6 +90,7 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(tuple(state.global_features.shape), (38,))
         self.assertEqual(float(state.tile_features[4, 0]), 0.5)
         self.assertEqual(float(state.tile_features[4, 6]), 1.0)  # own aka 5m
+        self.assertEqual(float(state.tile_features[13, 6]), 0.0)  # not 5p row
         self.assertEqual(float(state.tile_features[4, 0]), 0.5)
 
     def test_chi_consumed_tiles_are_preserved(self):
@@ -109,6 +110,43 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(batch.batch_size, 2)
         self.assertEqual(batch.n_decisions, 2)
         self.assertTrue(bool(batch.event_valid_mask[0, :a.n_tokens].all()))
+
+
+class MultiKyokuTests(unittest.TestCase):
+    def test_second_kyoku_does_not_inherit_old_river(self):
+        h0 = ["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+              "1p", "2p", "3p", "4p"]
+        h1 = ["1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+              "E", "S", "W", "N"]
+        h2 = ["P", "F", "C", "1m", "2m", "3m", "4m", "5m", "6m",
+              "7m", "8m", "9m", "1p"]
+        h3 = ["2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+              "1s", "2s", "3s", "4s", "5s"]
+        raw = [
+            {"type": "start_game", "names": ["a", "b", "c", "d"]},
+            {"type": "start_kyoku", "bakaze": "E", "dora_marker": "1p",
+             "kyoku": 1, "honba": 0, "kyotaku": 0, "oya": 0,
+             "scores": [25000] * 4, "tehais": [h0, h1, h2, h3]},
+            {"type": "tsumo", "actor": 1, "pai": "1m"},
+            {"type": "dahai", "actor": 1, "pai": "1m", "tsumogiri": True},
+            {"type": "end_kyoku"},
+            {"type": "start_kyoku", "bakaze": "E", "dora_marker": "1p",
+             "kyoku": 2, "honba": 0, "kyotaku": 0, "oya": 1,
+             "scores": [25000] * 4, "tehais": [h0, h1, h2, h3]},
+            {"type": "tsumo", "actor": 1, "pai": "9m"},
+            {"type": "dahai", "actor": 1, "pai": "9m", "tsumogiri": True},
+            {"type": "tsumo", "actor": 0, "pai": "9m"},
+            {"type": "dahai", "actor": 0, "pai": "9m", "tsumogiri": False},
+            {"type": "end_kyoku"}, {"type": "end_game"},
+        ]
+        samples = build_decisions(raw)
+        second = [sample for sample in samples
+                  if sample.input.events[-1].kyoku_idx == 1][-1]
+        state = encode_visible_state(second.input)
+        # 1m kind 0 was discarded by shimocha in kyoku 1; kyoku 2 must not
+        # inherit it, while 9m (kind 8) was discarded in kyoku 2.
+        self.assertEqual(float(state.tile_features[0, 14]), 0.0)
+        self.assertEqual(float(state.tile_features[8, 14]), 0.25)
 
 
 class ModelTests(unittest.TestCase):
@@ -197,6 +235,34 @@ class ModelTests(unittest.TestCase):
                         if name.startswith("critic") and p.grad is not None]
         self.assertFalse(any(float(g.abs().sum()) > 0 for g in actor_grads))
         self.assertTrue(any(float(g.abs().sum()) > 0 for g in critic_grads))
+
+    def test_bos_only_prefix_works(self):
+        from riichiformer.vnext.contracts import (
+            BOS_EVENT_ID, PAD_EVENT_ID, TILE_FEATURE_DIM, VNextModelBatch,
+            VNextVisibleState,
+        )
+        state = VNextVisibleState.empty()
+        batch = VNextModelBatch(
+            event_type_id=torch.tensor([[BOS_EVENT_ID]], dtype=torch.long),
+            event_actor_rel=torch.tensor([[4]], dtype=torch.long),
+            event_tile_kind=torch.tensor([[34]], dtype=torch.long),
+            event_aka=torch.tensor([[0]], dtype=torch.long),
+            event_tsumogiri=torch.tensor([[0]], dtype=torch.long),
+            event_kyoku_pos=torch.tensor([[0]], dtype=torch.long),
+            event_meld_tile=torch.tensor([[[34, 34, 34]]], dtype=torch.long),
+            event_meld_aka=torch.tensor([[[0, 0, 0]]], dtype=torch.long),
+            event_valid_mask=torch.tensor([[True]]),
+            decision_to_sequence=torch.tensor([0], dtype=torch.long),
+            prefix_token_offsets=torch.tensor([0], dtype=torch.long),
+            phases=torch.tensor([0], dtype=torch.long),
+            x_tile=state.tile_features.unsqueeze(0),
+            x_global=state.global_features.unsqueeze(0),
+            candidate_features=state.candidate_features.unsqueeze(0),
+            legal_mask=state.legal_mask.unsqueeze(0),
+        )
+        output = self.model(batch)
+        self.assertEqual(tuple(output.logits.shape), (1, 46))
+        output.validate()
 
     def test_autocast_policy_output_is_fp32(self):
         if not hasattr(torch, "autocast"):

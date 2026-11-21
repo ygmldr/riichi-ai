@@ -34,6 +34,7 @@ class ContractHashTests(unittest.TestCase):
         changed = VNextConfig(cross_attn_layers=0)
         self.assertNotEqual(contract_hash(), contract_hash(changed))
         self.assertEqual(changed.architecture_hash, changed.architecture_hash)
+        self.assertEqual(VNextConfig().critic_grad_mode, "detach_actor")
 
     def test_config_rejects_unknown_or_invalid(self):
         with self.assertRaises(ValueError):

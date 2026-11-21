@@ -1,11 +1,11 @@
 # VNext Contract Lock (PR-02)
 
-**Status**: FROZEN for PR-03..PR-11 development  
-**Owner**: single Lead  
-**Base**: `rf3.3-w2` / `8a915d1`  
-**Contract module**: `riichiformer/vnext/contracts.py`  
-**Manifest hash**: `c6e15a7cb6a6e885ccb434e2380ab10616de50d0cfe71679e7f7f77a5d931f1d`  
-**Model architecture hash**: `002b145b76978cda999ce350985e78f84e07225f652474150b8c1b826e84d252`
+**Status**: FROZEN for PR-03..PR-11 development
+**Owner**: single Lead
+**Base**: `rf3.3-w2` / `8a915d1`
+**Contract module**: `riichiformer/vnext/contracts.py`
+**Manifest hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
+**Model architecture hash**: `012f037139346913433c5129f6720f70e7708618a31af75fcd206f05d719f5df`
 
 ## 1. Frozen identifiers
 
@@ -23,7 +23,7 @@
 
 The model default is `6L / d256 / 4 heads / ffn 704`, 1 cross-attention layer,
 factorized tile embedding, tile-scored 37 + other 9 head, and 4-class Critic
-with `critic_grad_mode ∈ {joint, detach_actor}`.
+with `critic_grad_mode ∈ {joint, detach_actor}` (default `detach_actor`).
 `cross_attn_layers=0`, `head_type=linear46`, `tile_embedding=identity` and
 `model_mode=state_only` are explicit control configurations.
 

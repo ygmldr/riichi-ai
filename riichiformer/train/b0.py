@@ -1432,8 +1432,10 @@ def evaluate_multi_batches(
         step: int, device: str = "cpu") -> ValidationMetrics:
     """Forward-only CE/top1/top3/legal/non-finite metrics (no optimizer).
 
-    All reductions over decisions and top-k values are vectorized per batch; the
-    hot loop performs no per-decision ``bool``/``float`` device synchronization.
+    All reductions over decisions and top-k values are vectorized per batch.  The
+    loop performs no per-decision ``bool``/``float`` device synchronization; it
+    performs a small fixed number of batch-level counter conversions (legal,
+    non-finite, top-1, top-3, CE/weight sums), not one conversion per decision.
     Metadata parsing (which targets are supervised) is CPU-side dictionary work
     and does not read a scalar tensor.
     """

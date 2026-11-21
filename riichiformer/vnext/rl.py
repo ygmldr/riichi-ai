@@ -122,12 +122,12 @@ def mortal_delta_rewards(phi_by_kyoku: Sequence[Sequence[float]],
 
 def pbrs_rewards(phi_by_kyoku: Sequence[Sequence[float]],
                  terminal_pt_value: float) -> list[tuple[float, ...]]:
-    """Exact PBRS with terminal Phi=0 plus the true terminal PT once.
+    """PBRS spelling with terminal Phi=0 and the true terminal PT once.
 
-    For a pure terminal objective every non-terminal reward is the potential
-    difference; the final kyoku transition also includes the real PT.  This is
-    algebraically the same net return as :func:`mortal_delta_rewards`, but the
-    recorded reward components differ and the two must never be combined.
+    For a pure terminal objective this is algebraically the same net return as
+    :func:`mortal_delta_rewards`; the two are alternative **recordings** of the
+    same terminal objective and must never be added together.  The equality is
+    intentional, not evidence that the two are different algorithms.
     """
     if not phi_by_kyoku:
         raise RLError("need at least one kyoku potential")

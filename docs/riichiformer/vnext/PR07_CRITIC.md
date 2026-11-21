@@ -1,17 +1,22 @@
 # PR-07 — Decision Critic and gradient isolation
 
 **Code**: `riichiformer/vnext/critic.py`; `VNextPolicy` optionally emits
-`rank_logits` and `VNextPolicyOutput.rank_logits`.  
+`rank_logits` and `VNextPolicyOutput.rank_logits`.
 **Tests**: `tests/rf_test_vnext_critic.py` (4 passing, CPU)
 
 ## Contract
 
-* `DecisionRankCritic(z) -> [N,4]` predicts the current seat's final rank.
+* The deployed `VNextPolicy` uses the same two-layer `DecisionRankCritic`, not
+  a bare linear probe; `DecisionRankCritic(z) -> [N,4]` predicts the current
+  seat's final rank.
+* `VNextConfig.critic_grad_mode` defaults to `detach_actor`; `joint` is opt-in.
 * `critic_ce` is weighted CE over four rank classes; target ranks are 0..3.
 * `critic_features(z, "detach_actor")` returns `z.detach()`, so a Critic-only
   backward cannot put any gradient on the Actor trunk.
 * `critic_features(z, "joint")` leaves the graph connected; `VNextConfig`
   exposes the same switch to the full model (`critic_grad_mode`).
+* The full model with `critic_grad_mode="detach_actor"` produces zero Actor
+  gradients on a Critic-only backward and non-zero Critic-head gradients.
 * `expected_pt` projects rank probabilities with the frozen 5D table.
 
 ## Tests

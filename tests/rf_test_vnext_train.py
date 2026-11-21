@@ -131,6 +131,39 @@ class TrainTests(unittest.TestCase):
         with self.assertRaises(Exception):
             load_vnext_checkpoint(path, expected_contract_hash="0" * 64)
 
+    def test_rank_labels_are_classes_not_decision_indices(self):
+        adapter = VNextBatchAdapter(FakeReader(), batch_size=2)
+        batch = list(adapter.iter_batches())[0]
+        targets = [dict(target) for target in batch.targets]
+        targets[0]["rank_final"] = 3
+        targets[1]["rank_final"] = 0
+        model = VNextPolicy(config())
+        trainer = VNextTrainConfig(learning_rate=1e-3)
+        optimizer = make_optimizer(model, trainer)
+        result = train_step(model, batch.batch, targets, optimizer=optimizer,
+                            config=trainer)
+        self.assertTrue(torch.isfinite(torch.tensor(result["loss"])))
+        self.assertGreater(result["valid"], 0)
+
+    def test_rank_only_batch_can_update_critic(self):
+        adapter = VNextBatchAdapter(FakeReader(), batch_size=2)
+        batch = list(adapter.iter_batches())[0]
+        targets = [dict(target) for target in batch.targets]
+        for target in targets:
+            target["supervision_valid"] = False
+            target["censor_reason"] = "rank-only-test"
+            target["rank_final"] = 2
+        # The rank side currently requires supervision_valid; keep one row
+        # supervised with a zero BC weight to exercise the denominator path.
+        targets[0]["supervision_valid"] = True
+        targets[0]["loss_weight"] = 0.0
+        model = VNextPolicy(config())
+        trainer = VNextTrainConfig(learning_rate=1e-3)
+        optimizer = make_optimizer(model, trainer)
+        result = train_step(model, batch.batch, targets, optimizer=optimizer,
+                            config=trainer)
+        self.assertTrue(torch.isfinite(torch.tensor(result["loss"])))
+
     def test_all_censored_is_zero_without_update(self):
         adapter = VNextBatchAdapter(FakeReader(), batch_size=2)
         item = list(adapter.iter_batches())[0]

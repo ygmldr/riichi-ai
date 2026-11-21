@@ -100,7 +100,10 @@ def _tile_feature_matrix(decision: DecisionInput) -> Tensor:
     rivers = [[0] * TILE_KIND_COUNT for _ in range(3)]
     post_riichi = [[0] * TILE_KIND_COUNT for _ in range(3)]
     riichi_started = [False, False, False]
+    current_kyoku = int(decision.events[-1].kyoku_idx)
     for event in decision.events:
+        if int(event.kyoku_idx) != current_kyoku:
+            continue
         if isinstance(event, ReachAcceptedEvent) and 1 <= event.actor_rel <= 3:
             riichi_started[event.actor_rel - 1] = True
         if isinstance(event, DahaiEvent) and 1 <= event.actor_rel <= 3:
@@ -130,12 +133,15 @@ def _tile_feature_matrix(decision: DecisionInput) -> Tensor:
             1.0 if own[kind] >= 4 else 0.0,
             public[kind] / 4.0,
         ]
-        values.extend(own_aka)
-        values.extend(public_aka)
+        values.extend(own_aka[colour] if kind == AKA_KINDS[colour] else 0.0
+                      for colour in range(3))
+        values.extend(public_aka[colour] if kind == AKA_KINDS[colour] else 0.0
+                      for colour in range(3))
         values.extend(rivers[seat][kind] / 4.0 for seat in range(3))
-        # A tile in an opponent river is genbutsu for that opponent; this is a
-        # public-information fact, not an inference from a hidden hand.
-        values.extend(rivers[seat][kind] / 4.0 for seat in range(3))
+        # Genbutsu against a riichi opponent: public river tile plus that
+        # opponent's accepted riichi.  This is not the same as a raw river count.
+        values.extend((1.0 if rivers[seat][kind] and riichi_started[seat] else 0.0)
+                      for seat in range(3))
         values.extend(post_riichi[seat][kind] / 4.0 for seat in range(3))
         values.extend(melds[seat][kind] / 4.0 for seat in range(3))
         values.append(indicators[kind] / 4.0)
@@ -437,7 +443,9 @@ class VNextBatchBuilder:
                 ("event_meld_tile", stream.event_meld_tile),
                 ("event_meld_aka", stream.event_meld_aka),
             ):
-                if name == "event_meld_tile":
+                if name == "event_type_id":
+                    pad_value = PAD_EVENT_ID
+                elif name == "event_meld_tile":
                     pad_value = (UNKNOWN_TILE_KIND,) * EVENT_MELD_SLOTS
                 elif name == "event_meld_aka":
                     pad_value = (0,) * EVENT_MELD_SLOTS

@@ -131,7 +131,7 @@ PT_TABLES: dict[str, tuple[int, int, int, int]] = {
 }
 
 FORBIDDEN_FORWARD_WORDS: tuple[str, ...] = (
-    "target", "label", "oracle", "rank_final", "expert_action", "supervision",
+    "target", "label", "oracle", "rank_final", "rank", "expert_action", "supervision",
     "censor", "future", "hidden",
 )
 
@@ -213,7 +213,7 @@ class VNextConfig:
     head_type: str = "tile_scored"       # tile_scored | linear46
     model_mode: str = "event_state"      # event_state | state_only
     critic_enabled: bool = True
-    critic_grad_mode: str = "joint"  # joint | detach_actor
+    critic_grad_mode: str = "detach_actor"  # joint | detach_actor
     tile_identity_scale: float = 1.0
     rope_base: float = 10_000.0
     rmsnorm_eps: float = 1.0e-6

@@ -106,6 +106,9 @@ class VNextPolicyAdapter:
             raise VNextRuntimeError("kan_mask must be a non-empty 46-mask")
         if any(kan_mask[i] for i in range(37, ACTION_SPACE)):
             raise VNextRuntimeError("KAN_SELECTION only permits tile actions 0..36")
+        if tuple(bool(value) for value in decision.legal_mask) != tuple(kan_mask):
+            raise VNextRuntimeError(
+                "select_kan decision.legal_mask must equal the supplied kan_mask")
         action = self.act(decision, decision_id=decision_id)
         if not kan_mask[action]:
             raise VNextRuntimeError(f"selected kan action {action} is not in kan_mask")

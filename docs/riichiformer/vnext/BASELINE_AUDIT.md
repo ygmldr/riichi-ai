@@ -1,8 +1,8 @@
 # VNext Baseline Audit (PR-00)
 
-**Date**: 2026-11-22 (Asia/Shanghai)  
-**Lead worktree**: `/home/ygsldr/riichi-ai/worktrees/vnext-core`  
-**Branch**: `rf/vnext-core`  
+**Date**: 2026-11-22 (Asia/Shanghai)
+**Lead worktree**: `/home/ygsldr/riichi-ai/worktrees/vnext-core`
+**Branch**: `rf/vnext-core`
 **Base**: `rf3.3-w2` = `8a915d1df89ced8f322e5f2e6e664b3a0e1fcf85`
 
 ## 1. Actual local state (no reset, no checkout of the pack's old SHA)

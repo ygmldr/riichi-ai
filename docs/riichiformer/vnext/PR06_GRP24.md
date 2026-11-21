@@ -1,6 +1,6 @@
 # PR-06 — Independent 24-way GRP
 
-**Code**: `riichiformer/vnext/grp.py`  
+**Code**: `riichiformer/vnext/grp.py`
 **Tests**: `tests/rf_test_vnext_grp.py` (7 passing, CPU)
 
 ## Contract

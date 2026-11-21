@@ -1,6 +1,6 @@
 # PR-05 — Runtime adapter and parity status
 
-**Code**: `riichiformer/vnext/runtime.py`  
+**Code**: `riichiformer/vnext/runtime.py`
 **Tests**: `tests/rf_test_vnext_runtime.py` (4 passing, CPU)
 
 ## Implemented

@@ -16,6 +16,7 @@ from typing import Iterable, Mapping, Sequence
 
 import torch
 from torch import Tensor
+import torch.nn.functional as F
 
 from ..schemas.action_v3 import ACTION_SPACE, ActionPhase
 from ..schemas.schema_v3 import load_schema
@@ -28,7 +29,6 @@ from .contracts import (
     VNextTargets,
     contract_hash,
 )
-from .critic import critic_ce
 from .model import VNextPolicy
 
 
@@ -123,11 +123,18 @@ def make_optimizer(model: VNextPolicy, config: VNextTrainConfig):
     return torch.optim.AdamW(groups, lr=config.learning_rate)
 
 
-def rank_loss(output: VNextPolicyOutput, targets: Sequence[Mapping]) -> Tensor | None:
+def rank_loss(output: VNextPolicyOutput,
+              targets: Sequence[Mapping]) -> tuple[Tensor, int] | None:
+    """Return ``(sum_rank_ce, count)`` over supervised decision rows.
+
+    The label is the Critic class for that decision row; it is **never** used as
+    an index into the decision axis.  A sum is returned so accumulation can use
+    the additive numerator, just like BC.
+    """
     if output.rank_logits is None:
         return None
+    rows: list[int] = []
     labels: list[int] = []
-    weights: list[float] = []
     for index, target in enumerate(targets):
         if not bool(target.get("supervision_valid", False)):
             continue
@@ -135,15 +142,16 @@ def rank_loss(output: VNextPolicyOutput, targets: Sequence[Mapping]) -> Tensor |
         if isinstance(rank, bool) or not isinstance(rank, int) \
                 or not 0 <= rank < 4:
             raise VNextTrainingError(f"target[{index}] rank_final is invalid")
+        rows.append(index)
         labels.append(rank)
-        weights.append(1.0)
-    if not labels:
+    if not rows:
         return None
-    idx = torch.tensor(labels, dtype=torch.long,
-                       device=output.rank_logits.device)
-    w = torch.tensor(weights, dtype=output.rank_logits.dtype,
-                     device=output.rank_logits.device)
-    return critic_ce(output.rank_logits.index_select(0, idx), idx, w)
+    row_idx = torch.tensor(rows, dtype=torch.long,
+                           device=output.rank_logits.device)
+    label_idx = torch.tensor(labels, dtype=torch.long,
+                             device=output.rank_logits.device)
+    logits = output.rank_logits.index_select(0, row_idx)
+    return F.cross_entropy(logits, label_idx, reduction="sum"), len(rows)
 
 
 def train_step(model: VNextPolicy, batch: VNextModelBatch,
@@ -164,16 +172,24 @@ def train_step(model: VNextPolicy, batch: VNextModelBatch,
     rank = rank_loss(output, targets)
     total_numerator = bc.numerator
     if rank is not None and config.rank_loss_weight > 0:
-        total_numerator = total_numerator + config.rank_loss_weight * rank
+        total_numerator = total_numerator + config.rank_loss_weight * rank[0]
     if bc.valid == 0 and rank is None:
         return {
             "loss": 0.0, "bc_numerator": 0.0, "rank_numerator": None,
             "valid": 0, "total": bc.total, "weight": 0.0,
             "optimizer_stepped": False,
         }
-    denominator = window_weight if window_weight is not None else bc.weight
+    if window_weight is not None and float(window_weight) > 0:
+        denominator = float(window_weight)
+    elif bc.weight > 0:
+        denominator = bc.weight
+    elif rank is not None:
+        # Rank-only batch: use supervised rank rows as the normalization count.
+        denominator = float(rank[1])
+    else:
+        denominator = 0.0
     if denominator <= 0:
-        raise VNextTrainingError("BC window has no valid weight")
+        raise VNextTrainingError("BC/rank window has no valid weight")
     loss = total_numerator / denominator
     if not bool(torch.isfinite(loss)):
         raise VNextTrainingError("VNext loss became NaN/Inf")
@@ -189,7 +205,7 @@ def train_step(model: VNextPolicy, batch: VNextModelBatch,
         "loss": float(loss.detach()),
         "bc_numerator": float(bc.numerator.detach()),
         "rank_numerator": (None if rank is None
-                           else float(rank.detach()) * config.rank_loss_weight),
+                           else float(rank[0].detach()) * config.rank_loss_weight),
         "valid": bc.valid, "total": bc.total, "weight": bc.weight,
         "optimizer_stepped": stepped,
     }
