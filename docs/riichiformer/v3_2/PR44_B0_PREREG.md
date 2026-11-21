@@ -56,8 +56,8 @@ licence and the sample may not be published.
 
 | Item | Value |
 |---|---|
-| Model | `configs/riichiformer/mvp_s.yaml`, 6 layers, hidden 256, FFN 704, state 512 |
-| Parameters | 5,217,582 (must be printed/asserted) |
+| Model | `configs/riichiformer/mvp_s.yaml` (4096 positions); long streams may use `configs/riichiformer/mvp_s_8192.yaml` (same 5,217,582 params, position limit only) |
+| Parameters | 5,217,582 (must be printed/asserted; the 8192 variant has the same count) |
 | Optimizer | AdamW, lr `3e-4`, weight decay `0.01`, betas `(0.9, 0.999)`, grad clip `1.0` |
 | Batch | 64 decisions (multi-decision path), no accumulation for the pilot |
 | Seeds | `20261121`, `20261122` |
@@ -99,4 +99,5 @@ PR-46 duplicate arena are separate gates.
 - 500-game shard: **building** (background job; exact sha/decisions to be filled in).
 - Multi-decision loader/trainer: **in progress** on `rf/v32-b0`.
 - B0 pilot training: **NOT_RUN** until the multi path and a GPU lock exist.
+- Multi path smoke (Lead, uncommitted Dev-COMPUTE branch): 2 GPU steps, batch 8, 58/107 shared tokens, peak ~1.85 GB; batch 64 hits a single 4,864-event POV (`> max_events 4096`), so long-context/config filtering is required. Do not train B0 until this is fixed.
 - Full B0 / strength: **NOT RUN**.
