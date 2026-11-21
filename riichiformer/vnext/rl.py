@@ -134,6 +134,8 @@ def pbrs_rewards(phi_by_kyoku: Sequence[Sequence[float]],
     phis = [tuple(float(v) for v in values) for values in phi_by_kyoku]
     if any(len(values) != 4 for values in phis):
         raise RLError("each Phi boundary must have 4 seats")
+    if any(abs(sum(values)) > 1e-4 for values in phis):
+        raise RLError("zero-sum PT requires each Phi boundary to sum to 0")
     out: list[tuple[float, ...]] = []
     for index in range(len(phis) - 1):
         out.append(tuple(phis[index + 1][seat] - phis[index][seat]

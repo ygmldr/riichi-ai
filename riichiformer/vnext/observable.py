@@ -115,6 +115,10 @@ def _tile_feature_matrix(decision: DecisionInput) -> Tensor:
     melds = [[0] * TILE_KIND_COUNT for _ in range(3)]
     for seat_rel in (1, 2, 3):
         for meld in decision.players_public[seat_rel].melds:
+            # A caller may construct an ankan with rule-dependent revealed
+            # tiles; VNext never treats those as public meld tiles.
+            if meld.meld_kind.value == "ankan":
+                continue
             for tile in meld.tiles:
                 if not tile.is_unknown:
                     melds[seat_rel - 1][tile.kind] += 1

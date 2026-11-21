@@ -193,7 +193,7 @@ def train_step(model: VNextPolicy, batch: VNextModelBatch,
     loss = total_numerator / denominator
     if not bool(torch.isfinite(loss)):
         raise VNextTrainingError("VNext loss became NaN/Inf")
-    if bc.valid > 0:
+    if bc.valid > 0 or rank is not None:
         loss.backward()
     boundary = (accumulation_step + 1) % config.accumulation_count == 0
     stepped = False

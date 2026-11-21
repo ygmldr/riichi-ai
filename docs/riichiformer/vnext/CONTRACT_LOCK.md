@@ -89,9 +89,9 @@ illegal actions, normalized `logprobs`, `legal_mask`, optional
 * `RLDecisionRow` separates `legal_mask`, `effective_mask`, raw logits, full
   behavior probabilities, executed action, guard reason and policy/GRP/rules
   SHAs.
-* `mortal_delta_rewards` and `pbrs_rewards` are distinct reward records:
-  neither may be combined with an extra terminal reward; the telescoping
-  identity is `sum(rewards)=R_final-Phi_0` per seat.
+* `mortal_delta_rewards` and `pbrs_rewards` are alternative spellings of the
+  same terminal objective; neither may be combined with an extra terminal
+  reward.  The telescoping identity is `sum(rewards)=R_final-Phi_0` per seat.
 * `two_timescale_gae` uses `lambda_inter` only at a kyoku boundary; terminal
   transitions do not bootstrap.
 

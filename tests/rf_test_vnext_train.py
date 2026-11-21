@@ -67,6 +67,26 @@ def config() -> VNextConfig:
                        cross_attn_heads=4, dropout=0.0, max_positions=64)
 
 
+class InterleavedReader:
+    def __init__(self):
+        self.samples = build_decisions(raw_long())
+
+    def iter_decisions(self):
+        # Deliberately interleave two (game, POV) streams: the adapter must
+        # reorder targets into VNextBatchBuilder's model-decision order.
+        for index in range(max(len(self.samples), 1)):
+            for stream, game in ((0, "game_a"), (1, "game_b")):
+                if index >= len(self.samples):
+                    continue
+                sample = self.samples[index]
+                legal = [i for i, value in enumerate(sample.input.legal_mask) if value]
+                yield (sample.input,
+                       {"expert_action": legal[0], "supervision_valid": True,
+                        "censor_reason": None, "rank_final": index % 4,
+                        "loss_weight": 1.0, "marker": f"{game}:{index}"},
+                       None, game, stream, index)
+
+
 class AdapterTests(unittest.TestCase):
     def test_batches_keep_targets_separate(self):
         adapter = VNextBatchAdapter(FakeReader(), batch_size=2)
@@ -76,6 +96,16 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(batch.batch.n_decisions, 2)
         self.assertEqual(len(batch.targets), 2)
         self.assertNotIn("target", batch.batch.__dataclass_fields__)
+
+    def test_interleaved_reader_targets_follow_batch_rows(self):
+        batch = list(VNextBatchAdapter(InterleavedReader(), batch_size=4)
+                     .iter_batches())[0]
+        self.assertEqual(batch.decision_ids,
+                         ("game_a:0:0", "game_a:0:1",
+                          "game_b:1:0", "game_b:1:1"))
+        self.assertEqual([target["marker"] for target in batch.targets],
+                         ["game_a:0", "game_a:1", "game_b:0", "game_b:1"])
+        self.assertEqual(batch.game_ids, ("game_a", "game_a", "game_b", "game_b"))
 
     def test_target_tensor_contract(self):
         targets = targets_from_dicts(
@@ -163,6 +193,8 @@ class TrainTests(unittest.TestCase):
         result = train_step(model, batch.batch, targets, optimizer=optimizer,
                             config=trainer)
         self.assertTrue(torch.isfinite(torch.tensor(result["loss"])))
+        self.assertTrue(result["optimizer_stepped"])
+        self.assertTrue(any(p.grad is not None for p in model.parameters()))
 
     def test_all_censored_is_zero_without_update(self):
         adapter = VNextBatchAdapter(FakeReader(), batch_size=2)

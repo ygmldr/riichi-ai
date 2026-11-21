@@ -25,6 +25,7 @@ from riichiformer.vnext.observable import (  # noqa: E402
 from riichiformer.schemas.event_v3 import (  # noqa: E402
     ChiEvent, TileRef, UNKNOWN_TILE,
 )
+from riichiformer.schemas.decision_v3 import MeldKind, PublicMeld  # noqa: E402
 
 
 def raw_long() -> list[dict]:
@@ -93,6 +94,20 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(float(state.tile_features[13, 6]), 0.0)  # not 5p row
         self.assertEqual(float(state.tile_features[4, 0]), 0.5)
 
+    def test_opponent_ankan_is_not_counted_as_public_meld(self):
+        sample = self.samples[0]
+        players = list(sample.input.players_public)
+        players[1] = dataclasses.replace(
+            players[1],
+            melds=(PublicMeld(MeldKind.ANKAN,
+                              (TileRef(0), TileRef(0), TileRef(0), TileRef(0)),
+                              from_rel=4),))
+        mutated = dataclasses.replace(sample.input, players_public=tuple(players))
+        state = encode_visible_state(mutated)
+        # Channel 21 is opponent_meld_shimocha_over_4; ankan is rule-dependent
+        # and must not be exposed as public meld tiles.
+        self.assertEqual(float(state.tile_features[0, 21]), 0.0)
+
     def test_chi_consumed_tiles_are_preserved(self):
         stream = VNextEventStream(match_id="m", kyoku_id=0, pov=0)
         event = ChiEvent(
@@ -143,7 +158,7 @@ class MultiKyokuTests(unittest.TestCase):
         second = [sample for sample in samples
                   if sample.input.events[-1].kyoku_idx == 1][-1]
         state = encode_visible_state(second.input)
-        # 1m kind 0 was discarded by shimocha in kyoku 1; kyoku 2 must not
+        # 1m kind 0 was discarded by the POV's kamicha in kyoku 1; kyoku 2 must not
         # inherit it, while 9m (kind 8) was discarded in kyoku 2.
         self.assertEqual(float(state.tile_features[0, 14]), 0.0)
         self.assertEqual(float(state.tile_features[8, 14]), 0.25)

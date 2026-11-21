@@ -269,6 +269,22 @@ class NativeContextTests(unittest.TestCase):
         self.assertEqual(event["target"], 3)
         self.assertIs(context.phase, ActionPhase.CALL_RESPONSE)
 
+    def test_aka_kakan_uses_aka_candidate_index(self):
+        hand = _hand("5mr", "1m", "2m", "3m", "4m", "6m", "7m", "8m",
+                     "9m", "1p", "2p", "3p", "4p", "6p")
+        state = _MockState(hand, mask=_mask_with(42), kakan=("5mr",),
+                           cans=_Cans(can_kakan=True))
+        context = A.context_from_native(state, seat=0, legal_mask=_mask_with(42),
+                                         phase=ActionPhase.SELF_TURN)
+        mask = A.kan_selection_mask(context.kan_options)
+        self.assertTrue(mask[34])
+        event, selected = A.decode_native_action(
+            34, state, seat=0, legal_mask=mask,
+            phase=ActionPhase.KAN_SELECTION)
+        self.assertEqual(event["type"], "kakan")
+        self.assertEqual(event["pai"], "5mr")
+        self.assertIs(selected.phase, ActionPhase.KAN_SELECTION)
+
     def test_kan_selection_mask_is_tile_only(self):
         from riichiformer.runtime.mjai_adapter import KanOption
         options = (

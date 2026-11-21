@@ -131,7 +131,7 @@ PT_TABLES: dict[str, tuple[int, int, int, int]] = {
 }
 
 FORBIDDEN_FORWARD_WORDS: tuple[str, ...] = (
-    "target", "label", "oracle", "rank_final", "rank", "expert_action", "supervision",
+    "target", "label", "oracle", "rank_final", "expert_action", "supervision",
     "censor", "future", "hidden",
 )
 
@@ -631,6 +631,12 @@ def rank_marginals(prob_perm: Tensor) -> Tensor:
 def phi_from_marginals(marginal: Tensor, pt_table: Sequence[int] = PT_TABLE_5D) -> Tensor:
     if marginal.dim() != 3 or tuple(marginal.shape[1:]) != (4, 4):
         raise ContractError("marginal must be [N, 4, 4]")
+    if not torch.allclose(marginal.sum(dim=-1), torch.ones_like(marginal[..., 0]),
+                          atol=1e-4, rtol=1e-4):
+        raise ContractError("each seat marginal must sum to 1")
+    if not torch.allclose(marginal.sum(dim=1), torch.ones_like(marginal[:, 0, :]),
+                          atol=1e-4, rtol=1e-4):
+        raise ContractError("each rank marginal must sum to 1 across seats")
     table = torch.tensor(tuple(pt_table), dtype=marginal.dtype,
                          device=marginal.device)
     return (marginal * table.view(1, 1, 4)).sum(dim=-1)

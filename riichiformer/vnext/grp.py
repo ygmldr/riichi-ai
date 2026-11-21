@@ -25,6 +25,7 @@ import torch.nn.functional as F
 from .contracts import (
     GRP_PERMUTATIONS,
     PT_TABLE_5D,
+    PT_TABLE_5D_ID,
     PT_TABLES,
     ContractError,
     GRPBoundary,
@@ -100,7 +101,7 @@ class GRP24(nn.Module):
                   lengths: Tensor | None = None) -> Tensor:
         return rank_marginals(self.probability(boundaries, lengths))
 
-    def phi(self, boundaries: Tensor, *, pt_table_id: str = "pt5d/75,30,0,-105",
+    def phi(self, boundaries: Tensor, *, pt_table_id: str = PT_TABLE_5D_ID,
             lengths: Tensor | None = None) -> Tensor:
         if pt_table_id not in PT_TABLES:
             raise ContractError(f"unknown pt_table_id {pt_table_id!r}")
@@ -165,7 +166,11 @@ def permute_prob_perm(prob_perm: Tensor, order: Sequence[int]) -> Tensor:
 
 def permutation_consistency_error(model: GRP24, boundaries: Tensor,
                                   order: Sequence[int]) -> float:
-    """Max abs difference after score/seat reordering (should be ~0 for equivariance)."""
+    """Diagnostic max difference after score/seat reordering.
+
+    A plain GRU is not permutation-equivariant, so this is not a pass/fail
+    gate; use it only to inspect drift before adding symmetry training.
+    """
     if boundaries.dim() != 3:
         raise ContractError("boundaries must be [B,T,7]")
     if sorted(int(v) for v in order) != [0, 1, 2, 3]:
@@ -175,9 +180,9 @@ def permutation_consistency_error(model: GRP24, boundaries: Tensor,
     with torch.no_grad():
         original_prob = model.probability(boundaries)
         permuted_prob = model.probability(permuted)
-            # A permutation of the seats is not a permutation of the GRU input order
-            # in general; the expected joint distribution transforms by the same rank
-            # relabeling.  Compare the transformed original distribution.
+        # A permutation of the seats is not a permutation of the GRU input order
+        # in general; the expected joint distribution transforms by the same rank
+        # relabeling.  Compare the transformed original distribution.
         expected = permute_prob_perm(original_prob, order)
         return float((permuted_prob - expected).abs().max())
 

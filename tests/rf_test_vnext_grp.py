@@ -60,6 +60,18 @@ class PermutationTests(unittest.TestCase):
         self.assertEqual(permute_input_scores([10, 20, 30, 40], order),
                          (20, 10, 40, 30))
 
+    def test_permutation_transform_matches_joint_distribution(self):
+        torch.manual_seed(2)
+        probs = torch.softmax(torch.randn(3, 24), dim=-1)
+        order = (2, 0, 3, 1)
+        transformed = permute_prob_perm(probs, order)
+        self.assertTrue(torch.allclose(transformed.sum(-1), torch.ones(3)))
+        for old_index, old_perm in enumerate(GRP_PERMUTATIONS):
+            new_perm = tuple(old_perm[order[i]] for i in range(4))
+            new_index = permutation_index(new_perm)
+            self.assertAlmostEqual(float(transformed[0, new_index]),
+                                   float(probs[0, old_index]), places=6)
+
     def test_boundary_input(self):
         b = GRPBoundary("m", 2, 1, 1, 0, (26000, 25000, 24000, 25000), "r")
         tensor = boundaries_tensor([b])

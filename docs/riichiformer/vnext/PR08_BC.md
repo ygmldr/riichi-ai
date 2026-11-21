@@ -1,7 +1,7 @@
 # PR-08 — VNext BC data adapter and trainer
 
 **Code**: `riichiformer/vnext/data.py`, `riichiformer/vnext/train.py`
-**Tests**: `tests/rf_test_vnext_train.py` (7 passing, CPU)
+**Tests**: `tests/rf_test_vnext_train.py` (8 passing, CPU)
 
 ## Data adapter
 

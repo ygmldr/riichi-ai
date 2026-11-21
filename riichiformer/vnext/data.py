@@ -32,14 +32,20 @@ class VNextBCBatch:
     povs: tuple[int, ...]
     decision_indices: tuple[int, ...]
     kyoku_ids: tuple[int, ...]
+    #: Target order is exactly the VNextModelBatch decision order.  This is an
+    #: explicit invariant, not an assumption about the reader's stream order.
+    decision_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
         n = len(self.targets)
-        for name in ("game_ids", "povs", "decision_indices", "kyoku_ids"):
+        for name in ("game_ids", "povs", "decision_indices", "kyoku_ids",
+                     "decision_ids"):
             if len(getattr(self, name)) != n:
                 raise VNextDataError(f"{name} length != targets length")
         if self.batch.n_decisions != n:
             raise VNextDataError("batch decisions != target rows")
+        if len(set(self.decision_ids)) != n:
+            raise VNextDataError("decision_ids must be unique in a batch")
 
 
 class VNextBatchAdapter:
@@ -54,23 +60,42 @@ class VNextBatchAdapter:
         self.reader = reader
         self.batch_size = int(batch_size)
 
-    def _finish(self, streams: dict, targets: list, game_ids: list,
-                povs: list, indices: list, kyoku_ids: list) -> VNextBCBatch:
-        if not targets:
+    def _finish(self, streams: dict, records: dict) -> VNextBCBatch:
+        if not records:
             raise VNextDataError("cannot finish an empty batch")
         builder = VNextBatchBuilder(list(streams.values()))
-        return VNextBCBatch(
-            batch=builder.to_batch(), targets=tuple(targets),
-            game_ids=tuple(game_ids), povs=tuple(povs),
-            decision_indices=tuple(indices), kyoku_ids=tuple(kyoku_ids))
-
-    def iter_batches(self) -> Iterator[VNextBCBatch]:
-        streams: dict[tuple[str, int, int], VNextEventStream] = {}
+        batch = builder.to_batch()
+        ordered_ids: list[str] = []
         targets: list[dict] = []
         game_ids: list[str] = []
         povs: list[int] = []
         indices: list[int] = []
         kyoku_ids: list[int] = []
+        # Reorder target metadata into the model batch's decision order.
+        for stream in streams.values():
+            for index, _state in stream.decisions:
+                key = index.decision_id
+                record = records.get(key)
+                if record is None:
+                    raise VNextDataError(
+                        f"missing target record for batched decision {key}")
+                target, game_id, pov, decision_index, kyoku = record
+                ordered_ids.append(key)
+                targets.append(target)
+                game_ids.append(game_id)
+                povs.append(pov)
+                indices.append(decision_index)
+                kyoku_ids.append(kyoku)
+        if len(ordered_ids) != batch.n_decisions:
+            raise VNextDataError("target/model decision count mismatch")
+        return VNextBCBatch(
+            batch=batch, targets=tuple(targets), game_ids=tuple(game_ids),
+            povs=tuple(povs), decision_indices=tuple(indices),
+            kyoku_ids=tuple(kyoku_ids), decision_ids=tuple(ordered_ids))
+
+    def iter_batches(self) -> Iterator[VNextBCBatch]:
+        streams: dict[tuple[str, int, int], VNextEventStream] = {}
+        records: dict[str, tuple] = {}
         for decision, target, _meta, game_id, pov, decision_index in \
                 self.reader.iter_decisions():
             current = [event for event in decision.events if int(event.kyoku_idx) >= 0]
@@ -84,21 +109,19 @@ class VNextBatchAdapter:
                 stream = VNextEventStream(
                     match_id=str(game_id), kyoku_id=kyoku, pov=int(pov))
                 streams[key] = stream
+            decision_id = f"{game_id}:{pov}:{decision_index}"
             stream.add_decision(
-                decision, decision_id=f"{game_id}:{pov}:{decision_index}",
+                decision, decision_id=decision_id,
                 decision_order=int(decision_index))
-            targets.append(dict(target))
-            game_ids.append(str(game_id))
-            povs.append(int(pov))
-            indices.append(int(decision_index))
-            kyoku_ids.append(kyoku)
-            if len(targets) >= self.batch_size:
-                yield self._finish(streams, targets, game_ids, povs, indices,
-                                   kyoku_ids)
-                streams, targets, game_ids, povs, indices, kyoku_ids = (
-                    {}, [], [], [], [], [])
-        if targets:
-            yield self._finish(streams, targets, game_ids, povs, indices, kyoku_ids)
+            if decision_id in records:
+                raise VNextDataError(f"duplicate decision id {decision_id}")
+            records[decision_id] = (dict(target), str(game_id), int(pov),
+                                    int(decision_index), kyoku)
+            if len(records) >= self.batch_size:
+                yield self._finish(streams, records)
+                streams, records = {}, {}
+        if records:
+            yield self._finish(streams, records)
 
 
 def targets_from_dicts(targets: tuple[dict, ...], *, device=None) -> VNextTargets:

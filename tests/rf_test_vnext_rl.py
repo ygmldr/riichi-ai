@@ -75,6 +75,10 @@ class RewardTests(unittest.TestCase):
             self.assertAlmostEqual(sum(row[seat] for row in left),
                                    sum(row[seat] for row in right), places=6)
 
+    def test_pbrs_rejects_non_zero_sum_potential(self):
+        with self.assertRaises(RLError):
+            pbrs_rewards([[1.0, 0.0, 0.0, 0.0]], 75.0)
+
     def test_double_terminal_is_rejected(self):
         with self.assertRaises(RLError):
             check_no_double_terminal(True, True)
