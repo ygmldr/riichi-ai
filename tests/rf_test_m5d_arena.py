@@ -360,8 +360,8 @@ class NativeSmokeTests(unittest.TestCase):
         self.assertEqual(run.seed_count, 4)
         self.assertEqual(run.games, 16)
         self.assertEqual(len(run.sets), 4)
-        for item in run.sets:
-            self.assertEqual(item.wall_seed, item.wall_seed)
+        for index, item in enumerate(run.sets):
+            self.assertEqual(item.wall_seed, run.seed_start + index)
             self.assertEqual([game.rotation for game in item.games], [0, 1, 2, 3])
             self.assertEqual(sorted(game.candidate_seat for game in item.games),
                              [0, 1, 2, 3])

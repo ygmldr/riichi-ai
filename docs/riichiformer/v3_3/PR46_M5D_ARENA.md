@@ -157,8 +157,7 @@ Native CPU smoke (`/tmp/v33_a_smoke/`, not committed):
 * **P2:** `PovDecisionStream` reuses `data.decision._SnapshotTracker` (private); if
   that helper moves, the bridge needs an update. Its full-history rebuild is
   O(game events) once per kyoku, not once per decision.
-* **P2:** R29 (consecutive kakan/chankan ippatsu timing) is `MATCH` at the PlayerState level (PR-40R), while a full Board-scripted game remains `NOT_RUN`; the shard-level metadata still lists it as a known deviation because the frozen per-decision enum has no R29 member (PR-40)
-  PR-40; arena results are `tenhou_approx`, not parity-certified.
+* **P2:** R29 (consecutive kakan/chankan ippatsu timing) is `MATCH` at the PlayerState level (PR-40R), while a full Board-scripted game remains `NOT_RUN`; the shard-level metadata still lists it as a known deviation because the frozen per-decision enum has no R29 member. Arena results are `tenhou_approx`, not parity-certified.
 
 ## 6. NOT_RUN
 

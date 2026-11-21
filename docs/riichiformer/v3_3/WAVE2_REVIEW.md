@@ -21,7 +21,7 @@ actually run on this host. It is not a strength report and not a licence.
 |---|---|---|---|---|---|
 | A | PR-46A/B | `0e6cdbc`, `dd3f39a`, `9980de7` | `cf3da45` | 50+14+43 tests; 8 native sets/32 games CPU, 0 illegal/fallback; self-control ΔPT 0.0; weak 500-step RF pilot ΔPT −98.75 (not strength) | PASS_WITH_P1 |
 | B | PR-45/47 | `a717db5`, `45a476e` | `53e500f` | 38 tests; **100 native games**, 73,841 decisions, shard `26c85d6b…`; CE 1.937 (random-init, weak-bot corpus); E2E two walls | PASS |
-| C | PR-48 | `efd16f7`, `7b1359f`, `8ada…`, `7fa7523` | `ee17664` | 41 tests; CPU 2 seeds × 2 steps, 5,217,582 params, 2.65 s; full epoch NOT_RUN | PASS_WITH_P1 |
+| C | PR-48 | `efd16f7`, `7b1359f`, `8ada…`, `7fa7523` | `ee17664` | 43 tests; CPU 2 seeds × 2 steps, 5,217,582 params, 2.65 s; full epoch NOT_RUN | PASS_WITH_P1 |
 | D | PR-40R | `f147d4c`, `9434db9`, `2385533` | `4be7e7f` | cargo 35 passed; R29 4 native tests; targeted pytest 19 passed; build `582e367…` | PASS |
 
 The registry YAML conflicted on merge because A's registry was built against the

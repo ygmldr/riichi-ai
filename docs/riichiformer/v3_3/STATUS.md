@@ -13,7 +13,7 @@ actually run on this host. It is not a strength report.
 | Tag | `rf3.2-w2` (annotated `c96b0eb`) points at `e760226`; `rf3.2-w1` points at `5242e5e` |
 | W2 full suite at base | **708 passed, 2 skipped, 281 subtests** in 182.23 s, exit 0 (`docs/riichiformer/v3/logs/V3_3_W2_freeze_full_suite.log`) |
 | Reviewer | PR-38 loader/trainer + PR-44 pilot: `PASS_WITH_P1`; P1 (legacy checkpoint cross-path resume) fixed in `2601685`; independent recheck recorded in `PR38_LOADER_INTEGRATION.md` §7 and `PR44_B0_PILOT.md` §4.1 |
-| GPU | RTX 5070 Ti, **2,848 MiB baseline / 16,303 MiB, 0 compute processes**; no RF training/eval process. No GPU job was started by this wave. |
+| GPU | RTX 5070 Ti, **2,848 MiB baseline / 16,303 MiB, 0 compute processes**; no RF training/eval process. One intermediate full-suite run executed the pre-existing tiny `rf_test_bench.py::test_gpu_bf16_smoke` because CUDA was visible (disclosed in `WAVE2_REVIEW.md`); the final suite runs with `CUDA_VISIBLE_DEVICES=""`. |
 | Vendor | pinned `vendor/mortal` `0cff2b5` + `patches/0014-rule-r02-r25-r26.patch`; each V3.3 worktree carries the patched source and a copied `libriichi.so` for CPU/static tests |
 | W2 freeze | effective at `e760226`; no commit before it was overwritten and no remote code was pulled over it |
 
@@ -58,7 +58,7 @@ only; Dev-D is CPU Rust build/tests only.
 | `G-V33-W2` | **PASS** — reviewer P1 closed, tag `rf3.2-w2`, 708 tests at `e760226` |
 | `G-V33-A0` | **PASS at smoke scale** — M5D-R0 identity, 4-seat rotation, real self-control ΔPT 0.0, RF bridge 2,298 decisions / 0 rejected |
 | `G-V33-D0` | **PASS for data/pipeline** — 100 native games, 73,841 decisions, disjoint, diagnostic shard, CE 1.937, E2E two walls |
-| `G-V33-B0` | **CODE_PASS / FULL_TRAIN NOT_RUN** — 41 tests, 2 seeds × 2 CPU steps; full 6,191-step epoch not run |
+| `G-V33-B0` | **CODE_PASS / FULL_TRAIN NOT_RUN** — 43 B0 tests, 2 seeds × 2 CPU steps, validation-isolation gate; full 6,191-step epoch not run |
 | `G-V33-C0` | **NOT_RUN** — no confirm pool, no strength claim |
 
 `STRENGTH_NOT_RUN` remains true for the project. No ΔPT, rank, dan, or Mortal-superiority
