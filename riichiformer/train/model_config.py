@@ -73,7 +73,8 @@ class ResolvedModelConfig:
 
     def describe(self) -> str:
         source = str(self.source_path) if self.source_path is not None else "<builtin>"
-        kind = "tiny_smoke" if self.tiny_smoke else "mvp_s"
+        kind = "tiny_smoke" if self.tiny_smoke else (
+            "mvp_s" if self.reference_verified else "custom")
         return (
             f"model_config={self.config.name} kind={kind} "
             f"layers={self.config.layers} hidden={self.config.hidden} "

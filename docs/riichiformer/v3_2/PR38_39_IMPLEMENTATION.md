@@ -191,8 +191,8 @@ path is tested to the same tolerance.
 * `ResolvedModelConfig.as_provenance()` yields
   `{model_config_name, model_config_hash, model_parameters, model_tiny_smoke}`
   for checkpoint `extra`/provenance.
-* `scripts/rf_train.py` is **not** changed (PR-37 owner); it still defaults to
-  `--layers 1`. The library API and tests are ready for that CLI follow-up.
+* `scripts/rf_train.py` was **not** changed by this lane; the Lead wired the library
+  API in `c426ac7` (see §6). The default is now six-layer MVP-S, not `--layers 1`.
 
 ### 2.3 Checkpoint (`train/checkpoint.py`)
 
@@ -333,10 +333,9 @@ No existing function signature or checkpoint format string was removed or rename
   `use_deterministic_algorithms(..., warn_only=True)`); the CPU parity numbers here
   are not a promise of bitwise GPU parity. Either disable flash SDP for the parity
   run or use the documented atol/rtol.
-* `scripts/rf_train.py` is unchanged (PR-37 owner): the CLI still defaults to a
-  one-layer model and has no `--tiny-smoke` / `--model-config` /
-  `--init-weights-only`. The library API (`resolve_mvp_config`,
-  `init_weights_only`) and tests are ready for that wiring. **P1 for the CLI gate.**
+* `scripts/rf_train.py` was not changed by this lane; the Lead wired
+  `--model-config` / `--tiny-smoke` / `--init-weights-only` in `c426ac7` (see §6).
+  The CLI gate is closed for the default/explicit paths; CDUA parity remains NOT_RUN.
 * No trainer loop consumes `forward_multi` yet: `data/loader.py` / `data/shard.py`
   are PR-37/Lead-owned and the multi-decision data contract needs their freeze
   (roadmap Wave 2). The PR-38/39 tests exercise the model/encoder API directly.

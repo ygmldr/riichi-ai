@@ -16,6 +16,7 @@ Frozen run/checkpoint/data roots are write-refused.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import string
 import sys
 from pathlib import Path
@@ -81,12 +82,20 @@ def _resolve_model_config(args) -> ResolvedModelConfig:
                 "--state-hidden/--max-positions; put the architecture in the YAML")
         return resolve_mvp_config(args.model_config)
     if overrides:
-        config = MVPConfig(
-            layers=args.layers if args.layers is not None else 1,
-            ffn=args.ffn if args.ffn is not None else 64,
-            state_hidden=(args.state_hidden if args.state_hidden is not None else 64),
-            max_positions=(args.max_positions if args.max_positions is not None else 2048),
-        )
+        # Start from the frozen MVP-S and replace only the supplied fields.  A
+        # partial override must not silently shrink the untouched dimensions to
+        # the old tiny defaults.
+        base = resolve_mvp_config()
+        updates = {}
+        if args.layers is not None:
+            updates["layers"] = args.layers
+        if args.ffn is not None:
+            updates["ffn"] = args.ffn
+        if args.state_hidden is not None:
+            updates["state_hidden"] = args.state_hidden
+        if args.max_positions is not None:
+            updates["max_positions"] = args.max_positions
+        config = dataclasses.replace(base.config, **updates)
         model = Policy(config)
         return ResolvedModelConfig(
             config=config, parameter_count=count_parameters(model),

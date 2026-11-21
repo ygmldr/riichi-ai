@@ -5,7 +5,7 @@ single unconditional PASS.
 
 | Component | Status |
 |---|---|
-| `CODE_PASS` | **PASS** — 682 passed, 2 skipped, 281 subtests in the final integrated tree |
+| `CODE_PASS` | **PASS** — 683 passed, 2 skipped, 281 subtests in the final integrated tree |
 | `SYNTHETIC_E2E_PASS` | **PASS** — synthetic/private H-02 10-game shard → 6-layer MVP-S GPU smoke → strict resume |
 | `PRIVATE_H2_TRAIN_SMOKE` | **PASS** (operator-private profile, real H-02 rows, not a strength run) |
 | `OWN_SELFPLAY_TRAIN_PASS` | **NOT_RUN** — selfplay/arena plumbing ran, POV → shard → trainer roundtrip not implemented |
@@ -40,14 +40,15 @@ PYTHONPATH=/home/ygsldr/riichi-ai/worktrees/v32-rules/vendor/mortal/target/relea
   $(git ls-files 'tests/rf_test_*.py' | tr '\n' ' ')
 ```
 
-Result: **682 passed, 2 skipped, 1 warning, 281 subtests passed**, 198.10 s, exit 0.
+Result: **683 passed, 2 skipped, 1 warning, 281 subtests passed**, 198.99 s, exit 0.
 Log: `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`. The two skips are the
 pre-existing `NativeBoardCapabilityTests` / board-injection capability gaps; they are
 never counted as passes.
 
 Independent reviews on the lane commits: PR-37 `PASS_WITH_P1` (P1 fixed in `c426ac7`),
-PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38/39 and PR-41/42 under
-separate review. No P0 was reported for any lane.
+PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38 `PASS` (P2 only),
+PR-39 `PASS_WITH_P1` (partial-override P1 fixed after review; 683-test rerun), PR-41
+`PASS` (P2 only), PR-42 `PASS` (P2 only). No P0 was reported for any lane.
 
 ## 3. SYNTHETIC_E2E_PASS / PRIVATE_H2_TRAIN_SMOKE
 
@@ -116,6 +117,11 @@ no “九段/天凤位” claim. BC loss decreasing on 8 decisions is a plumbing
 strength. PR-44 B0 and the later candidate/risk/RL lines remain future work.
 
 ## 7. Remaining P1/P2 (do not hide)
+
+Resolved reviewer P1: partial `--layers/--ffn/--state-hidden/--max-positions`
+overrides now start from the frozen MVP-S and only replace supplied fields; a
+`--max-positions 8192` regression test proves the model stays 6-layer / 5,217,582 and
+is labelled `kind=custom`. The full suite after the fix is 683 passed.
 
 P1:
 1. R29 ippatsu timing remains **UNVERIFIED**; R02 continuation (honba/dealer/kyotaku) is

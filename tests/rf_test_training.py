@@ -873,6 +873,21 @@ class RightsAndCLITests(unittest.TestCase):
             self.assertIn("layers=6", text)
             self.assertIn(f"parameters={MVP_S_REFERENCE_PARAMETERS}", text)
 
+    def test_cli_partial_override_keeps_mvp_s_widths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "train.rfshard"
+            ckpt = Path(temp) / "override.pt"
+            build_shard(path, games=1)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = train_main(["--shard", str(path), "--train", "--out",
+                                   str(ckpt), "--max-steps", "0",
+                                   "--max-positions", "8192"])
+            self.assertEqual(code, 0)
+            text = out.getvalue()
+            self.assertIn("layers=6", text)
+            self.assertIn(f"parameters={MVP_S_REFERENCE_PARAMETERS}", text)
+            self.assertIn("kind=custom", text)
+
     def test_cli_tiny_model_is_explicit_only(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "train.rfshard"
