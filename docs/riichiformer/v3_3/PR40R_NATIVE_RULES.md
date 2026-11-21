@@ -31,21 +31,23 @@ timing could not be established. R29 no longer carries `UNVERIFIED`.
 ## 2. R29 executable fixture
 
 `patches/0015-rule-r29-ippatsu-fixture.patch` adds only `#[cfg(test)] mod r29_tests` at the
-end of `vendor/mortal/libriichi/src/state/update.rs` (185 added lines). It does not change
+end of `vendor/mortal/libriichi/src/state/update.rs` (187 added lines). It does not change
 production behaviour and does not expose `at_ippatsu` to Python; the tests are inside the
 module and read the private field directly.
 
 The fixture starts a kyoku as dealer with player 0 holding
-`123m 456p 789s 123p 5p` (a 5p tanki wait, no base yaku). Player 0 discards once to clear
-`can_w_riichi`, then declares a normal riichi; `ReachAccepted` sets `at_ippatsu`. The tests
-then drive the exact event order `Board::step` emits for a kakan: `Kakan` → `Dora` (new kan
-dora) → `Tsumo` (rinshan) → `Dahai`.
+`123m 456p 789s EE 45p` (a 3p/6p ryanmen wait, no base yaku). The hand holds no 3p, so an
+opponent can legally hold all four 3p for a kakan; the East pair is not a yaku and the `F`
+dora indicator gives the hand no dora. Player 0 discards once to clear `can_w_riichi`, then
+declares a normal riichi; `ReachAccepted` sets `at_ippatsu`. The tests then drive the exact
+event order `Board::step` emits for a kakan: `Kakan` → `Dora` (new kan dora) → `Tsumo`
+(rinshan) → `Dahai`.
 
 | Test | Event sequence | Assertion |
 |---|---|---|
-| `r29_first_kakan_keeps_ippatsu_through_the_chankan_probe` | opponent `Kakan` on the waited 5p | `at_ippatsu` is still true, `chankan_chance` is active, and `agari_points(true, &[])` is `7700` — riichi + ippatsu + chankan, 3 han 40 fu dealer. Losing either ippatsu or chankan would be 2 han / 3900. |
+| `r29_first_kakan_keeps_ippatsu_through_the_chankan_probe` | opponent `Kakan` on the waited 3p | `at_ippatsu` is still true, `chankan_chance` is active, and `agari_points(true, &[])` is `7700` — riichi + ippatsu + chankan, 3 han 40 fu dealer (East pair, 4 fu). Losing either ippatsu or chankan would be 2 han / 3900. |
 | `r29_kakan_window_closes_at_the_next_event_before_the_rinshan_tsumo` | waited `Kakan` → `Dora` → `Tsumo` | `at_ippatsu` is true after the kakan, false after the `Dora` event, and still false at the rinshan `Tsumo`. This is the clause's 「嶺上ツモの前」 timing. |
-| `r29_second_consecutive_kakan_has_no_ippatsu` | first `Kakan` on 9p (not a wait) → `Dora` → rinshan `Tsumo`/`Dahai` → second `Kakan` on 5p | The first kakan clears the window immediately (no chankan chance); the second consecutive kakan *is* a chankan chance, but `at_ippatsu` is false and `agari_points` is `3900` (riichi + chankan only, 2 han 40 fu dealer). This is 「連続する加槓の２回目には一発は付かない」. |
+| `r29_second_consecutive_kakan_has_no_ippatsu` | first `Kakan` on 1s (not a wait) → `Dora` → rinshan `Tsumo`/`Dahai` → second `Kakan` on 3p | The first kakan clears the window immediately (no chankan chance); the second consecutive kakan *is* a chankan chance, but `at_ippatsu` is false and `agari_points` is `3900` (riichi + chankan only, 2 han 40 fu dealer). This is 「連続する加槓の２回目には一発は付かない」. |
 | `r29_own_discard_and_other_calls_close_the_window` | own draw + discard; separately an opponent `Pon` | Both clear `at_ippatsu`. |
 
 The chankan-probe assertion is not a synthetic scoring call: `BoardState::handle_hora`
@@ -90,7 +92,7 @@ cargo 1.97.1 (c980f4866 2026-06-30)
 CARGO_HOME=/home/ygsldr/riichi-ai/.cargo-v33
 PYO3_PYTHON=/home/ygsldr/riichi-ai/.venv/bin/python
 CARGO_BUILD_JOBS=4 cargo build --offline -p libriichi --lib --release
-# exit 0; initial clean build 50.28 s; cached provenance re-run 0.07 s, same sha
+# exit 0; initial clean build 50.28 s; final fixture-source rebuild 22.33 s; same sha
 # sha256(target/release/libriichi.so) =
 #   582e36734b10c3d3b1230a834eacc494f94e40f6d642c712eadc23f6cabfaf4e
 ```
@@ -109,12 +111,12 @@ The stable identity in this repository is the patch series plus the pinned vendo
 |---|---|---|---|---|
 | 1 | `git clone --no-hardlinks .git/modules/vendor/mortal /tmp/v33d_vendor && git checkout --detach 0cff2b5…` | 0 | < 1 s | HEAD `0cff2b5…`, clean |
 | 2 | `git apply 0014-rule-r02-r25-r26.patch` | 0 | < 1 s | 3 files, +241/−16 |
-| 3 | `git apply --check/apply 0015-rule-r29-ippatsu-fixture.patch` | 0 | < 1 s | 1 file, +185 |
-| 4 | release build (above) | 0 | 50.28 s clean | `.so` sha `582e367…` |
-| 5 | `CARGO_HOME=… cargo test --offline -p libriichi --lib --no-default-features` in `worktrees/v33-d/vendor/mortal` | 0 | 44.99 s first run (2.51 s cached) | **35 passed, 0 failed** |
-| 6 | same command with filter `r29_tests` in the clean clone | 0 | 16.16 s first run (0.12 s test time) | **4 passed, 0 failed** |
-| 7 | same command with filter `rule_tests` | 0 | ~1 s | **3 passed, 0 failed** (R02/R25/R26) |
-| 8 | `PYTHONPATH=vendor/mortal/target/release .venv/bin/python -m pytest -q tests/rf_test_native_rules_r29.py tests/rf_test_rule_fixes.py tests/rf_test_ruleset_parity.py` | 0 | see `logs/PR40R_python_tests.log` | targeted Python suite green |
+| 3 | `git apply --check/apply 0015-rule-r29-ippatsu-fixture.patch` | 0 | < 1 s | 1 file, +187 |
+| 4 | release build (above) | 0 | 50.28 s clean; 22.33 s final-source rebuild | `.so` sha `582e367…` (unchanged: the test module is `cfg(test)`-only) |
+| 5 | `CARGO_HOME=… cargo test --offline -p libriichi --lib --no-default-features` in `worktrees/v33-d/vendor/mortal` | 0 | 44.99 s first run; final 3.52 s cached | **35 passed, 0 failed** |
+| 6 | same command with filter `r29_tests` in the clean clone | 0 | 16.16 s first run; final 1.19 s (0.15 s test time) | **4 passed, 0 failed** |
+| 7 | same command with filter `rule_tests` | 0 | 0.07 s | **3 passed, 0 failed** (R02/R25/R26) |
+| 8 | `PYTHONPATH=vendor/mortal/target/release .venv/bin/python -m pytest -q tests/rf_test_native_rules_r29.py tests/rf_test_rule_fixes.py tests/rf_test_ruleset_parity.py` | 0 | 0.36 s | **70 passed, 1 skipped, 253 subtests passed**; see `logs/PR40R_python_tests.log` |
 
 Exact logs: [`logs/PR40R_release_build.log`](logs/PR40R_release_build.log),
 [`logs/PR40R_cargo_test_full.log`](logs/PR40R_cargo_test_full.log),

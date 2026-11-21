@@ -76,7 +76,7 @@ class PatchContractTests(unittest.TestCase):
             ),
             "0015 must be rooted at libriichi/src/state/update.rs",
         )
-        self.assertIn("@@ -971,3 +971,188 @@", patch)
+        self.assertIn("@@ -971,3 +971,190 @@", patch)
         added = [
             line
             for line in patch.splitlines()
@@ -87,7 +87,7 @@ class PatchContractTests(unittest.TestCase):
             for line in patch.splitlines()
             if line.startswith("-") and not line.startswith("---")
         ]
-        self.assertEqual(len(added), 185, "0015 must add exactly the test module")
+        self.assertEqual(len(added), 187, "0015 must add exactly the test module")
         self.assertEqual(removed, [], "0015 must not remove or rewrite production lines")
         for name in R29_TESTS:
             with self.subTest(test=name):

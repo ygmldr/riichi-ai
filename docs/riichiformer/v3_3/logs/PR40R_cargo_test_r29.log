@@ -1,137 +1,19 @@
 # command: CARGO_HOME=/home/ygsldr/riichi-ai/.cargo-v33 PYO3_PYTHON=/home/ygsldr/riichi-ai/.venv/bin/python CARGO_BUILD_JOBS=4 cargo test --offline -p libriichi --lib --no-default-features r29_tests
 # cwd: /tmp/v33d_vendor
-# date: 2026-11-21T17:28:12+08:00
-   Compiling proc-macro2 v1.0.95
-   Compiling unicode-ident v1.0.18
-   Compiling autocfg v1.4.0
-   Compiling target-lexicon v0.13.2
-   Compiling once_cell v1.21.3
-   Compiling libc v0.2.172
-   Compiling cfg-if v1.0.0
-   Compiling crossbeam-utils v0.8.21
-   Compiling quote v1.0.40
-   Compiling syn v2.0.101
-   Compiling pyo3-build-config v0.25.0
-   Compiling version_check v0.9.5
-   Compiling num-traits v0.2.19
-   Compiling serde v1.0.219
-   Compiling crossbeam-epoch v0.9.18
-   Compiling either v1.15.0
-   Compiling typenum v1.18.0
-   Compiling crossbeam-deque v0.8.6
-   Compiling generic-array v0.14.7
-   Compiling rayon-core v1.12.1
-   Compiling zerocopy v0.8.25
-   Compiling getrandom v0.3.3
-   Compiling pyo3-ffi v0.25.0
-   Compiling pyo3-macros-backend v0.25.0
-   Compiling memoffset v0.9.1
-   Compiling fnv v1.0.7
-   Compiling ident_case v1.0.1
-   Compiling strsim v0.11.1
-   Compiling anyhow v1.0.98
-   Compiling heck v0.5.0
-   Compiling darling_core v0.20.11
-   Compiling pyo3 v0.25.0
-   Compiling matrixmultiply v0.3.10
-   Compiling serde_json v1.0.140
-   Compiling rayon v1.10.0
-   Compiling serde_derive v1.0.219
-   Compiling darling_macro v0.20.11
-   Compiling half v2.6.0
-   Compiling lock_api v0.4.13
-   Compiling indoc v2.0.6
-   Compiling ryu v1.0.20
-   Compiling clap_lex v0.7.4
-   Compiling itoa v1.0.15
-   Compiling rawpointer v0.2.1
-   Compiling anstyle v1.0.10
-   Compiling parking_lot_core v0.9.11
-   Compiling syn v1.0.109
-   Compiling plotters-backend v0.3.7
-   Compiling unindent v0.2.4
-   Compiling pyo3-macros v0.25.0
-   Compiling portable-atomic v1.11.0
-   Compiling inventory v0.3.20
-   Compiling regex-syntax v0.8.5
-   Compiling ciborium-io v0.2.2
-   Compiling memchr v2.7.4
-   Compiling ciborium-ll v0.2.2
-   Compiling regex-automata v0.4.9
-   Compiling plotters-svg v0.3.7
-   Compiling clap_builder v4.5.39
-   Compiling darling v0.20.11
-   Compiling ppv-lite86 v0.2.21
-   Compiling rand_core v0.9.3
-   Compiling block-buffer v0.10.4
-   Compiling crypto-common v0.1.6
-   Compiling num-complex v0.4.6
-   Compiling num-integer v0.1.46
-   Compiling numpy v0.25.0
-   Compiling itertools v0.10.5
-   Compiling ahash v0.8.12
-   Compiling adler2 v2.0.0
-   Compiling unicode-width v0.2.0
-   Compiling rand_core v0.6.4
-   Compiling smallvec v1.15.0
-   Compiling scopeguard v1.2.0
-   Compiling log v0.4.27
-   Compiling cast v0.3.0
-   Compiling same-file v1.0.6
-   Compiling walkdir v2.5.0
-   Compiling console v0.15.11
-   Compiling criterion-plot v0.5.0
-   Compiling wyhash v0.5.0
-   Compiling miniz_oxide v0.8.8
-   Compiling ndarray v0.16.1
-   Compiling clap v4.5.39
-   Compiling digest v0.10.7
-   Compiling rand_chacha v0.9.0
-   Compiling serde_with_macros v3.12.0
-   Compiling tinytemplate v1.2.1
-   Compiling plotters v0.3.7
-   Compiling regex v1.11.1
-   Compiling ciborium v0.2.2
-   Compiling derive_more-impl v2.0.1
+# date: 2026-11-21T17:34:43+08:00
    Compiling libriichi v0.1.0 (/tmp/v33d_vendor/libriichi)
-   Compiling itertools v0.13.0
-   Compiling crossbeam-queue v0.3.12
-   Compiling crossbeam-channel v0.5.15
-   Compiling crc32fast v1.4.2
-   Compiling rustc-hash v2.1.1
-   Compiling tinyvec_macros v0.1.1
-   Compiling keccak v0.1.5
-   Compiling number_prefix v0.4.0
-   Compiling oorandom v11.1.5
-   Compiling anes v0.1.6
-   Compiling arc-swap v1.7.1
-   Compiling indicatif v0.17.11
-   Compiling pyo3-log v0.12.4
-   Compiling derivative v2.2.0
-   Compiling criterion v0.6.0
-   Compiling crossbeam v0.8.4
-   Compiling sha3 v0.10.8
-   Compiling tinyvec v1.9.0
-   Compiling flate2 v1.1.1
-   Compiling derive_more v2.0.1
-   Compiling serde_with v3.12.0
-   Compiling rand v0.9.1
-   Compiling boomphf v0.6.0
-   Compiling parking_lot v0.12.4
-   Compiling glob v0.3.2
-   Compiling byteorder v1.5.0
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.02s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.02s
      Running unittests src/lib.rs (target/debug/deps/riichi-9050e9fc46529c94)
 
 running 4 tests
 test state::update::r29_tests::r29_kakan_window_closes_at_the_next_event_before_the_rinshan_tsumo ... ok
 test state::update::r29_tests::r29_own_discard_and_other_calls_close_the_window ... ok
-test state::update::r29_tests::r29_first_kakan_keeps_ippatsu_through_the_chankan_probe ... ok
 test state::update::r29_tests::r29_second_consecutive_kakan_has_no_ippatsu ... ok
+test state::update::r29_tests::r29_first_kakan_keeps_ippatsu_through_the_chankan_probe ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.12s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.15s
 
-real 16.16
-user 50.52
-sys 8.19
+real 1.19
+user 1.11
+sys 0.48
 # exit: 0
