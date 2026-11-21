@@ -112,3 +112,49 @@ permutation-consistency doc.
 The final Lead evidence is `72 passed` for VNext-only and `125 passed, 6
 deselected, 6 subtests` for the combined CPU suite.  This is still not a native
 Arena or a strength claim.
+
+## Review 3 — native / GPU changes
+
+**Reviewer**: third independent read-only reviewer (forked context)
+**Snapshot**: `9ce1071` + uncommitted native/GPU work (before the Lead's final
+review fixes)
+**Verdict**: **PASS_WITH_P1**; no P0 established.
+
+The reviewer confirmed the RoPE inference-cache fix, the native smoke's
+`synthetic_fixture`/`strength_claim: NONE` labelling, and the absence of a
+future/target leak in the reviewed bridge.
+
+### P1 dispositions
+
+1. **Pinned 3-arg engine compatibility.**  Confirmed: the clean upstream engine
+   has `react_batch(obs, masks, invisible)` while the patched build adds
+   `events`.  Fixed: `MortalCheckpointAdapter` detects the keyword at
+   construction, passes `events` only when supported, and raises a clear
+   `AnchorError` if a new driver supplies events to an old engine.  Added
+   `test_old_three_arg_engine_fallback`.
+2. **Native smoke could report `PASS` unconditionally.**  Fixed: the script now
+   asserts game count, `rf_candidate == RUN`, synthetic mode, non-self-control,
+   zero illegal/fallback, and `kan_selections` agreement.  It emits
+   `not_run: ["multi_kan_native_end_to_end"]` when the second stage was absent.
+3. **Anchor identity gate weakened.**  Not treated as a PASS: the frozen
+   registry was not rewritten.  The smoke uses a local registry; tests skip on
+   driver/native hash drift and the report records
+   `ANCHOR_GATE: ENV_MISMATCH_REQUIRES_REBASE`.  Reissuing M5D-R0 is a separate
+   decision.
+4. **Unsupported exact sync count / mixed before-after logs.**  Fixed: the
+   precise `6,570` claim was removed; the profiler observation is described
+   qualitatively, and the after-fix table uses medians from three runs with the
+   observed range.  The old pre-fix GPU smoke log is labelled history.
+5. **Multi-kan remains `NOT_RUN`.**  Accepted.  The 4-game smoke had
+   `kan_selections=0`; PR-05 is marked `PARTIAL`, not complete for
+   `KAN_SELECTION`.
+
+### P2 dispositions
+
+* `_load_mortal_modules` no longer inserts the vendor directory into
+  `sys.path`; it loads `event_data` explicitly and restores the prior module.
+* Anchor skips now carry the explicit frozen-registry/`ANCHOR_REBASE` reason.
+* Native smoke semantics are machine-checked rather than prose-only.
+
+Lead suite after these fixes: **142 passed, 6 skipped, 13 subtests**
+(`logs/VNEXT_COMBINED_FINAL.log`).  These fixes were not re-reviewed.

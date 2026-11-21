@@ -1,0 +1,20 @@
+{
+  "cuda_version": "12.8",
+  "decisions": 128,
+  "device": "cuda",
+  "event_tokens": 32768,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "inference_decisions_per_s": 12433.683962358487,
+  "inference_peak_vram_mb": 144.5703125,
+  "inference_seconds": 0.010294615850580158,
+  "inference_tokens_per_s": 3183023.094363773,
+  "iters": 20,
+  "note": "synthetic contract-valid batch; bounded profile only, not a full-epoch budget and no strength claim",
+  "parameter_count": 6538716,
+  "torch_version": "2.11.0+cu128",
+  "train_decisions_per_s": 1174.0762738798567,
+  "train_peak_vram_mb": 331.8828125,
+  "train_step_seconds": 0.10902187774991035,
+  "train_tokens_per_s": 300563.5261132433,
+  "warmup": 3
+}

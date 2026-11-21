@@ -58,11 +58,20 @@ opponent hand, ura, final rank or future event enters `x_tile`/`x_global`.
 | CPU forward, 32 decisions × 128 tokens, 4 threads | **2,141 decisions/s**, 273,996 event-tokens/s |
 | CPU train step, same synthetic batch | **340 decisions/s**, 43,513 event-tokens/s |
 | peak RSS in this microbench | 806.0 MiB |
-| device | CPU only; no CUDA in this measured run |
+| CPU, 128 × 256 tokens | **1,638.0 forward / 413.4 train decisions/s** |
+| CUDA FP32, 128 × 256 tokens | **median 12,433.7 forward / 1,635.6 train decisions/s** |
+| CUDA peak VRAM | **144.6 MiB forward / 331.9 MiB train** |
 
 These are synthetic contract-valid batches, not a full-epoch projection and not
-a strength result.  Script: `scripts/rf_bench_vnext.py`; raw:
-`docs/riichiformer/vnext/logs/VNEXT_CPU_PROFILE.json`.
+a strength result.  The first CUDA profile was 323.8/274.0 decisions/s because
+`VNextPolicy.forward` re-validated an already-on-device batch on every call; a
+profiler trace showed host synchronisation dominating.  It now fails closed on a
+device mismatch instead of re-validating/copying.  Three after-fix runs varied
+(9,133–17,934 forward, 1,174–2,491 train decisions/s); the table uses medians.
+CPU script: `scripts/rf_bench_vnext.py`; CUDA script:
+`scripts/rf_vnext_gpu_profile.py`.  Raw:
+`logs/VNEXT_CPU_PROFILE_128x256.json`,
+`logs/VNEXT_GPU_PROFILE_FINAL.json`, `logs/VNEXT_GPU_PROFILE_FINAL2.json`.
 
 ## Tests (all passing, CPU)
 
@@ -88,6 +97,7 @@ target separation, PT/GRP schemas and runtime reset/act paths.
 
 * Hidden-mutation bit-exact corpus test on the real 2.51M logs.
 * Long-kyoku overflow on a real 4,800-event POV.
-* GPU/BF16 forward parity and peak VRAM.
-* A real VNext native Arena game (no VNext checkpoint yet).
+* Real-data GPU/BF16 forward parity (synthetic FP32 CUDA profile only).
+* A trained VNext checkpoint native Arena game; the current 4-game smoke uses
+  random weights and is not a strength run.
 * A full training epoch.

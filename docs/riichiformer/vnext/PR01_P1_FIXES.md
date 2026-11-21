@@ -47,8 +47,10 @@ with `kan_options[0]`, silently choosing the first ankan/kakan.
 **Evidence**: `rf_test_m5d_arena.NativeContextTests.test_multi_kan_requires_explicit_second_decision`
 checks the raise, the option list, the mask helper and the second-stage
 `KAN_SELECTION` decode; `stats["kan_selections"]` counts the second decision.
-The full `RFMjaiLogEngine._react` path with a native multi-kan game is `NOT_RUN`
-because the new worktree has no VNext checkpoint/submodule build.
+The full `RFMjaiLogEngine._react` path with a native multi-kan game is still
+`NOT_RUN`: the 4-game native smoke had one ankan and one kakan, each with a
+single candidate, and recorded `kan_selections=0`.  The native bridge itself is
+exercised (579 decisions, zero illegal/fallback).
 
 ## 3. Validation reductions must not sync per decision
 
@@ -62,8 +64,9 @@ operations.  Only one scalar conversion per batch is used for the accumulated
 counters; no per-decision `.item()`/`bool()`/`float()` path remains.
 
 **Evidence**: 43 B0 protocol/CLI tests pass after the change, including
-validation metrics and strict resume.  A GPU synchronization-count profile is
-`NOT_RUN` because no GPU job is authorised.
+validation metrics and strict resume.  A VNext GPU throughput profile now runs
+(`VNEXT_GPU_PROFILE_FINAL.json`), but a dedicated B0 GPU
+synchronization-count profile is still `NOT_RUN`.
 
 ## 4. Resume must restore the candidate Registry
 
@@ -82,7 +85,11 @@ selection considers two candidates (steps 6 and 10).
 
 ## 5. Limit / NOT_RUN
 
-* The 4-seat native M5D smoke is `NOT_RUN` in the new worktree because
-  `vendor/mortal` is uninitialized.  The synthetic native-context tests pass.
-* No GPU sync-count instrumentation was run.
+* The native submodule is now initialized and built in this worktree; a
+  4-game VNext smoke ran with 579 decisions, zero illegal/fallback.  It used a
+  random small VNext model and a local smoke-only registry, so it is not a
+  frozen-M5D reproduction.
+* Multi-kan `KAN_SELECTION` remains `NOT_RUN` (`kan_selections=0`).
+* A VNext GPU profile and synthetic CUDA BC/GRP/RL smoke ran; a dedicated B0
+  sync-count profile and all real-data training remain `NOT_RUN`.
 * No strength claim is made from these correctness fixes.

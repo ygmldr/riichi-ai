@@ -1,0 +1,49 @@
+{
+  "bc": {
+    "finite": true,
+    "first_loss": 0.1381560117006302,
+    "last_loss": 0.13847678899765015,
+    "peak_vram_mb": 233.36669921875,
+    "seconds": 13.84009263999178,
+    "steps": 100,
+    "steps_per_s": 7.225385161877022
+  },
+  "checkpoint": {
+    "path": "/home/ygsldr/riichi-ai/worktrees/vnext-core/runs/vnext_gpu_smoke/synthetic_bc.pt",
+    "roundtrip_state_sha256": "a2e56a524b95ed1050cbc3df0fd374dacefae09e805f03b6d9f4e7a34577a3bc",
+    "sha256": "455306149883a22b0046f2b206be192c4dc95293daeb68428853345b0494e9f9",
+    "state_unchanged": true
+  },
+  "cuda": "12.8",
+  "decisions": 64,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "grp": {
+    "finite": true,
+    "first_loss": 3.1846985816955566,
+    "last_loss": 2.2952632904052734,
+    "steps": 50
+  },
+  "kind": "synthetic_gpu_smoke",
+  "length": 192,
+  "note": "Generated tensors only; rights gate remains BLOCKED_FOR_NEW_TRAINING. No convergence, win-rate, dan or strength claim.",
+  "rl": {
+    "awr_loss": 4.570788383483887,
+    "behavior_actions": 32,
+    "delta_shape": [
+      2,
+      4
+    ],
+    "finite": true,
+    "gae_length": 4,
+    "pbrs_shape": [
+      2,
+      4
+    ],
+    "ppo_loss": -5.587935447692871e-09
+  },
+  "status": "PASS",
+  "strength_claim": "NONE",
+  "synthetic_fixture": true,
+  "torch": "2.11.0+cu128"
+}

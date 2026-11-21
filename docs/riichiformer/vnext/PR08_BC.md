@@ -64,7 +64,10 @@ rights gate remains `UNKNOWN`/`train_allowed=false`.
 * Real 2.51M-match Census, per-phase decision counts and P50/P90/P99 token
   lengths.
 * Real train/validation epoch or even a 100-step real-data run.
-* GPU BF16 parity, VRAM, DataLoader IO and validation wall-time.
+* Real-data GPU BF16 parity, DataLoader IO and validation wall-time.
+
+The synthetic CUDA smoke (100 BC steps, 64 decisions x 192 tokens) is finite
+and round-trips its checkpoint; it is not a convergence or real-data result.
 * Pre-encoded memmap/cache; only to be considered after profiling.
 
 The measured CPU microbench (32 decisions, 128 tokens) is in

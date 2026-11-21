@@ -1,0 +1,50 @@
+{
+  "backend_decisions": 579,
+  "backend_kan_selections": 0,
+  "candidate": {
+    "decisions": 579,
+    "device": "cpu",
+    "fallback": 0,
+    "illegal": 0,
+    "inference_mode": "deterministic_argmax",
+    "kan_selections": 0,
+    "mode": "vnext_synthetic",
+    "name": "vnext-synthetic",
+    "rf_candidate": "RUN",
+    "self_control_only": false,
+    "strength_claim": "NONE",
+    "synthetic_fixture": true
+  },
+  "checkpoint": {
+    "model_config_hash": "64a28b1c7a27a38d3950cf82d495127efe7505b1aea43547a258dbfd07be58b7",
+    "path": "/home/ygsldr/riichi-ai/worktrees/vnext-core/runs/vnext_native_smoke/synthetic_vnext.pt",
+    "sha256": "34d0508da080dbd101aeadc5710a96413fe331f917e7b8467436a0ccd5fe41ea"
+  },
+  "games": 4,
+  "kind": "native_vnext_smoke",
+  "native": {
+    "libriichi_build_sha256": "171bd45a5859d89a5e06175785e4eb39004aa9a4f4d15543a1574c8e7c6875ff",
+    "libriichi_git_sha": "0cff2b52982be5b1163aa9a62fb01f03ce91e0d2",
+    "patch_manifest_hash": "fb2d57f19b8ffb2be8de7785225ca96064ef0b25162c2aa46ec121529b1ae55f",
+    "registry_hash": "b3752eb3d61d3618fbfad40bf1826f3157af1c0d489b442775bdcb06b7b78fc7"
+  },
+  "not_run": [
+    "multi_kan_native_end_to_end"
+  ],
+  "note": "Random VNext weights, one native set. This proves ABI/runtime/native integration only; it is not a win-rate, dan, or strength measurement.",
+  "rank_counts": [
+    0,
+    0,
+    1,
+    3
+  ],
+  "seed_key": "0x5eedf00d5eedf00d",
+  "seed_window": [
+    990000,
+    990001
+  ],
+  "status": "PASS",
+  "strength_claim": "NONE",
+  "synthetic_fixture": true,
+  "wall_seconds": 21.009432612001547
+}

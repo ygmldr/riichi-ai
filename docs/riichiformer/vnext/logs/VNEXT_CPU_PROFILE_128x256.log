@@ -1,0 +1,15 @@
+{
+  "device": "cpu",
+  "threads": 4,
+  "decisions": 128,
+  "event_tokens": 32768,
+  "parameter_count": 6538716,
+  "inference_seconds": 0.07814406319957926,
+  "inference_decisions_per_s": 1638.0003132559043,
+  "inference_tokens_per_s": 419328.0801935115,
+  "train_step_seconds": 0.3096432899998035,
+  "train_decisions_per_s": 413.378891562873,
+  "train_tokens_per_s": 105824.99624009548,
+  "peak_rss_mb": 987.69140625,
+  "note": "synthetic contract-valid batch; not a full-epoch budget and no strength claim"
+}

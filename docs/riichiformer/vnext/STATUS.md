@@ -1,75 +1,109 @@
 # RiichiFormer VNext — Status
 
 **Updated**: 2026-11-22
-**HEAD**: `rf/vnext-core` tip; review fixes in `63ffd3b`
-**Lead branch**: `rf/vnext-core` (worktree `/home/ygsldr/riichi-ai/worktrees/vnext-core`)
+**Branch / worktree**: `rf/vnext-core` (`/home/ygsldr/riichi-ai/worktrees/vnext-core`)
 **Base**: `8a915d1` / tag `rf3.3-w2`
 **Contract hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
 **Model params**: 6,538,716
 
 ## What exists now
 
-| Area | Code | CPU tests |
+| Area | Code | Evidence |
 |---|---|---|
-| Contracts | `riichiformer/vnext/contracts.py` | 12 contract tests |
-| Event + 34-tile state | `observable.py` | included in model suite |
-| Model / cross-attn / heads | `model.py` | 18 model tests |
-| Runtime | `runtime.py` | 4 tests |
-| GRP24 | `grp.py` | 9 tests |
-| Critic | `critic.py` | 4 tests |
-| BC adapter/trainer | `data.py`, `train.py` | 8 tests |
-| RL contracts/toy | `rl.py` | 15 tests |
-| V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | 10 synthetic tests + 43 B0 tests |
+| Contracts | `riichiformer/vnext/contracts.py` | contract tests |
+| Event + 34-tile state | `observable.py` | model/stream suite |
+| Model / cross-attn / heads | `model.py` | model suite, CUDA profile |
+| Runtime / native bridge | `runtime.py`, `eval/m5d_arena.py` | native 4-game smoke |
+| GRP24 | `grp.py` | unit tests, synthetic CUDA loss |
+| Critic | `critic.py` | gradient-isolation tests |
+| BC adapter/trainer | `data.py`, `train.py` | synthetic CUDA 100-step smoke |
+| RL contracts/toy | `rl.py` | unit tests, synthetic CUDA objective |
+| V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | synthetic tests |
+| Native submodule | `vendor/mortal` @ `0cff2b5` | local build + smoke |
 
-Last clean VNext-only CPU run: **72 passed** in 1.96 s
-(`docs/riichiformer/vnext/logs/VNEXT_CPU_SUITE.log`), with CUDA hidden.  The
-combined VNext + B0 + arena-synthetic run is **125 passed, 6 deselected, 6
-subtests** (`docs/riichiformer/vnext/logs/VNEXT_COMBINED_CPU.log`); it does not substitute for a full
-native Arena.
+## Current measured evidence
 
-## What is measured
+* VNext-only CPU: **73 passed** in 2.16 s
+  (`logs/VNEXT_CPU_SUITE_FINAL.log`).
+* Combined VNext + B0 + arena/bridge + anchor CPU: **142 passed, 6 skipped,
+  13 subtests** (`logs/VNEXT_COMBINED_FINAL.log`).
+* M5D anchor tests alone: **9 passed, 1 skipped, 7 subtests**; the skip is the
+  documented frozen-registry driver/build drift below.
+* Native VNext smoke: **4 games, 579 decisions, 0 illegal, 0 fallback,
+  21.009 s**. The logs contain one `ankan` and one `kakan`, but
+  `kan_selections=0`: the second `KAN_SELECTION` decision was not exercised.
+  `logs/VNEXT_NATIVE_SMOKE.log`, `runs/vnext_native_smoke/smoke_report.json`.
+* Bounded CUDA profile (128 × 256, FP32, 20 iterations):
+  **median 12,433.7 forward decisions/s**, **median 1,635.6 train decisions/s**,
+  **144.6 / 331.9 MiB** peak VRAM. Same-shape CPU: 1,638.0 / 413.4.
+  `logs/VNEXT_GPU_PROFILE_FINAL.json`, `logs/VNEXT_GPU_PROFILE_FINAL2.json`,
+  `logs/VNEXT_CPU_PROFILE_128x256.json`.
+* Synthetic CUDA BC/GRP/RL: 100 BC steps finite, checkpoint state round-trip
+  unchanged, GRP 50 steps finite, behavior/AWR/PPO/PBRS/GAE finite.
+  `logs/VNEXT_GPU_SMOKE_AFTER_SYNC_FIX.log`.
 
-* CPU forward: 2,141 decisions/s, 273,996 event-tokens/s (32 decisions × 128
-  tokens, 4 threads).
-* CPU train step: 340 decisions/s, 43,513 event-tokens/s; peak RSS 806.0 MiB.
-* This is a synthetic contract-valid microbench, not a full-epoch estimate.
-* V3.3 inherited baseline: 841 passed / 6 skipped (historical log), fresh
-  integration run recorded in `logs/vnext/baseline_v33_integration.log`.
+The first GPU profile was 323.8 forward / 274.0 train decisions/s because every
+forward re-ran the scalar-heavy `VNextModelBatch` contract.  `VNextPolicy.forward`
+now fails closed on a device mismatch instead of re-validating/copying.  That is
+a measured performance fix, not an architecture change.  Three after-fix runs
+varied with WSL/GPU clocks: 9,133–17,934 forward and 1,174–2,491 train
+decisions/s; the table uses the median.
+
+## Native-build caveat
+
+**ANCHOR_GATE: ENV_MISMATCH_REQUIRES_REBASE** — the smoke is not a frozen-M5D
+reproduction.
+
+The local build is `171bd45a...` with patch-manifest
+`fb2d57f19b8...`, while the committed frozen M5D registry pins
+`582e3673...` and the pre-VNext driver hashes.  The registry was **not**
+rewritten.  A local smoke-only registry was generated under
+`runs/vnext_native_smoke/`.  Therefore:
+
+* the native smoke proves ABI/runtime integration, not reproduction of the
+  original frozen Arena;
+* `test_committed_yaml_matches_recomputation` skips when the pinned driver
+  sources differ;
+* reissuing the M5D anchor identity is a separate, explicit anchor-rebase
+  decision, not something this branch did silently.
 
 ## What is NOT done
 
-* Full V3.3 P1 native Arena smoke (no VNext checkpoint; `vendor/mortal` is
-  uninitialized in this worktree).
-* Real 2.51M-match Census and real-data BC training.
-* GPU profile, full B0 epoch, GRP fit, Arena Trend/Select/Confirm.
-* RL native league/rollout and any AWR/PPO comparison.
+* Real 2.51M-match Census and a real Train/Val BC epoch.
+* Full B0 epoch, broad GRP fit, AWR/PPO league, Trend/Select/Confirm.
+* End-to-end multi-kan (`KAN_SELECTION`) native test; this smoke had only
+  single-candidate ankan/kakan.
+* Real EMA checkpoint Arena comparison.
 * Any strength/dan/Tenhou/Mortal claim.
 
 ## Review
 
 [`REVIEW.md`](REVIEW.md) records the first independent review (FAIL at
-`138a77b`), the second review (`PASS_WITH_P1` at `63ffd3b`), every P0/P1
-disposition, and the post-fix evidence.  P1s 3/7 (native multi-kan/EMA arena)
-remain `NOT_RUN`; no strength claim is made.
+`138a77b`), the second review (`PASS_WITH_P1` at `63ffd3b`), and the third
+review of the native/GPU changes (`PASS_WITH_P1`, no P0).  The Lead applied the
+third-review fixes; they were not re-reviewed.  The remaining multi-kan native
+case is explicitly `NOT_RUN`, so PR-05 is not called complete for
+`KAN_SELECTION`.
 
 ## Gate
 
-`G0` baseline/contracts: reviewable; `G1` model/runtime synthetic: reviewable;
-`G2` GRP/Critic: unit-level only; `G3` BC: synthetic only; `G4` RL: toy only;
-`G5` prereg: draft, awaiting explicit bounded-profile authorization; `G6`: not
-started and blocked by policy.
+`G0` baseline/contracts: reviewable; `G1` model/runtime: synthetic + native
+smoke; `G2` GRP/Critic: unit/synthetic only; `G3` BC: synthetic only;
+`G4` RL: toy/synthetic only; `G5` prereg: GPU resource authorised, data gate
+still closed; `G6`: not started.
 
 ## Rights
 
-11 source rows, 0 `ALLOWED`; `SOURCE_RIGHTS_GATE.json` is
-`BLOCKED_FOR_NEW_TRAINING`.  No checkpoint, shard or log was published or
-uploaded.  No new seed window or Confirm pool was consumed.
+11 source rows, **0 `ALLOWED`**; `SOURCE_RIGHTS_GATE.json` is
+`BLOCKED_FOR_NEW_TRAINING`.  No restricted dataset, checkpoint, shard or game
+log was read for training or uploaded.  No new seed window or Confirm pool was
+consumed.  GPU availability is not a data licence.
 
 ## Next READY tickets
 
-1. Initialize/verify the native submodule in the VNext worktree, then run the
-   V3.3 baseline and a VNext zero-step native adapter smoke.
-2. Run a real Train/Val Census on an explicitly authorized, rights-compatible
-   subset (no full corpus transformation by default).
-3. After user authorizes a bounded GPU profile, measure BF16 throughput/VRAM
-   and only then decide whether a short BC pilot is worthwhile.
+1. Resolve or explicitly re-scope the source-rights gate for a Train subset.
+2. Run the real match-level Census only on that cleared subset.
+3. If the gate opens, run a bounded real BC profile (not a full epoch) and
+   record throughput/VRAM; keep Confirm untouched.
+4. Separately decide whether to reissue the M5D anchor identity for the modified
+   driver/native build.

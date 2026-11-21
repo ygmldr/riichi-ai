@@ -23,10 +23,13 @@
 
 `riichiformer/eval/m5d_arena.py` now raises `KanSelectionRequired` for a bare
 action 42 with multiple candidates and then performs a real second
-`KAN_SELECTION` policy call, rather than `kan_options[0]`.  The VNext adapter
-itself is tested synthetically; a real VNext native Arena game is `NOT_RUN`
-because no VNext checkpoint has been trained and no GPU/Arena budget is
-authorized.
+`KAN_SELECTION` policy call, rather than `kan_options[0]`.  A real native
+`OneVsThree` set ran with a randomly initialised VNext checkpoint: 4 games,
+579 decisions, 0 illegal, 0 fallback, 20.9 s.  The native logs contained one
+ankan and one kakan, but each had one candidate (`kan_selections=0`), so the
+multi-kan branch is still `NOT_RUN`.  This smoke used a local smoke-only
+registry because the worktree native build/patch identity differs from the
+frozen M5D registry.
 
 ## Parity policy
 
@@ -38,7 +41,9 @@ so the tested single/shared parity is real, not a second implementation.
 
 ## NOT_RUN
 
-* 4–20 set native Arena smoke with a VNext checkpoint.
+* A trained VNext checkpoint native Arena smoke (the current smoke is random
+  weights and 4 games only).
+* End-to-end multi-kan `KAN_SELECTION` (`kan_selections=0` in the smoke).
 * Streaming KV vs cacheless latency/throughput.
 * Real event-log reset under an abrupt `end_kyoku`/`start_kyoku` transition from
   the native driver (the synthetic reset test covers the adapter contract).
