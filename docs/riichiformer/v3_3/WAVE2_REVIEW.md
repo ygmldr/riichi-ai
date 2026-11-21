@@ -114,3 +114,22 @@ not evidence of strength. No arena result is a Tenhou dan/rank.
 
 `STRENGTH_NOT_RUN` remains true. The external rights facts are unchanged (11 rows,
 0 ALLOWED); `operator_private_research` is not a licence.
+
+## Independent reviewer (final)
+
+Reviewer read-only audit at `4db8684` (code `0552809`): **PASS**, no remaining P1.
+Initial pass was `PASS_WITH_P1` with three P1s (B0 validation isolation, PR-47
+diagnostic-shard training, A0 16 vs 100 games). After the fixes above and the
+100-game A0 run, the focused re-review verified:
+- B0 isolation gate and negative repro (`B0Refusal`), 43 B0 tests passed;
+- `run_roundtrip` trains only on a separate train-purpose fixture and keeps the
+  diagnostic shard read-only; E2E focused test passed;
+- A0 25 sets / 100 games, ΔPT 0.0, hist `[25,25,25,25]`, all 100 log hashes and
+  `end_game` verified.
+
+Remaining P2 (non-gate-blocking, partially addressed here): manifest/sqlite
+cross-check, additional B0 negative fixtures, and some historical lane-doc hashes.
+Full B0, Trend/Select/Confirm, strength and C0 remain **NOT_RUN**.
+
+Reviewer independence: no repository edits/commits; CPU-only; `nvidia-smi`
+compute-apps empty.
