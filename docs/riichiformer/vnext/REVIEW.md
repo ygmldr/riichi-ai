@@ -158,3 +158,42 @@ future/target leak in the reviewed bridge.
 
 Lead suite after these fixes: **142 passed, 6 skipped, 13 subtests**
 (`logs/VNEXT_COMBINED_FINAL.log`).  These fixes were not re-reviewed.
+
+## Review 4 — real-data trainer
+
+**Reviewer**: independent read-only reviewer
+**Snapshot**: `0365c94`/`fb4896c` plus current files at `95eb619`
+**Verdict**: **PASS_WITH_P1**; no P0 established.
+
+The reviewer confirmed private-shard authentication, rank normalization,
+the decoded-stream cache (direct-vs-cached decision hash test passes), and the
+pilot metrics.  P1 findings and Lead fixes:
+
+1. **Resume replayed the prefix and used non-strict loading.**  Fixed:
+   checkpoints store `batches_seen` plus train/val shard hashes in `extra`;
+   resume uses `strict_resume=True`, requires matching shard hashes, and skips
+   exactly `batches_seen` batches.  A 5→10 step resume test passes with
+   `start_batches=5`.
+2. **Output guard allowed frozen run dirs and overwrote existing dirs.**  Fixed:
+   refuse repo root, `runs/1v3`, `runs/variance`, `runs/exp/PINNED`, datasets,
+   checkpoints, vendor, `.git`, and any non-empty dir without `--resume`; tests
+   cover `runs/1v3`/`runs/variance` and a busy dir.
+3. **Validation shard not authenticated.**  Fixed: require
+   `purpose=diagnostic`, reject the train shard hash, and reject a val shard
+   sharing the train split manifest; a negative test covers a train-as-val
+   attempt.
+4. **Empty/all-censored shard could spin.**  Fixed: 1,000 consecutive
+   no-update batches raise a hard error; wall-cap runs report `STOPPED`, not
+   `COMPLETED`.
+5. **Wall-cap status and provenance were incomplete.**  Fixed: reports
+   `stopped_reason`/`target_steps`; checkpoint provenance and `run.json` include
+   train/val shard SHA-256.
+6. **Rank 4 and malformed ranks untested.**  Added `normalise_rank` with strict
+   1..4→0..3 mapping and tests.
+
+P2 items: duplicate final `metrics.jsonl` save removed via `last_saved_step`;
+LR args validated.
+
+Lead suite after fixes: **77 VNext tests**, **146 combined, 6 skipped,
+13 subtests** (`logs/VNEXT_REAL_TRAIN_SUITE.log`,
+`logs/VNEXT_COMBINED_REAL.log`).  These fixes were not re-reviewed.
