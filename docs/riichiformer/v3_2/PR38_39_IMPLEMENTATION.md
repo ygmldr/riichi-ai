@@ -370,3 +370,20 @@ Final full-suite result (this worktree, after all edits):
 The two skips are the pre-existing explicit skips in `rf_test_ruleset_parity.py`.
 The suite must be re-run by the Lead after merging PR-37, whose `rf_train.py`
 default model is the remaining P1.
+
+## 6. Lead integration update (2026-11-21, `c426ac7`)
+
+The lane report above correctly says the PR-14 CLI was not changed by Dev-COMPUTE. The
+Lead subsequently wired the library APIs into `scripts/rf_train.py`:
+
+- default model is now `configs/riichiformer/mvp_s.yaml` (six layers, **5,217,582**
+  parameters), verified at startup and recorded as `model_config_hash`;
+- `--tiny-smoke` is the only way to select the 502,510-parameter smoke model;
+- `--model-config` / architecture overrides are mutually exclusive and explicit;
+- `--init-weights-only` is separate from `--resume` and never restores
+  optimizer/scheduler/RNG;
+- strict resume checks the model-config hash and the source/split/policy/canonical
+  provenance, and a split mismatch exits 1 without writing a checkpoint.
+
+This does **not** change the remaining limitation: `MultiDecisionBatch` is still not
+consumed by `data/loader.py` or the trainer loop, and CUDA parity/VRAM remains unmeasured.
