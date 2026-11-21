@@ -5,7 +5,7 @@ single unconditional PASS.
 
 | Component | Status |
 |---|---|
-| `CODE_PASS` | **PASS** — 683 passed, 2 skipped, 281 subtests in the final integrated tree |
+| `CODE_PASS` | **PASS** — 707 passed, 2 skipped, 281 subtests in the final integrated tree |
 | `SYNTHETIC_E2E_PASS` | **PASS** — synthetic/private H-02 10-game shard → 6-layer MVP-S GPU smoke → strict resume |
 | `PRIVATE_H2_TRAIN_SMOKE` | **PASS** (operator-private profile, real H-02 rows, not a strength run) |
 | `OWN_SELFPLAY_TRAIN_PASS` | **NOT_RUN** — selfplay/arena plumbing ran, POV → shard → trainer roundtrip not implemented |
@@ -40,8 +40,8 @@ PYTHONPATH=/home/ygsldr/riichi-ai/worktrees/v32-rules/vendor/mortal/target/relea
   $(git ls-files 'tests/rf_test_*.py' | tr '\n' ' ')
 ```
 
-Result: **683 passed, 2 skipped, 1 warning, 281 subtests passed**, 187.73 s, exit 0.
-Log: `docs/riichiformer/v3/logs/V3_2_W1_full_suite.log`. The two skips are the
+Result: **707 passed, 2 skipped, 1 warning, 281 subtests passed**, 182.20 s, exit 0.
+Log: `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`. The two skips are the
 pre-existing `NativeBoardCapabilityTests` / board-injection capability gaps; they are
 never counted as passes.
 
@@ -124,11 +124,16 @@ MVP-S and only replace supplied fields; a `--max-positions 8192` regression test
 the model stays 6-layer / 5,217,582 and is labelled `kind=custom`. The full suite after
 the fix is 683 passed.
 
+Resolved after this gate: PR-38 loader/trainer integration (20 new tests; 707-test suite)
+and a two-seed 500-step B0 pilot (`PR44_B0_PILOT.md`, 26,918 decisions/seed). The pilot
+is a pipeline check, not a full B0 or a strength result.
+
 P1:
 1. R29 ippatsu timing remains **UNVERIFIED**; R02 continuation (honba/dealer/kyotaku) is
    source-read, not executed by the native settlement fixture.
-2. PR-38 multi-decision forward is not yet wired into `data/loader.py`/`rf_train.py`;
-   it has CPU parity/benchmark tests only. CUDA parity/VRAM was not measured.
+2. PR-38 multi-decision forward is now wired into `data/loader.py`/`rf_train.py`
+   (`PR38_LOADER_INTEGRATION.md`); the multi path ran a 500-game B0 pilot on GPU.
+   Full-epoch convergence and CUDA parity at the 6-layer model are still not measured.
 3. Own-selfplay POV → shard → trainer roundtrip is not implemented (hence NOT_RUN).
 4. The 0014 rules patch must be applied and `libriichi` rebuilt in a fresh checkout;
    the integration worktree's local vendor state is not committed.

@@ -121,3 +121,11 @@
 - `rf_train.py` 默认改为 6 层 MVP-S（5,217,582 参数），新增 `--tiny-smoke` / `--init-weights-only` / `--model-config`；`rf-shard/3` 私有策略要求显式 policy config/hash + allowlist。
 - PR-43 分项：`CODE_PASS`、`SYNTHETIC_E2E_PASS`、`PRIVATE_H2_TRAIN_SMOKE` PASS；`OWN_SELFPLAY_TRAIN_PASS=NOT_RUN`、`STRENGTH_NOT_RUN`；外部权利仍 11 行 0 ALLOWED。报告 `docs/riichiformer/v3_2/PR43_GATE.md`。
 - 未推送开发分支、未改公开 main、未训练真实 B0；0014 rules patch 只在本 worktree 本地应用，未提交 vendor 指针。
+
+
+## 2026-11-21 — V3.2 Wave 2: PR-38 loader/trainer + B0 pilot
+
+- `rf/v32-b0` `ce5a290`（合入 `45eefa1` + 最终报告）：`iter_multi_decision_batches`、`training_step_multi`、`--multi-decision`、长 POV 自适应 `max_events/max_positions`；旧 prefix 路径仍为默认。
+- 集成全量 **707 passed, 2 skipped, 281 subtests**（182.20 s），日志 `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`。
+- 500 局确定性 B0 sample/shard：333,224 decisions，shard `f474a3f1…`；两个 seed 各 500 步 GPU pilot（26,918 decisions / 432,147 tokens），checkpoint `f21c8a3e…` / `ac7346d1…`，strict resume 到 step 501。报告 `docs/riichiformer/v3_2/PR44_B0_PILOT.md`。
+- 这是 pilot，不是完整 B0；无验证集、无 arena 强度、无段位/Mortal 结论。
