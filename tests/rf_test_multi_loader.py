@@ -8,7 +8,9 @@ The fixtures are synthetic ``rf-shard/3`` files built with the existing
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
+import json
 import shutil
 import sqlite3
 import sys
@@ -564,6 +566,35 @@ class MultiDecisionCLITests(unittest.TestCase):
         code, _text, err = self._run([
             "--shard", str(self.path), "--train", "--out", str(prefix),
             "--tiny-smoke", "--batch-size", "16", "--max-steps", "1"])
+        self.assertEqual(code, 0, err)
+        code, _text, err = self._run([
+            "--shard", str(self.path), "--train", "--out", str(prefix),
+            "--multi-decision", "--tiny-smoke", "--batch-size", "16",
+            "--max-steps", "2", "--resume", str(prefix)])
+        self.assertEqual(code, 1)
+        self.assertIn("training_path", err)
+
+    def test_legacy_checkpoint_without_training_path_is_prefix_only(self):
+        prefix = self.dir / "legacy-prefix.pt"
+        code, _text, err = self._run([
+            "--shard", str(self.path), "--train", "--out", str(prefix),
+            "--tiny-smoke", "--batch-size", "16", "--max-steps", "1"])
+        self.assertEqual(code, 0, err)
+        payload = torch.load(prefix, map_location="cpu", weights_only=False)
+        payload["extra"] = {}
+        torch.save(payload, prefix)
+        digest = hashlib.sha256(prefix.read_bytes()).hexdigest()
+        sidecar = Path(str(prefix) + ".json")
+        manifest = json.loads(sidecar.read_text(encoding="utf-8"))
+        manifest["sha256"] = digest
+        sidecar.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True,
+                                      separators=(",", ":")), encoding="utf-8")
+        # A legacy (pre-training_path) checkpoint is a prefix checkpoint: it may
+        # resume the prefix path, but must not silently become multi.
+        code, _text, err = self._run([
+            "--shard", str(self.path), "--train", "--out", str(prefix),
+            "--tiny-smoke", "--batch-size", "16", "--max-steps", "2",
+            "--resume", str(prefix)])
         self.assertEqual(code, 0, err)
         code, _text, err = self._run([
             "--shard", str(self.path), "--train", "--out", str(prefix),

@@ -8,8 +8,8 @@ Date: 2026-11-21 (Asia/Shanghai). This is the **executed pilot** of
 | Item | Value |
 |---|---|
 | Integration branch | `rf/v32-integration` |
-| Code HEAD at run | `ccbf27e` (after multi-decision loader/trainer merge) |
-| Full suite | **707 passed, 2 skipped, 281 subtests** (182.20 s; patched vendor `.so`) |
+| Code tree at run | `ce5a290` (merged at `ccbf27e`; docs later) |
+| Full suite | **708 passed, 2 skipped, 281 subtests** (235.27 s; patched vendor `.so`) |
 | Multi path | `--multi-decision`; adaptive `max_events`/`max_positions` |
 | Model | six-layer MVP-S, **5,217,582** parameters, `max_positions=4096` |
 | Device | RTX 5070 Ti 16 GB, exclusive; CPU loader |
@@ -78,8 +78,10 @@ Both runs: 6-layer MVP-S, 5,217,582 params, finite loss every step, checkpoint
 model-config hash `771b3bc0…`, policy/provenance recorded. Peak `nvidia-smi`
 memory observed 4,649 MiB during the preliminary pass (includes the idle baseline;
 the isolated delta was not measured). 2,000 steps cover 107,026 / 333,224 =
-**32.1%** of the shard's decisions, not a full epoch, so this remains a **pilot**,
-not a full B0.
+**32.1%** of the shard's supervised decisions (107,616 consumed decisions including
+censored, 32.3%), not a full epoch, so this remains a **pilot**, not a full B0. The
+pilot used the default observable-state prefix check; a formal B0 should run at least
+one `--multi-deep-verify` audit.
 
 Strict multi-path resume (preliminary 500-step checkpoint) → step 501, loss
 `1.102307`, tokens `432,672`, decisions `26,982`, checkpoint SHA-256
@@ -87,11 +89,18 @@ Strict multi-path resume (preliminary 500-step checkpoint) → step 501, loss
 Legacy checkpoints without `training_path` remain loadable; cross-path resume is
 refused by the integration tests.
 
+## 4.1 Independent review
+
+PR-38 loader/trainer and this pilot were reviewed read-only (`PASS_WITH_P1`): the
+legacy-checkpoint cross-path resume P1 was fixed (legacy checkpoints default to
+`prefixes`; prefix→multi now exits 1) and a regression test was added; the pilot
+text was corrected from 500 to the executed 2,000-step budget. No P0 was found.
+
 ## 5. What this does and does not show
 
 Shows:
 - the multi-decision loader/trainer works on real H-02 data and the GPU;
-- both seeds complete a fixed 500-step budget without NaN/Inf or provenance
+- both seeds complete the fixed 2,000-step budget without NaN/Inf or provenance
   mismatch, with the same token/decision accounting;
 - strict resume and checkpoint provenance work on the multi path.
 
@@ -103,8 +112,8 @@ Does **not** show:
 
 ## 6. Remaining B0 work
 
-1. Run the preregistered 2,000-step budget (or a full epoch) for two seeds, with a
-   fixed validation subset and checkpoint selection rule.
+1. Run a full epoch (6,191 batches) for two seeds, with a fixed validation subset
+   and checkpoint selection rule (the 2,000-step budget is already complete).
 2. Add a validation/eval loop; the current CLI only logs training loss.
 3. Record the run in a B0 reference manifest (data/model/optimizer/seed hashes,
    step/token/decision counts) and submit to independent review.

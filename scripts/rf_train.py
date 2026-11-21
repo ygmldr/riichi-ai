@@ -284,7 +284,12 @@ def run(args) -> int:
                 expected_model_config_hash=resolved.config_hash,
                 strict_resume=True)
             stored_path = (payload.get("extra") or {}).get("training_path")
-            if stored_path is not None and stored_path != training_path:
+            # Legacy checkpoints predate the field; they can only be prefix
+            # checkpoints.  Defaulting to "prefixes" makes a prefix -> multi
+            # resume fail closed instead of silently rewriting the bookkeeping.
+            if stored_path is None:
+                stored_path = "prefixes"
+            if not isinstance(stored_path, str) or stored_path != training_path:
                 raise CheckpointMismatch(
                     f"checkpoint training_path {stored_path!r} != requested "
                     f"{training_path!r}; resume the same training path")
@@ -339,7 +344,8 @@ def run(args) -> int:
             extra={"training_path": training_path,
                    "token_accounting": (
                        "shared_events_plus_markers" if args.multi_decision
-                       else "prefix_decision_tokens")})
+                       else "prefix_decision_tokens"),
+                   "shard_sha256": reader.manifest.get("shard_sha256", "")})
         if args.multi_decision:
             print(f"PR14_MULTI_DONE step={step} tokens={tokens} "
                   f"decisions={decisions} training_path={training_path}")

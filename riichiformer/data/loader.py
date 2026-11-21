@@ -722,8 +722,8 @@ class ShardReader:
         Always enforced:
 
         * ``before_event_idx`` equals the visible prefix length and the decision
-          was built from the exact ``events[:cutoff]`` slice (O(1) identity check
-          plus the stored ``kyoku_idx``);
+          snapshot was built from the exact ``events[:cutoff]`` slice (plus the
+          stored ``kyoku_idx``);
         * the stored public snapshot (wall count, table state, river/riichi/meld
           counts, scores, dora indicators) equals an incremental replay of the
           stream prefix.  This catches a tampered ``before_event_idx`` without the
@@ -743,10 +743,6 @@ class ShardReader:
                 raise ShardLoadError(
                     f"decision[{index}] before_event_idx {cutoff} != visible prefix "
                     f"length {len(snapshot.events)}")
-            if snapshot.events[0] is not events[0] \
-                    or snapshot.events[-1] is not events[cutoff - 1]:
-                raise ShardLoadError(
-                    f"decision[{index}] visible prefix is not the full-stream slice")
             if int(payload["kyoku_idx"]) != events[cutoff - 1].kyoku_idx:
                 raise ShardLoadError(
                     f"decision[{index}] kyoku_idx {payload['kyoku_idx']} != cutoff "

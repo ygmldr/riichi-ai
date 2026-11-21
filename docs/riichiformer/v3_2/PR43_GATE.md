@@ -5,7 +5,7 @@ single unconditional PASS.
 
 | Component | Status |
 |---|---|
-| `CODE_PASS` | **PASS** — 707 passed, 2 skipped, 281 subtests in the final integrated tree |
+| `CODE_PASS` | **PASS** — 708 passed, 2 skipped, 281 subtests in the final integrated tree |
 | `SYNTHETIC_E2E_PASS` | **PASS** — synthetic/private H-02 10-game shard → 6-layer MVP-S GPU smoke → strict resume |
 | `PRIVATE_H2_TRAIN_SMOKE` | **PASS** (operator-private profile, real H-02 rows, not a strength run) |
 | `OWN_SELFPLAY_TRAIN_PASS` | **NOT_RUN** — selfplay/arena plumbing ran, POV → shard → trainer roundtrip not implemented |
@@ -40,13 +40,13 @@ PYTHONPATH=/home/ygsldr/riichi-ai/worktrees/v32-rules/vendor/mortal/target/relea
   $(git ls-files 'tests/rf_test_*.py' | tr '\n' ' ')
 ```
 
-Result: **707 passed, 2 skipped, 1 warning, 281 subtests passed**, 182.20 s, exit 0.
+Result: **708 passed, 2 skipped, 1 warning, 281 subtests passed**, 235.27 s, exit 0.
 Log: `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`. The two skips are the
 pre-existing `NativeBoardCapabilityTests` / board-injection capability gaps; they are
 never counted as passes.
 
 Independent reviews on the lane commits: PR-37 `PASS_WITH_P1` (P1 fixed in `c426ac7`),
-PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38 `PASS` (P2 only),
+PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38 loader `PASS_WITH_P1` (legacy cross-path resume P1 fixed; 708-test rerun),
 PR-39 `PASS` (partial-override P1 fixed and independently re-verified; 683 at review, 707 after loader integration), PR-41
 `PASS` (P2 only), PR-42 `PASS` (P2 only). No P0 was reported for any lane.
 
@@ -125,7 +125,7 @@ MVP-S and only replace supplied fields; a `--max-positions 8192` regression test
 the model stays 6-layer / 5,217,582 and is labelled `kind=custom`. The full suite after
 the fix is 683 passed.
 
-Resolved after this gate: PR-38 loader/trainer integration (20 new tests; 707-test suite)
+Resolved after this gate: PR-38 loader/trainer integration (21 new tests; 708-test suite)
 and a two-seed 2,000-step B0 pilot (`PR44_B0_PILOT.md`, 107,026 decisions/seed). The pilot
 is a pipeline check, not a full B0 or a strength result.
 
