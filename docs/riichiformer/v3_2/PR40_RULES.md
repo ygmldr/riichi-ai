@@ -1,8 +1,14 @@
 # PR-40 (Dev-RULES) — R02/R25/R26 fixes and R29 status
 
+> **V3.3 follow-up (PR-40R, 2026-11-21):** R29 is no longer UNVERIFIED. The executable
+> fixture is `patches/0015-rule-r29-ippatsu-fixture.patch`; the current matrix, build sha
+> and command log are in `docs/riichiformer/v3_3/PR40R_NATIVE_RULES.md`. The R29
+> `UNVERIFIED`/BLOCKERS text below is the V3.2 state, kept as history.
+
 Date: 2026-11-21 (Asia/Shanghai). Task: RiichiFormer V3.2 Wave 1, PR-40.
 This report records commands actually run in the `v32-rules` worktree; it does not claim
-full official Tenhou equivalence. R29 remains UNVERIFIED.
+full official Tenhou equivalence. R29 remained UNVERIFIED in V3.2 (superseded by PR-40R
+above).
 
 ## Baseline
 

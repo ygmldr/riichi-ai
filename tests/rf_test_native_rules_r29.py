@@ -147,6 +147,14 @@ class DocStatusTests(unittest.TestCase):
             with self.subTest(test=name):
                 self.assertIn(name, read(DOC))
 
+    def test_v32_docs_are_labeled_as_historical(self):
+        v3 = read(REPO_ROOT / "docs" / "riichiformer" / "v3" / "TENHOU_RULE_PARITY.md")
+        self.assertIn("V3.3 update (PR-40R, 2026-11-21)", v3)
+        self.assertIn("not the current verdict", v3)
+        v32 = read(REPO_ROOT / "docs" / "riichiformer" / "v3_2" / "PR40_RULES.md")
+        self.assertIn("V3.3 follow-up (PR-40R, 2026-11-21)", v32)
+        self.assertIn("superseded by PR-40R", v32)
+
     def test_doc_records_the_rebuild_and_scope(self):
         text = read(DOC)
         self.assertIn(BUILD_SHA, text)
