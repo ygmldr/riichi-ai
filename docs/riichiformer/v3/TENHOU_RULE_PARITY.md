@@ -1,5 +1,11 @@
 # TENHOU_RULE_PARITY — H-04 ruleset-difference audit
 
+> **V3.3 update (PR-40R, 2026-11-21):** R29 now has an executable native fixture and is
+> promoted to `MATCH` in `docs/riichiformer/v3_3/PR40R_NATIVE_RULES.md`. The R29 rows and
+> `UNVERIFIED` statements in this V3.1/V3.2 document are preserved as the historical state;
+> they are not the current verdict. R02/R25/R26 were already promoted by PR-40 and remain
+> `tenhou-parity-verified`.
+
 - **Task**: H-04 (RULES), RiichiFormer V3.1 parallel program
 - **Owner**: Dev-D (rules lane)
 - **Worktree / branch**: `/home/ygsldr/riichi-ai/worktrees/h04-rules` @ `rf/h04-rules`

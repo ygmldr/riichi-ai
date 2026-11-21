@@ -1,0 +1,195 @@
+diff --git a/libriichi/src/state/update.rs b/libriichi/src/state/update.rs
+index 7b6eca2..69c03f2 100644
+--- a/libriichi/src/state/update.rs
++++ b/libriichi/src/state/update.rs
+@@ -971,3 +971,190 @@ impl PlayerState {
+         Rankings::new(scores_abs).rank_by_player[self.player_id as usize]
+     }
+ }
++
++#[cfg(test)]
++mod r29_tests {
++    use super::*;
++    use crate::{t, tuz};
++
++    /// Player 0 is in riichi with a 3p/6p ryanmen wait:
++    /// 123m 456p 789s EE 45p. The hand holds no 3p, so an opponent can legally
++    /// hold all four 3p for a kakan. The first discard makes this a normal
++    /// riichi, not a double riichi, and the hand has no base yaku.
++    fn riichi_player_waiting_on_3p() -> PlayerState {
++        let mut ps = PlayerState::new(0);
++        ps.update(&Event::StartKyoku {
++            bakaze: t!(E),
++            dora_marker: t!(F),
++            kyoku: 1,
++            honba: 0,
++            kyotaku: 0,
++            oya: 0,
++            scores: [25000; 4],
++            tehais: [
++                t![1m, 2m, 3m, 4p, 5p, 6p, 7s, 8s, 9s, E, E, 4p, 5p],
++                [t!(?); 13],
++                [t!(?); 13],
++                [t!(?); 13],
++            ],
++        })
++        .unwrap();
++        // First own turn: draw and discard a tile. This clears `can_w_riichi`,
++        // so the later declaration is a normal riichi, not a double riichi.
++        ps.update(&Event::Tsumo {
++            actor: 0,
++            pai: t!(9p),
++        })
++        .unwrap();
++        ps.update(&Event::Dahai {
++            actor: 0,
++            pai: t!(9p),
++            tsumogiri: true,
++        })
++        .unwrap();
++        // Second own turn: the actual riichi declaration.
++        ps.update(&Event::Tsumo {
++            actor: 0,
++            pai: t!(4s),
++        })
++        .unwrap();
++        ps.update(&Event::Reach { actor: 0 }).unwrap();
++        ps.update(&Event::Dahai {
++            actor: 0,
++            pai: t!(4s),
++            tsumogiri: true,
++        })
++        .unwrap();
++        ps.update(&Event::ReachAccepted { actor: 0 }).unwrap();
++        assert!(ps.at_ippatsu, "reach acceptance opens the ippatsu window");
++        assert!(ps.waits[tuz!(3p)], "the fixture hand must wait on 3p");
++        assert!(ps.waits[tuz!(6p)], "the fixture hand must also wait on 6p");
++        ps
++    }
++
++    fn kakan(actor: u8, pai: Tile) -> Event {
++        Event::Kakan {
++            actor,
++            pai,
++            consumed: [pai; 3],
++        }
++    }
++
++    #[test]
++    fn r29_first_kakan_keeps_ippatsu_through_the_chankan_probe() {
++        let mut ps = riichi_player_waiting_on_3p();
++        ps.update(&kakan(1, t!(3p))).unwrap();
++
++        assert!(
++            ps.at_ippatsu,
++            "a kakan must not close the window before the chankan probe"
++        );
++        assert!(
++            ps.chankan_chance.is_some(),
++            "the waited kakan tile is a chankan chance"
++        );
++        assert!(ps.last_cans.can_ron_agari);
++        assert_eq!(ps.last_kawa_tile, Some(t!(3p)));
++
++        // 立直 + 一発 + 槍槓 = 3 han. Player 0 is the dealer; the East pair is
++        // 4 fu (double east), so 40 fu and 7700 points; dropping either
++        // ippatsu or chankan would be 2 han / 3900.
++        let point = ps.agari_points(true, &[]).unwrap();
++        assert_eq!(point.ron, 7700);
++    }
++
++    #[test]
++    fn r29_kakan_window_closes_at_the_next_event_before_the_rinshan_tsumo() {
++        let mut ps = riichi_player_waiting_on_3p();
++        ps.update(&kakan(1, t!(3p))).unwrap();
++        assert!(ps.at_ippatsu);
++
++        // `Board::step` emits the new kan dora before the rinshan tsumo; both
++        // events arrive after the chankan reaction window.
++        ps.update(&Event::Dora {
++            dora_marker: t!(2s),
++        })
++        .unwrap();
++        assert!(
++            !ps.at_ippatsu,
++            "the ippatsu window must close after the chankan probe and before the rinshan draw"
++        );
++
++        ps.update(&Event::Tsumo {
++            actor: 1,
++            pai: t!(4s),
++        })
++        .unwrap();
++        assert!(!ps.at_ippatsu);
++    }
++
++    #[test]
++    fn r29_second_consecutive_kakan_has_no_ippatsu() {
++        let mut ps = riichi_player_waiting_on_3p();
++
++        // First kakan: the 1s is not a wait, so there is no chankan probe and
++        // the window closes at the declaration itself.
++        ps.update(&kakan(1, t!(1s))).unwrap();
++        assert!(!ps.at_ippatsu);
++        assert!(ps.chankan_chance.is_none());
++
++        // Real event order after a kakan: kan dora, rinshan tsumo, discard.
++        ps.update(&Event::Dora {
++            dora_marker: t!(2s),
++        })
++        .unwrap();
++        ps.update(&Event::Tsumo {
++            actor: 1,
++            pai: t!(4s),
++        })
++        .unwrap();
++        ps.update(&Event::Dahai {
++            actor: 1,
++            pai: t!(4s),
++            tsumogiri: true,
++        })
++        .unwrap();
++
++        // Second consecutive kakan, and this one *is* a chankan chance (3p).
++        ps.update(&kakan(1, t!(3p))).unwrap();
++        assert!(ps.last_cans.can_ron_agari);
++        assert!(ps.chankan_chance.is_some());
++        assert!(
++            !ps.at_ippatsu,
++            "連続する加槓の２回目には一発は付かない"
++        );
++
++        // 立直 + 槍槓 only = 2 han / 40 fu / dealer 3900; ippatsu must not be
++        // added.
++        let point = ps.agari_points(true, &[]).unwrap();
++        assert_eq!(point.ron, 3900);
++    }
++
++    #[test]
++    fn r29_own_discard_and_other_calls_close_the_window() {
++        let mut ps = riichi_player_waiting_on_3p();
++        ps.update(&Event::Tsumo {
++            actor: 0,
++            pai: t!(4s),
++        })
++        .unwrap();
++        assert!(ps.at_ippatsu);
++        ps.update(&Event::Dahai {
++            actor: 0,
++            pai: t!(4s),
++            tsumogiri: true,
++        })
++        .unwrap();
++        assert!(!ps.at_ippatsu, "own discard closes the window");
++
++        let mut ps = riichi_player_waiting_on_3p();
++        ps.update(&Event::Pon {
++            actor: 1,
++            target: 2,
++            pai: t!(3s),
++            consumed: [t!(3s); 2],
++        })
++        .unwrap();
++        assert!(!ps.at_ippatsu, "an opponent call closes the window");
++    }
++}

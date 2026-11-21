@@ -1,0 +1,11 @@
+# command: CARGO_HOME=/home/ygsldr/riichi-ai/.cargo-v33 PYO3_PYTHON=/home/ygsldr/riichi-ai/.venv/bin/python CARGO_BUILD_JOBS=4 cargo build --offline -p libriichi --lib --release
+# cwd: /tmp/v33d_vendor
+# git HEAD: 0cff2b52982be5b1163aa9a62fb01f03ce91e0d2
+# date: 2026-11-21T17:34:14+08:00
+   Compiling libriichi v0.1.0 (/tmp/v33d_vendor/libriichi)
+    Finished `release` profile [optimized + debuginfo] target(s) in 20.21s
+real 22.33
+user 20.56
+sys 0.82
+# exit: 0
+582e36734b10c3d3b1230a834eacc494f94e40f6d642c712eadc23f6cabfaf4e  target/release/libriichi.so
