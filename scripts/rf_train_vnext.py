@@ -208,6 +208,9 @@ def main(argv=None) -> int:
     parser.add_argument("--val-batches", type=int, default=50)
     parser.add_argument("--max-hours", type=float, default=0.0)
     parser.add_argument("--resume", default=None)
+    parser.add_argument("--checkpoint", default=None,
+                        help="with --validate-only, evaluate this VNext checkpoint")
+    parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -289,6 +292,20 @@ def main(argv=None) -> int:
         device = _device(args.device)
         if device.type == "cuda" and not torch.cuda.is_available():
             raise SystemExit("CUDA requested but unavailable")
+        if args.validate_only:
+            if args.checkpoint is None or val_reader is None:
+                raise SystemExit("--validate-only requires --checkpoint and --val-shard")
+            from riichiformer.vnext.runtime import load_vnext_checkpoint
+            model = load_vnext_checkpoint(args.checkpoint).to(device)
+            report = _validation(
+                val_reader, model, batch_size=args.batch_size, device=device,
+                rank_weight=args.rank_weight, max_batches=args.val_batches,
+                rank_base=args.rank_base)
+            report["checkpoint"] = str(Path(args.checkpoint).resolve())
+            report["checkpoint_sha256"] = hashlib.sha256(
+                Path(args.checkpoint).read_bytes()).hexdigest()
+            print(json.dumps(report, indent=2, sort_keys=True))
+            return 0
         torch.manual_seed(args.seed)
         if device.type == "cuda":
             torch.cuda.manual_seed_all(args.seed)
