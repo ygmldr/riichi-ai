@@ -89,12 +89,19 @@ def run(args) -> int:
               "action_map_hash": reader.metadata.action_map_hash,
               "normalizer_hash": reader.metadata.normalizer_hash,
               "split_manifest_sha256": reader.metadata.split_manifest_sha256,
-              "source_id": reader.metadata.source_id}
+              "source_id": reader.metadata.source_id,
+              "research_policy": reader.metadata.research_policy,
+              "research_policy_hash": reader.metadata.research_policy_hash,
+              "rights_status": reader.metadata.rights_status}
     if args.resume:
         expected = {key: hashes[key] for key in
                     ("schema_hash", "action_map_hash", "normalizer_hash")}
+        provenance_keys = ("split_manifest_sha256", "source_id",
+                           "research_policy", "research_policy_hash", "rights_status")
+        expected_provenance = {key: hashes[key] for key in provenance_keys}
         info, _ = load_checkpoint(args.resume, model=model, optimizer=optimizer,
-                                  scheduler=scheduler, expected_hashes=expected)
+                                  scheduler=scheduler, expected_hashes=expected,
+                                  expected_provenance=expected_provenance)
         step, tokens, decisions = info.step, info.tokens, info.decisions
     batches = reader.iter_batches(batch_size=args.batch_size)
     model.train()
