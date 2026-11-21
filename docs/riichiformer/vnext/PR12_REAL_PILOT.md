@@ -81,6 +81,16 @@ This is a **loss** pilot, not a quality result.  The held-out CE decrease proves
 the data/trainer/checkpoint loop is learning something, not that the policy is
 strong.
 
+A longer 5,000-step run on the same 1,000/500 shards completed in 657.5 s:
+
+- val BC CE **1.5893 → 1.4719**;
+- val rank CE **1.3682 → 1.2956**;
+- val total **1.7261 → 1.6015**;
+- train loss first/last 2.2397 / 1.5313;
+- checkpoint `runs/vnext_real_pilot1000_long/candidates/step_005000.pt`.
+
+Still a loss/optimisation result only; no strength claim.
+
 ## 4. Full-corpus feasibility (measured, not projected)
 
 The local corpus is 2,512,424 matches.  The pilot shard has ~662 decisions per

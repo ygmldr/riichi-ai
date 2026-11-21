@@ -42,9 +42,10 @@
   unchanged, GRP 50 steps finite, behavior/AWR/PPO/PBRS/GAE finite.
   `logs/VNEXT_GPU_SMOKE_AFTER_SYNC_FIX.log`.
 * **Real-data pilot**: 1,000 games / 661,627 decisions train; 500 games /
-  326,798 decisions held-out val; 1,000 steps in 158.9 s; val BC CE
-  **1.5983 → 1.5285**, rank CE **1.3769 → 1.3454**.  See
-  [`PR12_REAL_PILOT.md`](PR12_REAL_PILOT.md).  Loss only; no strength claim.
+  326,798 decisions held-out val.  1,000 steps: val BC CE 1.5983 → 1.5285.
+  5,000 steps: val BC CE **1.5893 → 1.4719**, rank CE **1.3682 → 1.2956**,
+  657.5 s.  See [`PR12_REAL_PILOT.md`](PR12_REAL_PILOT.md).  Loss only; no
+  strength claim.
 
 The first GPU profile was 323.8 forward / 274.0 train decisions/s because every
 forward re-ran the scalar-heavy `VNextModelBatch` contract.  `VNextPolicy.forward`
