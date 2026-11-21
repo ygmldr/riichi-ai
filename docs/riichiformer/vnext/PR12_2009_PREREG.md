@@ -47,8 +47,8 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 
 * finite losses, no NaN/Inf; wall-cap stops are reported as `STOPPED`, not
   `COMPLETED`;
-* validation CE recorded at the fixed schedule; 5,000-step: BC CE 1.4891,
-  rank CE 1.2881;
+* validation CE recorded at the fixed schedule; 5,000-step: BC CE 1.4891 /
+  rank 1.2881; 10,000-step: BC CE 1.4666 / rank 1.2870;
 * checkpoint provenance carries source/split/canonical/policy hashes;
 * no strength, dan, Arena or Confirm claim;
 * `max_prefix_tokens=4096`; decisions above the positional bound are skipped
