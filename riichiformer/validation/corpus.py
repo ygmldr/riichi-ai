@@ -225,7 +225,8 @@ def run_validation_selfplay(out: str | Path, window: ValidationWindow, *,
         "teacher_claim": (
             "weak local heuristic bots only; not a strong teacher, not Tenhou "
             "truth; CE on this corpus measures imitation of the weak bots"),
-        "r29_status": "UNVERIFIED (PR-40); deviation flag only",
+        "r29_status": ("MATCH per PR-40R (Lead-relayed); shard-level provenance "
+                       "flag only because the frozen per-decision enum has no R29"),
         "outputs": {
             "games_jsonl": str(out_dir / "games.jsonl"),
             "games_dir": str(out_dir / "games"),

@@ -12,10 +12,11 @@ The builder reuses the frozen production pieces and changes only the provenance:
   ``purpose="diagnostic"`` and ``research_policy="operator_private_research"``.
 
 R29 is **not** representable in the frozen ``RulesetDeviation`` enum, so it is
-recorded at shard level only (the full known-deviation set of the pinned arena)
-and the per-decision snapshot carries R02/R25/R26.  That gap is deliberate and is
-asserted by the validation tests; inventing an enum value in a frozen schema
-would change the normalizer contract.
+recorded at shard level only (the full known-deviation set required for this
+corpus) and the per-decision snapshot carries R02/R25/R26.  PR-40R reports the
+R29 ippatsu sequence as MATCH; the enum gap is still real, and inventing an enum
+value in a frozen schema would change the normalizer contract.  The gap is
+asserted by the validation tests.
 
 ``ShardMetadata`` has three mandatory 64-hex provenance fields that were named
 for the H-02 human-log pipeline.  A self-play corpus has no canonical/split
@@ -62,8 +63,9 @@ __all__ = [
 
 LOG_NAME_RE = re.compile(r"^(?P<seed>\d+)_(?P<key>\d+)_(?P<rot>[abcd])\.json\.gz$")
 ROTATIONS = "abcd"
-#: Shard-level known deviations of ``mortal_arena_pinned`` (PR-40).  R29 is
-#: UNVERIFIED and stays a shard-level provenance flag only.
+#: Shard-level known deviations of ``mortal_arena_pinned``.  R29 (ippatsu timing)
+#: is reported MATCH by PR-40R but stays a shard-level provenance flag because the
+#: frozen per-decision enum has no R29 member.
 ARENA_DEVIATIONS = ("R02", "R25", "R26", "R29")
 #: Per-decision deviations representable by the frozen enum.
 DECISION_DEVIATIONS = (RulesetDeviation.R02, RulesetDeviation.R25,
