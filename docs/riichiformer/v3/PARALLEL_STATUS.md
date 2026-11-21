@@ -1,5 +1,10 @@
 # RiichiFormer V3.1 — PARALLEL_STATUS
 
+> **V3.2 continuation (2026-11-21)**: this V3.1 table is historical. The remote V3.2
+> branch passed Lead training-chain acceptance (PASS_WITH_P1); see
+> `docs/riichiformer/v3_2/ACCEPTANCE_LEAD.md` and
+> `docs/riichiformer/v3_2/WAVE1_STATUS.md`. Do not resume V3.1 PR-18+ from this table.
+
 **PAUSED_BY_USER（2026-11-21）**：用户选择暂停在 `BLOCKED_RIGHTS`、先解决 source_rights 授权。暂停期间不启动真实训练、不推进 PR-18+ 真实实验；仅保留本地只读审计与代码证据。
 
 **Lead 单写**。状态只按真实提交、真实测试与 gate 更新；子代理自述不能直接改这里。
