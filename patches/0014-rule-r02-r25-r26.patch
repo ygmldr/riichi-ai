@@ -1,0 +1,360 @@
+diff --git a/libriichi/src/arena/board.rs b/libriichi/src/arena/board.rs
+index 5c52ab9..b1683d9 100644
+--- a/libriichi/src/arena/board.rs
++++ b/libriichi/src/arena/board.rs
+@@ -23,8 +23,7 @@ use tinyvec::ArrayVec;
+ /// Other than what is mentioned below, everything else is identical to Tenhou's
+ /// Rule.
+ ///
+-/// 1. No triple-ron ryukyoku.
+-/// 2. Tenhou (the yaku) and chihou do not accumulate with other yakus; they are
++/// 1. Tenhou (the yaku) and chihou do not accumulate with other yakus; they are
+ ///    always 1x yakuman.
+ #[derive(Debug, Default)]
+ pub struct Board {
+@@ -59,6 +58,11 @@ pub struct BoardState {
+     has_hora: bool,
+     has_abortive_ryukyoku: bool,
+     kyoku_deltas: [i32; 4],
++    /// Number of riichi sticks paid out by a hora in this kyoku. Used by
++    /// `game.rs` to exclude the just-paid kyotaku from the last-dealer stop.
++    kyotaku_paid: u8,
++    /// Winner who received `kyotaku_paid`, if any.
++    kyotaku_winner: Option<u8>,
+ 
+     #[derivative(Default(value = "70"))]
+     tiles_left: u8,
+@@ -177,6 +181,8 @@ impl BoardState {
+             has_hora: self.has_hora,
+             has_abortive_ryukyoku: self.has_abortive_ryukyoku,
+             kyotaku_left: self.board.kyotaku,
++            kyotaku_paid: self.kyotaku_paid,
++            kyotaku_winner: self.kyotaku_winner,
+             scores: self.board.scores,
+         }
+     }
+@@ -369,11 +375,25 @@ impl BoardState {
+         single_target: u8,
+         reactions: &[EventExt; 4],
+     ) -> Result<()> {
++        let n_hora = reactions
++            .iter()
++            .filter(|ev| matches!(ev.event, Event::Hora { .. }))
++            .count();
++
++        if n_hora >= 3 {
++            // 三家和了: Tenhou treats three simultaneous ron as an abortive draw.
++            // No hand is paid; game.rs increments honba and repeats the dealer,
++            // and the riichi sticks stay on the table.
++            self.abortive_ryukyoku();
++            return Ok(());
++        }
++
+         self.has_hora = true;
+ 
+         let is_ron = single_actor != single_target;
+         let mut honba_left = self.board.honba as i32; // mut in case of multi-ron
+         let mut kyotaku_point = self.board.kyotaku as i32 * 1000; // ditto
++        self.kyotaku_paid = self.board.kyotaku;
+         self.board.kyotaku = 0; // Unlike honba, kyotaku in self will be cleared
+ 
+         // Let the states get their agari points provided with our ura
+@@ -416,6 +436,9 @@ impl BoardState {
+                     }
+                     deltas[actor] = point.ron + kyotaku_point + honba_left * 300;
+ 
++                    if kyotaku_point > 0 && self.kyotaku_winner.is_none() {
++                        self.kyotaku_winner = Some(actor as u8);
++                    }
+                     kyotaku_point = 0;
+                     honba_left = 0;
+ 
+@@ -453,6 +476,9 @@ impl BoardState {
+         deltas[single_actor as usize] =
+             point.tsumo_total(single_actor == self.oya) + kyotaku_point + honba_left * 300;
+ 
++        if kyotaku_point > 0 {
++            self.kyotaku_winner = Some(single_actor);
++        }
+         vec_add_assign(&mut self.kyoku_deltas, &deltas);
+         let ura_markers = if self.player_states[single_actor as usize].self_riichi_accepted() {
+             ura_indicators
+@@ -559,6 +585,13 @@ impl BoardState {
+                     return Ok(Poll::End);
+                 }
+                 self.check_riichi_accepted();
++                if self.accepted_riichis == 4 {
++                    // 四家立直: abort as soon as the fourth riichi is accepted,
++                    // before the next draw. Checking only at the top of `step()`
++                    // would reveal one extra tile.
++                    self.abortive_ryukyoku();
++                    return Ok(Poll::End);
++                }
+ 
+                 let tile = if self.deal_from_rinshan.take().is_some() {
+                     self.board
+@@ -824,3 +857,98 @@ const UNSHUFFLED: [Tile; 136] = [
+     t!(F), t!(F), t!(F), t!(F),
+     t!(C), t!(C), t!(C), t!(C),
+ ];
++
++#[cfg(test)]
++mod rule_tests {
++    use super::*;
++
++    /// A board with four riichi sticks on the table (the two carried sticks plus
++    /// the two accepted in this kyoku), no hands needed: the fixtures below stop
++    /// before any agari is calculated. The scores are already net of the two
++    /// reach payments, matching the recorded E3 triple-ron kyoku.
++    fn board_state() -> BoardState {
++        Board {
++            kyoku: 2,
++            honba: 2,
++            kyotaku: 4,
++            scores: [19500, 23500, 30500, 22500],
++            haipai: [[t!(1m); 13]; 4],
++            yama: vec![t!(9s); 70],
++            rinshan: vec![t!(9s); 4],
++            dora_indicators: vec![t!(1s); 5],
++            ura_indicators: vec![t!(2s); 5],
++        }
++        .into_state()
++    }
++
++    fn hora(actor: u8, target: u8) -> EventExt {
++        EventExt::no_meta(Event::Hora {
++            actor,
++            target,
++            deltas: None,
++            ura_markers: None,
++        })
++    }
++
++    #[test]
++    fn r02_triple_ron_aborts_without_settlement() {
++        let mut state = board_state();
++        let reactions = [hora(0, 3), hora(1, 3), hora(2, 3), EventExt::default()];
++
++        state.handle_hora(0, 3, &reactions).unwrap();
++
++        assert!(state.has_abortive_ryukyoku);
++        assert!(!state.has_hora);
++        assert_eq!(state.kyoku_deltas, [0; 4]);
++        assert_eq!(state.board.scores, [19500, 23500, 30500, 22500]);
++        assert_eq!(state.board.kyotaku, 4);
++        assert!(state
++            .log
++            .iter()
++            .any(|ev| matches!(&ev.event, Event::Ryukyoku { deltas: Some([0, 0, 0, 0]) })));
++
++        let result = state.end();
++        assert!(!result.has_hora);
++        assert!(result.has_abortive_ryukyoku);
++        assert_eq!(result.kyotaku_left, 4);
++        assert_eq!(result.scores, [19500, 23500, 30500, 22500]);
++    }
++
++    #[test]
++    fn r26_fourth_riichi_aborts_before_the_next_draw() {
++        let mut state = board_state();
++        state.tiles_left = 10;
++        state.board.yama.truncate(10);
++        state.accepted_riichis = 3;
++        state.tsumo_actor = 0;
++        state.riichi_to_be_accepted = Some(0);
++
++        let poll = state.poll(std::array::from_fn(|_| EventExt::default())).unwrap();
++
++        assert!(matches!(poll, Poll::End));
++        assert!(state.has_abortive_ryukyoku);
++        assert!(state.can_renchan);
++        assert_eq!(state.accepted_riichis, 4);
++        assert_eq!(state.tiles_left, 10);
++        assert_eq!(state.board.yama.len(), 10);
++        assert_eq!(state.board.scores[0], 18500);
++        assert_eq!(state.board.kyotaku, 5);
++
++        let reach = state
++            .log
++            .iter()
++            .position(|ev| matches!(&ev.event, Event::ReachAccepted { actor: 0 }))
++            .expect("the fourth riichi must be accepted before the abort");
++        assert!(
++            state.log[reach + 1..]
++                .iter()
++                .all(|ev| !matches!(&ev.event, Event::Tsumo { .. })),
++            "no tile may be drawn after the fourth riichi is accepted"
++        );
++        assert!(matches!(
++            state.log.last().map(|ev| &ev.event),
++            Some(Event::EndKyoku)
++        ));
++        assert_eq!(state.end().kyotaku_left, 5);
++    }
++}
+diff --git a/libriichi/src/arena/game.rs b/libriichi/src/arena/game.rs
+index 9fee2df..b53c153 100644
+--- a/libriichi/src/arena/game.rs
++++ b/libriichi/src/arena/game.rs
+@@ -1,5 +1,5 @@
+ use super::board::{Board, BoardState, Poll};
+-use super::result::GameResult;
++use super::result::{GameResult, KyokuResult};
+ use crate::agent::BatchAgent;
+ use crate::mjai::EventExt;
+ use std::time::Duration;
+@@ -152,19 +152,9 @@ impl Game {
+                 // 2. is at all-last
+                 // 3. oya has at least 30000
+                 // 4. oya is the top
+-                let oya = kyoku_result.kyoku as usize % 4;
+-                if kyoku_result.kyoku >= self.length - 1 && self.scores[oya] >= 30000 {
+-                    let top = kyoku_result
+-                        .scores
+-                        .iter()
+-                        .enumerate()
+-                        .min_by_key(|&(_, &s)| -s)
+-                        .map(|(i, _)| i)
+-                        .unwrap();
+-                    if top == oya {
+-                        self.ended = true;
+-                        return Ok(());
+-                    }
++                if last_dealer_stop(self.length, &kyoku_result) {
++                    self.ended = true;
++                    return Ok(());
+                 }
+ 
+                 // renchan
+@@ -218,6 +208,28 @@ impl Game {
+     }
+ }
+ 
++/// Tenhou's last-dealer 和了止め / 聴牌止め check.
++///
++/// The comparison is made after settlement but excludes the kyotaku paid by
++/// this hand (`供託料を除く`). The final scores keep the payout; only this
++/// decision uses the adjusted vector.
++fn last_dealer_stop(length: u8, kyoku_result: &KyokuResult) -> bool {
++    if kyoku_result.kyoku < length - 1 {
++        return false;
++    }
++    let oya = kyoku_result.kyoku as usize % 4;
++    let scores = kyoku_result.scores_excluding_hora_kyotaku();
++    if scores[oya] < 30000 {
++        return false;
++    }
++    scores
++        .iter()
++        .enumerate()
++        .min_by_key(|&(_, &s)| -s)
++        .map(|(i, _)| i)
++        == Some(oya)
++}
++
+ impl BatchGame {
+     pub const fn tenhou_hanchan(disable_progress_bar: bool) -> Self {
+         Self {
+@@ -371,3 +383,68 @@ mod test {
+             .unwrap();
+     }
+ }
++
++#[cfg(test)]
++mod rule_tests {
++    use super::*;
++
++    fn result(scores: [i32; 4], kyotaku_paid: u8, winner: Option<u8>) -> KyokuResult {
++        KyokuResult {
++            kyoku: 7,
++            can_renchan: true,
++            has_hora: true,
++            has_abortive_ryukyoku: false,
++            kyotaku_left: 0,
++            kyotaku_paid,
++            kyotaku_winner: winner,
++            scores,
++        }
++    }
++
++    #[test]
++    fn r25_last_dealer_stop_excludes_just_paid_kyotaku() {
++        // S4 is kyoku 7 -> oya is absolute seat 3 (E1 dealer is seat 0).
++        // The raw score includes the 4 kyotaku (4000) paid to oya.
++        let fx = result([19000, 19000, 29000, 33000], 4, Some(3));
++        assert_eq!(
++            fx.scores_excluding_hora_kyotaku(),
++            [19000, 19000, 29000, 29000]
++        );
++        assert!(
++            !last_dealer_stop(8, &fx),
++            "33000 includes 4000 kyotaku; 29000 < 30000"
++        );
++
++        // The old, kyotaku-inclusive comparison would have stopped the game.
++        let raw = fx.scores;
++        assert!(raw[3] >= 30000);
++        assert_eq!(
++            raw.iter()
++                .enumerate()
++                .min_by_key(|&(_, &s)| -s)
++                .map(|(i, _)| i),
++            Some(3)
++        );
++
++        // A genuine 30000+ after excluding the payout still stops.
++        let fx = result([19000, 19000, 28000, 34000], 4, Some(3));
++        assert_eq!(
++            fx.scores_excluding_hora_kyotaku(),
++            [19000, 19000, 28000, 30000]
++        );
++        assert!(last_dealer_stop(8, &fx));
++
++        // A non-dealer payout is removed from the winner, not from the dealer.
++        let fx = result([19000, 19000, 29000, 33000], 4, Some(1));
++        assert_eq!(
++            fx.scores_excluding_hora_kyotaku(),
++            [19000, 15000, 29000, 33000]
++        );
++        assert!(last_dealer_stop(8, &fx));
++
++        // Not all-last: never stop early.
++        let mut fx = result([20000, 20000, 40000, 20000], 0, None);
++        fx.kyoku = 6;
++        assert!(!last_dealer_stop(8, &fx));
++    }
++}
+diff --git a/libriichi/src/arena/result.rs b/libriichi/src/arena/result.rs
+index 452bb3c..85ec2bf 100644
+--- a/libriichi/src/arena/result.rs
++++ b/libriichi/src/arena/result.rs
+@@ -12,9 +12,29 @@ pub struct KyokuResult {
+     pub has_hora: bool,
+     pub has_abortive_ryukyoku: bool,
+     pub kyotaku_left: u8,
++    /// Number of riichi sticks paid out by a hora in this kyoku.
++    pub kyotaku_paid: u8,
++    /// Winner who received the paid riichi sticks, if any.
++    pub kyotaku_winner: Option<u8>,
+     pub scores: [i32; 4],
+ }
+ 
++impl KyokuResult {
++    /// Scores with the just-paid kyotaku removed.
++    ///
++    /// Tenhou's last-dealer 和了止め / 聴牌止め compares scores after settlement
++    /// but 供託料を除く (<https://tenhou.net/man/#RULE>). `scores` already include
++    /// the payout because `board.rs` adds it to the winning hand's deltas.
++    #[must_use]
++    pub fn scores_excluding_hora_kyotaku(&self) -> [i32; 4] {
++        let mut scores = self.scores;
++        if let Some(winner) = self.kyotaku_winner {
++            scores[winner as usize] -= self.kyotaku_paid as i32 * 1000;
++        }
++        scores
++    }
++}
++
+ #[derive(Debug, Clone, Default)]
+ pub struct GameResult {
+     pub names: [String; 4],
