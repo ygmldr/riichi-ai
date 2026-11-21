@@ -28,7 +28,7 @@ import torch  # noqa: E402
 
 from riichiformer.data.loader import ShardLoadError, ShardReader  # noqa: E402
 from riichiformer.data.shard import ShardRightsError  # noqa: E402
-from riichiformer.models.policy import MVPConfig, Policy, count_parameters  # noqa: E402
+from riichiformer.models.policy import Policy, count_parameters  # noqa: E402
 from riichiformer.policy.config import (  # noqa: E402
     PROFILES, PolicyConfig, PolicyConfigError, load_policy_config,
 )

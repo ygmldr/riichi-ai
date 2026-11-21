@@ -86,7 +86,7 @@ was not rewritten and no public branch was pushed.
 |---|---|---|
 | A PR-37 | `87afe78` | PASS_WITH_P1; P1 bool-coercion fixed in `c426ac7`; policy config/hash/allowlist authentication in place |
 | C PR-40 | `8248496` | PASS_WITH_P1; R02/R25/R26 implemented, R29 UNVERIFIED; evidence P1s fixed in `c426ac7` |
-| B PR-38/39 | `4e4754b` | merged; PR-38 PASS, PR-39 PASS_WITH_P1 (partial-override P1 fixed after review); 6-layer CLI, strict resume, accumulation and parity tests |
+| B PR-38/39 | `4e4754b` | merged; PR-38 PASS, PR-39 PASS (partial-override P1 fixed and re-verified); 6-layer CLI, strict resume, accumulation and parity tests |
 | D PR-41/42 | `4e380a3` | merged; PR-41/42 PASS (P2 only); real local-engine selfplay and duplicate arena with explicit `tenhou_approx` labels |
 
 Integration full suite after all merges and P1 fixes: **683 passed, 2 skipped, 281

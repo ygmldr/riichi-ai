@@ -47,7 +47,7 @@ never counted as passes.
 
 Independent reviews on the lane commits: PR-37 `PASS_WITH_P1` (P1 fixed in `c426ac7`),
 PR-40 `PASS_WITH_P1` (evidence P1s fixed in `c426ac7`), PR-38 `PASS` (P2 only),
-PR-39 `PASS_WITH_P1` (partial-override P1 fixed after review; 683-test rerun), PR-41
+PR-39 `PASS` (partial-override P1 fixed and independently re-verified; 683-test rerun), PR-41
 `PASS` (P2 only), PR-42 `PASS` (P2 only). No P0 was reported for any lane.
 
 ## 3. SYNTHETIC_E2E_PASS / PRIVATE_H2_TRAIN_SMOKE
@@ -118,10 +118,11 @@ strength. PR-44 B0 and the later candidate/risk/RL lines remain future work.
 
 ## 7. Remaining P1/P2 (do not hide)
 
-Resolved reviewer P1: partial `--layers/--ffn/--state-hidden/--max-positions`
-overrides now start from the frozen MVP-S and only replace supplied fields; a
-`--max-positions 8192` regression test proves the model stays 6-layer / 5,217,582 and
-is labelled `kind=custom`. The full suite after the fix is 683 passed.
+Resolved reviewer P1 (independently re-verified): partial
+`--layers/--ffn/--state-hidden/--max-positions` overrides now start from the frozen
+MVP-S and only replace supplied fields; a `--max-positions 8192` regression test proves
+the model stays 6-layer / 5,217,582 and is labelled `kind=custom`. The full suite after
+the fix is 683 passed.
 
 P1:
 1. R29 ippatsu timing remains **UNVERIFIED**; R02 continuation (honba/dealer/kyotaku) is
