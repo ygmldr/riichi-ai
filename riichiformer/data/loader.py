@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import string
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
@@ -47,6 +49,13 @@ PURPOSES = ("train", "audit", "diagnostic")
 
 class ShardLoadError(ShardError):
     """The shard cannot be read under the requested purpose/hash/source."""
+
+
+_HEX = frozenset(string.hexdigits)
+
+
+def _is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in _HEX for char in value)
 
 
 def _tile(value: dict) -> TileRef:
@@ -149,11 +158,34 @@ class ShardReader:
                  expected_hashes: dict | None = None,
                  expected_source_id: str | None = None,
                  expected_component_sha256: dict[str, str] | None = None,
+                 expected_policy_hash: str | None = None,
+                 allowed_local_sources: Iterable[str] | None = None,
                  verify_file_hash: bool = True):
         if purpose not in PURPOSES:
             raise ShardLoadError(f"purpose must be one of {PURPOSES}")
         self.path = Path(path)
         self.purpose = purpose
+        if expected_policy_hash is not None:
+            if not _is_sha256(expected_policy_hash):
+                raise ShardLoadError(
+                    "expected_policy_hash must be a 64-char hex sha256")
+            expected_policy_hash = expected_policy_hash.lower()
+        self._expected_policy_hash = expected_policy_hash
+        if allowed_local_sources is not None:
+            if isinstance(allowed_local_sources, str):
+                raise ShardLoadError(
+                    "allowed_local_sources must be a collection of source ids")
+            try:
+                sources = frozenset(allowed_local_sources)
+            except TypeError as exc:
+                raise ShardLoadError(
+                    "allowed_local_sources must be an iterable of source ids") from exc
+            if any(not isinstance(item, str) or not item for item in sources):
+                raise ShardLoadError(
+                    "allowed_local_sources entries must be non-empty strings")
+            self._allowed_local_sources = sources
+        else:
+            self._allowed_local_sources = None
         if not self.path.exists():
             raise ShardLoadError(f"shard not found: {self.path}")
         self.manifest = read_manifest(self.path)
@@ -193,13 +225,44 @@ class ShardReader:
                 or self.metadata.action_map_hash != ACTION_HASH \
                 or self.metadata.normalizer_hash != NORMALIZER_HASH:
             raise ShardLoadError("shard schema/action/normalizer hash mismatch")
+        if self._expected_policy_hash is not None:
+            if self.metadata.research_policy != "operator_private_research":
+                raise ShardRightsError(
+                    "expected_policy_hash was provided but the shard is "
+                    f"research_policy={self.metadata.research_policy!r}")
+            if self.metadata.research_policy_hash != self._expected_policy_hash:
+                raise ShardRightsError(
+                    "research_policy_hash mismatch: shard records "
+                    f"{self.metadata.research_policy_hash!r}, expected "
+                    f"{self._expected_policy_hash!r}")
         if purpose == "train":
             if self.metadata.purpose != "train":
                 raise ShardRightsError(
                     f"training loader refuses purpose={self.metadata.purpose!r} shard")
-            if self.metadata.research_policy == "licensed_only" and (
-                    not self.metadata.train_allowed or self.metadata.rights_status.upper() != "ALLOWED"):
-                raise ShardRightsError("licensed training loader refuses blocked source shard")
+            if self.metadata.research_policy == "licensed_only":
+                if not self.metadata.train_allowed \
+                        or self.metadata.rights_status.upper() != "ALLOWED":
+                    raise ShardRightsError(
+                        "licensed training loader refuses blocked source shard")
+            else:
+                # P1 closure: a private shard is never authenticated by itself.
+                if self._expected_policy_hash is None:
+                    raise ShardRightsError(
+                        "operator_private_research training shard requires an "
+                        "explicit expected policy hash (--policy-config or "
+                        "--expected-policy-hash); refusing an unauthenticated "
+                        "private shard")
+                if not self.metadata.train_eligible_under_policy:
+                    raise ShardRightsError(
+                        "private training shard is not marked "
+                        "train_eligible_under_policy")
+                if self._allowed_local_sources is not None:
+                    uncovered = self._allowed_sources() - self._allowed_local_sources
+                    if uncovered:
+                        raise ShardRightsError(
+                            "shard source(s) "
+                            f"{sorted(uncovered)} are outside the expected policy "
+                            "allowlist")
         self._conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True)
         self._conn.row_factory = sqlite3.Row
         self._closed = False
