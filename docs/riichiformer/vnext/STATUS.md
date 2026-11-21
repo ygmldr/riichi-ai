@@ -44,7 +44,9 @@
 * **Native trained-checkpoint smoke**: 4 games / 765 decisions and a
   16-game lifecycle rerun / 2,792 decisions, 0 illegal/fallback; the 16-game
   run exposed and fixed a missing per-game backend reset.
-  `logs/VNEXT_NATIVE_TRAINED_SMOKE.log`, `logs/VNEXT_NATIVE_TRAINED_16G.log`.
+  `logs/VNEXT_NATIVE_TRAINED_SMOKE.log`, `logs/VNEXT_NATIVE_TRAINED_16G.log`;
+  two repeated 8-game runs produced identical action-trace hashes
+  (`logs/VNEXT_NATIVE_DETERMINISM.log`).
 * **Real-data pilot**: 1,000 games / 661,627 decisions train; 500 games /
   326,798 decisions held-out val.  1,000 steps: val BC CE 1.5983 → 1.5285.
   5,000 steps: val BC CE **1.5893 → 1.4719**, rank CE **1.3682 → 1.2956**,

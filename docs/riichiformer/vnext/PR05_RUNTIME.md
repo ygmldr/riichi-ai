@@ -34,7 +34,8 @@ frozen M5D registry.  A second 4-game smoke loaded the 5,000-step BC checkpoint
 strength measurement, and still had `kan_selections=0`.  A 4-set/16-game run
 exposed that the native driver does not always forward `start_game`; the engine
 now resets the backend once per game from `_react`, and the 16-game rerun passed
-with 2,792 decisions, 0 illegal/fallback.
+with 2,792 decisions, 0 illegal/fallback.  Two repeated 8-game runs had
+identical action-trace hashes and scores (`VNEXT_NATIVE_DETERMINISM.log`).
 
 ## Parity policy
 
