@@ -174,6 +174,15 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(grads)
         self.assertTrue(any(float(g.abs().sum()) > 0 for g in grads))
 
+    def test_autocast_policy_output_is_fp32(self):
+        if not hasattr(torch, "autocast"):
+            self.skipTest("autocast unavailable")
+        with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+            output = self.model(self.batch)
+        self.assertEqual(output.logits.dtype, torch.float32)
+        self.assertEqual(output.masked_logits.dtype, torch.float32)
+        output.validate()
+
     def test_parameter_count_is_reported(self):
         self.assertGreater(count_parameters(self.model), 100_000)
 

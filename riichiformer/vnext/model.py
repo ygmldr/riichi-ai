@@ -334,7 +334,10 @@ class VNextPolicy(nn.Module):
             logits = torch.cat([tile_logits, other_logits], dim=-1)
         if logits.size(-1) != ACTION_SPACE:  # pragma: no cover
             raise AssertionError("VNext policy head width is not 46")
-        masked = logits.float().masked_fill(~batch.legal_mask, float("-inf"))
+        # Keep policy arithmetic in FP32 even under BF16 autocast; the output
+        # contract and the masked -inf/log-softmax must share one dtype.
+        logits = logits.float()
+        masked = logits.masked_fill(~batch.legal_mask, float("-inf"))
         logprobs = torch.log_softmax(masked, dim=-1)
         rank_logits = self.critic(z) if self.critic is not None else None
         output = VNextPolicyOutput(

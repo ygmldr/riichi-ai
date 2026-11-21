@@ -75,7 +75,8 @@ a strength result.  Script: `scripts/rf_bench_vnext.py`; raw:
 * decision-order permutation invariance;
 * cross-attn=0, linear46, state-only controls;
 * factorized vs identity and normal-vs-aka distinction;
-* backward reaches actor parameters.
+* backward reaches actor parameters;
+* CPU BF16 autocast keeps the policy output in FP32 and still validates.
 
 `tests/rf_test_vnext_contracts.py` and `tests/rf_test_vnext_runtime.py` cover the
 target separation, PT/GRP schemas and runtime reset/act paths.
