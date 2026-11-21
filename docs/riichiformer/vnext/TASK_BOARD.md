@@ -16,11 +16,11 @@ tests (or recorded `NOT_RUN`), and received an independent review verdict.
 | PR-05 Runtime/native | Lead/Runtime | `PARTIAL` | Cacheless adapter, kyoku reset, native 4-game smoke 579 decisions, 0 illegal/fallback. `kan_selections=0`, so the end-to-end multi-kan `KAN_SELECTION` path remains `NOT_RUN`. |
 | PR-06 GRP24 | Lead/Value | `INTEGRATED` | 24 permutations, marginals, zero-sum Phi, independent checkpoint; synthetic CUDA 50-step loss finite. |
 | PR-07 Decision Critic | Lead/Value | `INTEGRATED` | Detach/joint gradient tests; real-game calibration `NOT_RUN`. |
-| PR-08 BC census/trainer | Lead/Model | `INTEGRATED` (real pilot) | Real `rf_train_vnext.py`, authenticated shards, 1,000-game/661k-decision pilot, held-out val CE 1.5983→1.5285. Full 2.51M epoch `NOT_RUN` (throughput). |
+| PR-08 BC census/trainer | Lead/Model | `INTEGRATED` (real pilot) | Real `rf_train_vnext.py`, authenticated shards, 1,000-game/661k-decision train + 500-game/326k val. 5,000-step val BC CE 1.5893→1.4719; 500-batch re-eval 1.4934. Full 2.51M epoch `NOT_RUN` (throughput). |
 | PR-09 RL contracts | Lead/RL | `INTEGRATED` (toy) | Behavior μ/guard, PBRS/Mortal delta, GAE, AWR/PPO tests; synthetic CUDA finite; native rollout `NOT_RUN`. |
 | PR-10 League | Lead/RL | `INTEGRATED` (toy) | League manifest/toy only; native 1v3 league `NOT_RUN`. |
-| PR-11 Preregistration | Lead | `IN_PROGRESS` | Operator-authorized local pilot complete; real Census limited to the 2009 pilot/val shards; full-corpus Census not run. |
-| PR-12 Formal BC/RL/Arena | Lead | `IN_PROGRESS` | Real 1,000-step BC pilot passed; full 2009-year shard build in progress. No Arena/strength claim. |
+| PR-11 Preregistration | Lead | `IN_PROGRESS` | Pilot Census complete: 661,627 train / 326,798 val decisions; prefix P99 1,547 / 1,497; max 2,491 / 2,180. Full-corpus Census `NOT_RUN`. |
+| PR-12 Formal BC/RL/Arena | Lead | `IN_PROGRESS` | 5,000-step BC pilot + trained-checkpoint native smoke (16 games, 2,792 decisions, deterministic rerun) passed; full 2009-year shard build in progress. No Arena/strength claim. |
 
 ## Current blockers
 
