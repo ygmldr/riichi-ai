@@ -98,6 +98,5 @@ PR-46 duplicate arena are separate gates.
 - Sample manifest: **created** (`f6560a17…`).
 - 500-game shard: **building** (background job; exact sha/decisions to be filled in).
 - Multi-decision loader/trainer: **in progress** on `rf/v32-b0`.
-- B0 pilot training: **NOT_RUN** until the multi path and a GPU lock exist.
-- Multi path smoke (Lead, uncommitted Dev-COMPUTE branch): 2 GPU steps, batch 8, 58/107 shared tokens, peak ~1.85 GB; batch 64 hits a single 4,864-event POV (`> max_events 4096`), so long-context/config filtering is required. Do not train B0 until this is fixed.
-- Full B0 / strength: **NOT RUN**.
+- B0 pilot training: **RUN** — two seeds × 2,000 steps on the 500-game shard; 107,026 decisions / 1,766,242 shared tokens per seed; checkpoints `f3879cb8…` / `3aa54cbe…`; see `PR44_B0_PILOT.md`.
+- Full B0 (full epoch, validation/selection) / strength: **NOT RUN**.
