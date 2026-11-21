@@ -17,6 +17,12 @@ implements that and fails closed when ``accumulation_count > 1`` is requested
 without the window total (or with an explicit ``loss_scale``).  An all-censored
 microbatch performs no backward but still triggers the window's optimizer step
 when earlier microbatches contributed gradients.
+
+Both forward paths share that body: :func:`training_step` consumes a
+:class:`~riichiformer.models.batch.ModelBatch` (one prefix row per decision) and
+:func:`training_step_multi` consumes a
+:class:`~riichiformer.models.batch.MultiDecisionBatch` (one shared event row per
+stream plus one marker per decision).
 """
 
 from __future__ import annotations
@@ -27,7 +33,7 @@ from typing import Mapping, Sequence
 import torch
 from torch import Tensor
 
-from ..models.batch import ModelBatch
+from ..models.batch import ModelBatch, MultiDecisionBatch
 from ..models.policy import Policy, PolicyOutput
 from ..schemas.action_v3 import ACTION_SPACE
 
@@ -151,27 +157,11 @@ def masked_bc_loss(output: PolicyOutput, targets: Sequence[Mapping], *,
                         numerator=numerator)
 
 
-def training_step(model: Policy, batch: ModelBatch, targets: Sequence[Mapping], *,
-                  optimizer: torch.optim.Optimizer, scaler=None,
-                  scheduler=None, max_grad_norm: float = 1.0,
-                  bf16: bool = False, accumulation_step: int = 0,
-                  accumulation_count: int = 1,
-                  accumulation_weight_total: float | None = None,
-                  loss_scale: float | None = None) -> BCLossResult:
-    """One microbatch of an optimizer step with exact accumulation weighting.
-
-    ``accumulation_weight_total`` is the sum of valid label weights over the whole
-    accumulation window (:func:`window_weight_total`).  Every microbatch
-    back-propagates ``numerator / accumulation_weight_total``, so the accumulated
-    gradient equals one large batch instead of the average of per-microbatch means.
-    With ``accumulation_count == 1`` the local weight sum is used when the total
-    is omitted.  ``loss_scale`` is an explicit alternative multiplier (the caller
-    owns the normalization); it cannot be combined with the window total.
-    """
-    if not isinstance(model, Policy):
-        raise TrainingError("model must be Policy")
-    if not isinstance(batch, ModelBatch):
-        raise TrainingError("batch must be ModelBatch")
+def _check_accumulation_args(accumulation_step: int, accumulation_count: int,
+                             accumulation_weight_total: float | None,
+                             loss_scale: float | None
+                             ) -> tuple[float | None, float | None]:
+    """Validate the PR-39 accumulation contract shared by both forward paths."""
     if accumulation_count < 1:
         raise TrainingError("accumulation_count must be >= 1")
     if accumulation_step < 0:
@@ -194,6 +184,21 @@ def training_step(model: Policy, batch: ModelBatch, targets: Sequence[Mapping], 
         loss_scale = float(loss_scale)
         if not torch.isfinite(torch.tensor(loss_scale)) or loss_scale <= 0:
             raise TrainingError("loss_scale must be finite and > 0")
+    return accumulation_weight_total, loss_scale
+
+
+def _training_step_core(model: Policy, batch, targets: Sequence[Mapping], forward, *,
+                        optimizer: torch.optim.Optimizer, scaler=None,
+                        scheduler=None, max_grad_norm: float = 1.0,
+                        bf16: bool = False, accumulation_step: int = 0,
+                        accumulation_count: int = 1,
+                        accumulation_weight_total: float | None = None,
+                        loss_scale: float | None = None) -> BCLossResult:
+    """Shared forward/backward/optimizer body for prefix and multi batches.
+
+    ``forward`` receives the batch and returns a :class:`PolicyOutput`; both paths
+    therefore use exactly the same loss, accumulation and optimizer semantics.
+    """
     model.train()
     if accumulation_step % accumulation_count == 0:
         optimizer.zero_grad(set_to_none=True)
@@ -201,7 +206,7 @@ def training_step(model: Policy, batch: ModelBatch, targets: Sequence[Mapping], 
     autocast = torch.autocast(device_type=device_type, dtype=torch.bfloat16,
                               enabled=bool(bf16))
     with autocast:
-        output = model(batch)
+        output = forward(batch)
         result = masked_bc_loss(output, targets)
     boundary = (accumulation_step + 1) % accumulation_count == 0
     has_gradient = any(parameter.grad is not None
@@ -248,7 +253,71 @@ def training_step(model: Policy, batch: ModelBatch, targets: Sequence[Mapping], 
     return result
 
 
+def training_step(model: Policy, batch: ModelBatch, targets: Sequence[Mapping], *,
+                  optimizer: torch.optim.Optimizer, scaler=None,
+                  scheduler=None, max_grad_norm: float = 1.0,
+                  bf16: bool = False, accumulation_step: int = 0,
+                  accumulation_count: int = 1,
+                  accumulation_weight_total: float | None = None,
+                  loss_scale: float | None = None) -> BCLossResult:
+    """One microbatch of an optimizer step with exact accumulation weighting.
+
+    ``accumulation_weight_total`` is the sum of valid label weights over the whole
+    accumulation window (:func:`window_weight_total`).  Every microbatch
+    back-propagates ``numerator / accumulation_weight_total``, so the accumulated
+    gradient equals one large batch instead of the average of per-microbatch means.
+    With ``accumulation_count == 1`` the local weight sum is used when the total
+    is omitted.  ``loss_scale`` is an explicit alternative multiplier (the caller
+    owns the normalization); it cannot be combined with the window total.
+    """
+    if not isinstance(model, Policy):
+        raise TrainingError("model must be Policy")
+    if not isinstance(batch, ModelBatch):
+        raise TrainingError("batch must be ModelBatch")
+    accumulation_weight_total, loss_scale = _check_accumulation_args(
+        accumulation_step, accumulation_count, accumulation_weight_total, loss_scale)
+    return _training_step_core(
+        model, batch, targets, model, optimizer=optimizer, scaler=scaler,
+        scheduler=scheduler, max_grad_norm=max_grad_norm, bf16=bf16,
+        accumulation_step=accumulation_step,
+        accumulation_count=accumulation_count,
+        accumulation_weight_total=accumulation_weight_total, loss_scale=loss_scale)
+
+
+def training_step_multi(model: Policy, batch: MultiDecisionBatch,
+                        targets: Sequence[Mapping], *,
+                        optimizer: torch.optim.Optimizer, scaler=None,
+                        scheduler=None, max_grad_norm: float = 1.0,
+                        bf16: bool = False, accumulation_step: int = 0,
+                        accumulation_count: int = 1,
+                        accumulation_weight_total: float | None = None,
+                        loss_scale: float | None = None) -> BCLossResult:
+    """PR-38 counterpart of :func:`training_step` for a shared-event batch.
+
+    The multi-decision batch is run through :meth:`Policy.forward_multi` (one
+    transformer pass per stream, one marker per decision) and every decision is
+    matched to its target row in marker order.  Loss, weight validation,
+    gradient-accumulation normalization (``window_total``/``loss_scale``) and
+    optimizer/scheduler stepping are **the same code path** as
+    :func:`training_step`; only the forward differs.  Models must be in the
+    default ``dropout == 0`` regime for multi/prefix parity, but training itself
+    has no extra restriction.
+    """
+    if not isinstance(model, Policy):
+        raise TrainingError("model must be Policy")
+    if not isinstance(batch, MultiDecisionBatch):
+        raise TrainingError("batch must be MultiDecisionBatch")
+    accumulation_weight_total, loss_scale = _check_accumulation_args(
+        accumulation_step, accumulation_count, accumulation_weight_total, loss_scale)
+    return _training_step_core(
+        model, batch, targets, model.forward_multi, optimizer=optimizer,
+        scaler=scaler, scheduler=scheduler, max_grad_norm=max_grad_norm,
+        bf16=bf16, accumulation_step=accumulation_step,
+        accumulation_count=accumulation_count,
+        accumulation_weight_total=accumulation_weight_total, loss_scale=loss_scale)
+
+
 __all__ = [
     "BCLossResult", "TrainingError", "masked_bc_loss", "training_step",
-    "valid_weight_sum", "window_weight_total",
+    "training_step_multi", "valid_weight_sum", "window_weight_total",
 ]
