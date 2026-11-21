@@ -58,13 +58,14 @@ def behavior_probs(raw_logits: Tensor, legal_mask: Tensor, *,
     if legal_mask.shape != (ACTION_SPACE,) or legal_mask.dtype is not torch.bool:
         raise RLError("legal_mask must be a bool 46-vector")
     effective = legal_mask if guard.effective_mask is None else (
-        legal_mask & torch.tensor(guard.effective_mask, dtype=torch.bool))
+        legal_mask & torch.tensor(guard.effective_mask, dtype=torch.bool,
+                                  device=legal_mask.device))
     if not bool(effective.any()):
         raise RLError("effective mask is empty")
     if guard.forced_action is not None:
         if not bool(effective[guard.forced_action]):
             raise RLError("forced action is not legal/effective")
-        probs = torch.zeros(ACTION_SPACE)
+        probs = torch.zeros_like(raw_logits)
         probs[guard.forced_action] = 1.0
         return probs, int(guard.forced_action), True
     logits = raw_logits.float().masked_fill(~effective, float("-inf"))

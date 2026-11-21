@@ -251,6 +251,19 @@ class ModelTests(unittest.TestCase):
         self.assertFalse(any(float(g.abs().sum()) > 0 for g in actor_grads))
         self.assertTrue(any(float(g.abs().sum()) > 0 for g in critic_grads))
 
+    def test_eval_rope_cache_does_not_break_training_autograd(self):
+        # A cache first built inside inference_mode() used to retain the
+        # inference flag; switching the same model to train() then failed in
+        # RoPE backward.  This is the exact sequence used by profile/smoke code.
+        model = VNextPolicy(small_config()).eval()
+        with torch.inference_mode():
+            model(self.batch)
+        model.train()
+        output = model(self.batch)
+        output.logits.sum().backward()
+        self.assertTrue(any(parameter.grad is not None
+                            for parameter in model.parameters()))
+
     def test_bos_only_prefix_works(self):
         from riichiformer.vnext.contracts import (
             BOS_EVENT_ID, PAD_EVENT_ID, TILE_FEATURE_DIM, VNextModelBatch,

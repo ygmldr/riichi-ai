@@ -360,26 +360,53 @@ def _load_mortal_modules():
     except Exception as exc:  # pragma: no cover
         raise AnchorError(f"torch is required: {exc}") from exc
     directory = REPO_ROOT / "vendor" / "mortal" / "mortal"
-    modules = {}
-    for name in ("model", "engine"):
-        path = directory / f"{name}.py"
-        if not path.is_file():
-            raise AnchorError(f"missing vendor module {path}")
-        module_name = f"_rf46_mortal_{name}"
-        if module_name in sys.modules:
-            modules[name] = sys.modules[module_name]
-            continue
-        spec = importlib.util.spec_from_file_location(module_name, path)
-        if spec is None or spec.loader is None:
-            raise AnchorError(f"cannot build an import spec for {path}")
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
+    # `model.py`/`engine.py` import the sibling `event_data` by its bare name.
+    # Load that one module explicitly and restore the previous import state,
+    # rather than putting the whole vendor directory on sys.path where it could
+    # shadow project modules for later callers.
+    event_path = directory / "event_data.py"
+    previous_event = sys.modules.get("event_data")
+    if event_path.is_file():
+        event_spec = importlib.util.spec_from_file_location(
+            "event_data", event_path)
+        if event_spec is None or event_spec.loader is None:
+            raise AnchorError(f"cannot build an import spec for {event_path}")
+        event_module = importlib.util.module_from_spec(event_spec)
+        sys.modules["event_data"] = event_module
         try:
-            spec.loader.exec_module(module)
+            event_spec.loader.exec_module(event_module)
         except Exception:
-            del sys.modules[module_name]
+            if previous_event is None:
+                sys.modules.pop("event_data", None)
+            else:
+                sys.modules["event_data"] = previous_event
             raise
-        modules[name] = module
+    modules = {}
+    try:
+        for name in ("model", "engine"):
+            path = directory / f"{name}.py"
+            if not path.is_file():
+                raise AnchorError(f"missing vendor module {path}")
+            module_name = f"_rf46_mortal_{name}"
+            if module_name in sys.modules:
+                modules[name] = sys.modules[module_name]
+                continue
+            spec = importlib.util.spec_from_file_location(module_name, path)
+            if spec is None or spec.loader is None:
+                raise AnchorError(f"cannot build an import spec for {path}")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            try:
+                spec.loader.exec_module(module)
+            except Exception:
+                del sys.modules[module_name]
+                raise
+            modules[name] = module
+    finally:
+        if previous_event is None:
+            sys.modules.pop("event_data", None)
+        else:
+            sys.modules["event_data"] = previous_event
     return modules["model"], modules["engine"]
 
 
@@ -512,11 +539,22 @@ class MortalCheckpointAdapter:
             boltzmann_temp=1.0,
             top_p=1.0,
         )
+        import inspect
+        self._engine_accepts_events = (
+            "events" in inspect.signature(self.engine.react_batch).parameters)
 
     # -- native BatchAgent surface ----------------------------------------
-    def react_batch(self, obs, masks, invisible_obs=None):
+    def react_batch(self, obs, masks, invisible_obs=None, events=None):
         if invisible_obs is not None:
             raise AnchorError("M5D-R0 is not an oracle and must not receive hidden obs")
+        # New native builds pass public event tokens as a fourth argument; the
+        # frozen CNN anchor has no event branch, so the Brain ignores them.  Keep
+        # the old three-argument build working when events is None.
+        if self._engine_accepts_events:
+            return self.engine.react_batch(obs, masks, invisible_obs, events=events)
+        if events is not None:
+            raise AnchorError(
+                "native build passed event tokens but this engine has no events API")
         return self.engine.react_batch(obs, masks, invisible_obs)
 
     # -- introspection -----------------------------------------------------

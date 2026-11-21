@@ -703,6 +703,11 @@ class RFMjaiLogEngine:
     def start_game(self, index: int) -> None:
         index = int(index)
         self.streams[index] = PovDecisionStream(index % 4)
+        # Optional backend lifecycle hook.  VNext keeps one cacheless adapter per
+        # game/POV; generic RFPolicyBackend has no such state and is unaffected.
+        start = getattr(self.backend, "start_game", None)
+        if start is not None:
+            start(index, index % 4)
 
     def end_kyoku(self, index: int) -> None:
         return None
@@ -781,8 +786,8 @@ class RecordingMortalEngine:
         self.enable_quick_eval = adapter.enable_quick_eval
         self.enable_rule_based_agari_guard = adapter.enable_rule_based_agari_guard
 
-    def react_batch(self, obs, masks, invisible_obs=None):
-        return self.adapter.react_batch(obs, masks, invisible_obs)
+    def react_batch(self, obs, masks, invisible_obs=None, events=None):
+        return self.adapter.react_batch(obs, masks, invisible_obs, events=events)
 
     def end_game(self, index: int, scores) -> None:
         self.recorder.record(int(index), scores)
@@ -1071,6 +1076,8 @@ def run_arena(
         candidate_meta["decisions"] = int(challenger.stats["decisions"])
         candidate_meta["illegal"] = int(challenger.stats["illegal"])
         candidate_meta["fallback"] = int(challenger.stats["fallback"])
+        candidate_meta["kan_selections"] = int(
+            challenger.stats.get("kan_selections", 0))
         if challenger.stats["decisions"] <= 0:
             raise M5DArenaError("RF challenger made no decisions")
 

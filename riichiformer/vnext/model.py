@@ -317,9 +317,12 @@ class VNextPolicy(nn.Module):
                 f"{type(batch).__name__}")
         device = next(self.parameters()).device
         if batch.event_valid_mask.device != device:
+            # Do not silently copy: the trainer/reference caller owns placement.
+            # The previous unconditional batch.to(device) re-ran the scalar-heavy
+            # VNextModelBatch contract on every forward (thousands of GPU syncs)
+            # even when the device already matched.
             raise VNextModelError(
                 f"batch device {batch.event_valid_mask.device} != model device {device}")
-        batch = batch.to(device)
         h = self.event_states(batch)
         per_tile, tile_summary, global_vec = self.state_encoder(
             batch.x_tile, batch.x_global)

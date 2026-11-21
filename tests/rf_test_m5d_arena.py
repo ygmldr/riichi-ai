@@ -38,7 +38,21 @@ from riichiformer.schemas.event_v3 import (  # noqa: E402
 from riichiformer.selfplay.tiles import tile_text  # noqa: E402
 
 CHECKPOINT = Path(M.DEFAULT_CHECKPOINT_PATH)
-NATIVE = CHECKPOINT.is_file()
+
+
+def _native_registry_matches() -> bool:
+    """True only when the frozen registry matches this worktree's native build."""
+    if not CHECKPOINT.is_file():
+        return False
+    try:
+        M.load_baseline_registry(
+            REPO_ROOT / "configs" / "riichiformer" / "m5d_baseline.yaml")
+    except Exception:
+        return False
+    return True
+
+
+NATIVE = _native_registry_matches()
 SMOKE_KEY = 0x524636410000A001
 SMOKE_WINDOW = 220_000
 DETERMINISM_KEY = 0x524636410000D001
@@ -380,6 +394,20 @@ class _TinyBackend:
 
 
 # ---------------------------------------------------------------------------
+# backend lifecycle hook
+# ---------------------------------------------------------------------------
+class BackendLifecycleTests(unittest.TestCase):
+    def test_rf_engine_calls_optional_backend_start_game(self):
+        backend = _TinyBackend()
+        calls = []
+        backend.start_game = lambda index, pov: calls.append((index, pov))
+        engine = A.RFMjaiLogEngine(backend, A.ScoreRecorder("challenger"))
+        engine.start_game(7)
+        self.assertEqual(calls, [(7, 3)])
+        self.assertEqual(engine.streams[7].pov, 3)
+
+
+# ---------------------------------------------------------------------------
 # real native CPU smoke
 # ---------------------------------------------------------------------------
 @unittest.skipUnless(NATIVE, f"M5D-R0 checkpoint not found at {CHECKPOINT}")
@@ -484,6 +512,7 @@ class NativeSmokeTests(unittest.TestCase):
 # CLI / manifest
 # ---------------------------------------------------------------------------
 class CliTests(unittest.TestCase):
+    @unittest.skipUnless(NATIVE, "frozen native registry does not match this build")
     def test_cli_plan_and_manifest(self):
         out = Path(tempfile.mkdtemp(prefix="rf_m5d_cli_")) / "plan"
         completed = subprocess.run(

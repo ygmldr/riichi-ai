@@ -84,11 +84,16 @@ class RotaryEmbedding(nn.Module):
         if (self._cos.numel() >= length * self.head_dim
                 and self._cos.device == device):
             return
-        positions = torch.arange(self.max_positions, dtype=torch.float32, device=device)
-        freqs = torch.outer(positions, self.inv_freq.to(device=device))
-        emb = torch.cat((freqs, freqs), dim=-1)
-        self._cos = emb.cos()
-        self._sin = emb.sin()
+        # A cache first materialised under `torch.inference_mode()` would carry
+        # the inference flag forever, making a later training forward fail with
+        # "Inference tensors cannot be saved for backward".  Build the cache as
+        # ordinary tensors even when this method is called from an eval pass.
+        with torch.inference_mode(False):
+            positions = torch.arange(self.max_positions, dtype=torch.float32, device=device)
+            freqs = torch.outer(positions, self.inv_freq.to(device=device))
+            emb = torch.cat((freqs, freqs), dim=-1)
+            self._cos = emb.cos()
+            self._sin = emb.sin()
 
     def forward(self, q: Tensor, k: Tensor,
                 position_ids: Tensor | None = None) -> tuple[Tensor, Tensor]:
