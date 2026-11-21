@@ -85,8 +85,9 @@ rewritten.  A local smoke-only registry was generated under
 
 [`REVIEW.md`](REVIEW.md) records the first independent review (FAIL at
 `138a77b`), the second review (`PASS_WITH_P1` at `63ffd3b`), and the third
-review of the native/GPU changes (`PASS_WITH_P1`, no P0).  The Lead applied the
-third-review fixes; they were not re-reviewed.  The remaining multi-kan native
+review of the native/GPU changes (`PASS_WITH_P1`, no P0), and the fourth review
+of the real-data trainer (`PASS_WITH_P1`, no P0).  The Lead applied the review
+fixes; they were not re-reviewed.  The remaining multi-kan native
 case is explicitly `NOT_RUN`, so PR-05 is not called complete for
 `KAN_SELECTION`.
 
