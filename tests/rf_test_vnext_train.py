@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -17,7 +18,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from riichiformer.data.decision import build_decisions  # noqa: E402
 from riichiformer.vnext.contracts import VNextConfig  # noqa: E402
 from riichiformer.vnext.data import (  # noqa: E402
-    VNextBatchAdapter, normalise_rank, targets_from_dicts,
+    VNextBatchAdapter, VNextDataError, normalise_rank, targets_from_dicts,
 )
 from riichiformer.vnext.model import VNextPolicy  # noqa: E402
 from riichiformer.vnext.train import (  # noqa: E402
@@ -213,6 +214,25 @@ class TrainTests(unittest.TestCase):
         self.assertTrue(torch.isfinite(torch.tensor(result["loss"])))
         self.assertTrue(result["optimizer_stepped"])
         self.assertTrue(any(p.grad is not None for p in model.parameters()))
+
+    def test_long_prefix_is_skipped_before_stream_creation(self):
+        class LongReader:
+            def iter_decisions(self):
+                events = tuple(types.SimpleNamespace(kyoku_idx=0)
+                               for _ in range(9))
+                decision = types.SimpleNamespace(events=events)
+                yield decision, {"rank_final": 1}, None, "g", 0, 0
+
+        adapter = VNextBatchAdapter(LongReader(), batch_size=4,
+                                    max_prefix_tokens=8)
+        self.assertEqual(list(adapter.iter_batches()), [])
+        self.assertEqual(adapter.long_prefix_skipped, 1)
+
+    def test_invalid_prefix_cap_is_rejected(self):
+        with self.assertRaises(VNextDataError):
+            VNextBatchAdapter(FakeReader(), max_prefix_tokens=0)
+        with self.assertRaises(VNextDataError):
+            VNextBatchAdapter(FakeReader(), max_prefix_tokens=True)
 
     def test_all_censored_is_zero_without_update(self):
         adapter = VNextBatchAdapter(FakeReader(), batch_size=2)

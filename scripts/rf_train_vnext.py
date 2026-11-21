@@ -83,9 +83,11 @@ def _provenance(metadata, *, train_shard_sha256: str,
 def _validation(reader: ShardReader, model: VNextPolicy, *,
                 batch_size: int, device: torch.device,
                 rank_weight: float, max_batches: int | None,
-                rank_base: int = 1) -> dict:
+                rank_base: int = 1,
+                max_prefix_tokens: int | None = None) -> dict:
     adapter = VNextBatchAdapter(reader, batch_size=batch_size,
-                                rank_base=rank_base)
+                                rank_base=rank_base,
+                                max_prefix_tokens=max_prefix_tokens)
     model.eval()
     bc_num = 0.0
     bc_weight = 0.0
@@ -197,6 +199,8 @@ def main(argv=None) -> int:
     parser.add_argument("--rank-weight", type=float, default=0.1)
     parser.add_argument("--rank-base", type=int, choices=(0, 1), default=1,
                         help="real shards use 1..4 ranks; synthetic 0..3")
+    parser.add_argument("--max-prefix-tokens", type=int, default=None,
+                        help="skip decisions longer than this; defaults to 4096")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=20261122)
     parser.add_argument("--warmup", type=int, default=500)
@@ -292,6 +296,7 @@ def main(argv=None) -> int:
         device = _device(args.device)
         if device.type == "cuda" and not torch.cuda.is_available():
             raise SystemExit("CUDA requested but unavailable")
+        max_prefix_tokens = args.max_prefix_tokens or VNextConfig().max_positions
         if args.validate_only:
             if args.checkpoint is None or val_reader is None:
                 raise SystemExit("--validate-only requires --checkpoint and --val-shard")
@@ -300,7 +305,7 @@ def main(argv=None) -> int:
             report = _validation(
                 val_reader, model, batch_size=args.batch_size, device=device,
                 rank_weight=args.rank_weight, max_batches=args.val_batches,
-                rank_base=args.rank_base)
+                rank_base=args.rank_base, max_prefix_tokens=max_prefix_tokens)
             report["checkpoint"] = str(Path(args.checkpoint).resolve())
             report["checkpoint_sha256"] = hashlib.sha256(
                 Path(args.checkpoint).read_bytes()).hexdigest()
@@ -354,7 +359,8 @@ def main(argv=None) -> int:
 
         model.train()
         adapter = VNextBatchAdapter(train_reader, batch_size=args.batch_size,
-                                    rank_base=args.rank_base)
+                                    rank_base=args.rank_base,
+                                    max_prefix_tokens=max_prefix_tokens)
         batches = adapter.iter_batches()
         step = start_step
         batches_seen = 0
@@ -375,9 +381,12 @@ def main(argv=None) -> int:
                 item = next(batches)
             except StopIteration:
                 exhausted = True
+                skipped = adapter.long_prefix_skipped
                 adapter = VNextBatchAdapter(
                     train_reader, batch_size=args.batch_size,
-                    rank_base=args.rank_base)
+                    rank_base=args.rank_base,
+                    max_prefix_tokens=max_prefix_tokens)
+                adapter.long_prefix_skipped = skipped
                 batches = adapter.iter_batches()
                 continue
             batches_seen += 1
@@ -442,7 +451,10 @@ def main(argv=None) -> int:
             "stopped_reason": ("target_reached" if step >= args.steps else stopped),
             "steps": step, "target_steps": args.steps, "start_step": start_step,
             "batches_seen": batches_seen, "start_batches": start_batches,
-            "exhausted": exhausted, "loss_first": losses[0] if losses else None,
+            "exhausted": exhausted,
+            "max_prefix_tokens": max_prefix_tokens,
+            "long_prefix_skipped": adapter.long_prefix_skipped,
+            "loss_first": losses[0] if losses else None,
             "loss_last": losses[-1] if losses else None,
             "loss_mean": (sum(losses) / len(losses)) if losses else None,
             "last_validation": last_validation,

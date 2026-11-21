@@ -65,7 +65,8 @@ class VNextBatchAdapter:
     """Group shard decisions into current-kyoku VNext batches."""
 
     def __init__(self, reader, *, batch_size: int = 8,
-                 rank_base: int = 0) -> None:
+                 rank_base: int = 0,
+                 max_prefix_tokens: int | None = None) -> None:
         if not hasattr(reader, "iter_decisions"):
             raise VNextDataError("reader must expose iter_decisions()")
         if isinstance(batch_size, bool) or not isinstance(batch_size, int) \
@@ -73,9 +74,16 @@ class VNextBatchAdapter:
             raise VNextDataError("batch_size must be a positive int")
         if rank_base not in (0, 1):
             raise VNextDataError("rank_base must be 0 (labels 0..3) or 1 (1..4)")
+        if max_prefix_tokens is not None:
+            if isinstance(max_prefix_tokens, bool) \
+                    or not isinstance(max_prefix_tokens, int) \
+                    or max_prefix_tokens <= 0:
+                raise VNextDataError("max_prefix_tokens must be a positive int or None")
         self.reader = reader
         self.batch_size = int(batch_size)
         self.rank_base = int(rank_base)
+        self.max_prefix_tokens = max_prefix_tokens
+        self.long_prefix_skipped = 0
 
     def _finish(self, streams: dict, records: dict) -> VNextBCBatch:
         if not records:
@@ -125,6 +133,12 @@ class VNextBatchAdapter:
                 raise VNextDataError(
                     f"decision {game_id}/{pov}/{decision_index} has no current kyoku")
             kyoku = int(current[-1].kyoku_idx)
+            if self.max_prefix_tokens is not None and \
+                    len(current) + 1 > self.max_prefix_tokens:
+                # The positional contract is a hard bound: skip this decision
+                # before creating or extending an event stream.
+                self.long_prefix_skipped += 1
+                continue
             key = (str(game_id), int(pov), kyoku)
             stream = streams.get(key)
             if stream is None:

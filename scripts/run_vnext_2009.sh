@@ -44,6 +44,7 @@ exec "$PYTHON" scripts/rf_train_vnext.py \
     --steps "$STEPS" \
     --batch-size 64 \
     --rank-base 1 \
+    --max-prefix-tokens 4096 \
     --warmup 1000 \
     --min-lr-ratio 0.1 \
     --save-every 5000 \

@@ -21,9 +21,20 @@
 | V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | synthetic tests |
 | Native submodule | `vendor/mortal` @ `0cff2b5` | local build + smoke |
 
+## 2009 full-year run (launched 07:01)
+
+* shard complete: **6,897 games / 4,568,777 decisions / 4,545,919 supervised**
+* shard SHA `f411c9e2...`; source `tenhou_old`; policy `f0d472ee...`
+* Census: SELF_TURN 3,635,926; CALL_RESPONSE 927,493; KAN_SELECTION 5,358;
+  prefix P50/P90/P99/max 549/1,096/1,524/4,861
+* 460 decisions above the 4,096 positional bound are skipped and counted
+  (`--max-prefix-tokens 4096`), not silently truncated
+* full BC: 71,387 steps, batch 64, warmup+cosine, 5-hour cap, output
+  `runs/vnext_bc_2009`
+
 ## Current measured evidence
 
-* VNext-only CPU: **77 passed** in 1.83 s
+* VNext-only CPU: **79 passed** in 1.81 s
   (`logs/VNEXT_REAL_TRAIN_SUITE.log`), including the real-trainer CLI tests.
 * Combined VNext + B0 + arena/bridge + anchor CPU: **147 passed, 6 skipped,
   13 subtests** (`logs/VNEXT_COMBINED_REAL.log`).

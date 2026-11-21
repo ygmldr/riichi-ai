@@ -1,6 +1,6 @@
 # VNEXT-BC-2009-1 — Full-Year 2009 BC Run (operator-authorized)
 
-**Status**: `BUILDING_SHARD` (3,841/6,897 at 05:36; watcher armed; Census before train)
+**Status**: `TRAINING` (shard complete 07:00; 6,897 games / 4,568,777 decisions; 71,387 steps)
 **Created**: 2026-11-22
 **Owner**: single Lead
 **Data**: local Tenhou-derived 2009, operator-authorized local research
@@ -19,7 +19,7 @@ the 23:00 review.  It is not the 2.51M-match corpus; that one-epoch estimate is
 |---|---|
 | train | all 6,897 matches in `datasets/extracted/2009` |
 | train shard | `artifacts/riichiformer/h02/year2009_shards/train.rfshard` |
-| train decisions | expected ~4.55M (measured pilot mean 661.6/match) |
+| train decisions | **4,568,777** (4,545,919 supervised) |
 | validation | 500 matches from 2023, val-only filtered manifest |
 | validation shard | `artifacts/riichiformer/h02/pilot_shards/val.rfshard` |
 | split | `rf-split/2`, protocol L |
@@ -34,11 +34,12 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 | model | frozen VNext default, 6,538,716 params |
 | loss | masked BC + rank CE 0.1, rank_base 1 |
 | optimizer | AdamW, lr 1e-4, warmup 1,000 + cosine to 10%, grad clip 1.0 |
-| batch | 64 decisions |
-| steps | one epoch, `floor(decisions/64)` (about 71k) |
+| batch | 64 decisions; prefixes > 4,096 tokens are skipped and counted |
+| steps | 71,387 (`floor(4,568,777/64)`) |
 | validation | every 5,000 steps, 50 batches |
 | checkpoints | every 5,000 steps |
 | wall cap | 5 hours |
+| long-prefix skip | 460 decisions (0.01%) over 4,096; reported, never silently truncated |
 | seed | 20261122 |
 | device | CUDA FP32 |
 
@@ -49,6 +50,8 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 * validation CE recorded at the fixed schedule;
 * checkpoint provenance carries source/split/canonical/policy hashes;
 * no strength, dan, Arena or Confirm claim;
+* `max_prefix_tokens=4096`; decisions above the positional bound are skipped
+  and reported, not truncated or silently encoded;
 * if the wall cap triggers, resume from the last checkpoint; resume skips the
   exact `batches_seen`, requires the same train/val shard hashes and strict
   optimizer/RNG state, and never replays the prefix silently.
