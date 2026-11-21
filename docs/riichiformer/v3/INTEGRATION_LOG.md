@@ -127,5 +127,5 @@
 
 - `rf/v32-b0` `ce5a290`（合入 `45eefa1` + 最终报告）：`iter_multi_decision_batches`、`training_step_multi`、`--multi-decision`、长 POV 自适应 `max_events/max_positions`；旧 prefix 路径仍为默认。
 - 集成全量 **707 passed, 2 skipped, 281 subtests**（182.20 s），日志 `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`。
-- 500 局确定性 B0 sample/shard：333,224 decisions，shard `f474a3f1…`；两个 seed 各 500 步 GPU pilot（26,918 decisions / 432,147 tokens），checkpoint `f21c8a3e…` / `ac7346d1…`，strict resume 到 step 501。报告 `docs/riichiformer/v3_2/PR44_B0_PILOT.md`。
+- 500 局确定性 B0 sample/shard：333,224 decisions，shard `f474a3f1…`；两个 seed 各 2,000 步 GPU pilot（107,026 decisions / 1,766,242 tokens），checkpoint `f3879cb8…` / `3aa54cbe…`，strict resume 到 step 501。报告 `docs/riichiformer/v3_2/PR44_B0_PILOT.md`。
 - 这是 pilot，不是完整 B0；无验证集、无 arena 强度、无段位/Mortal 结论。

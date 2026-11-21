@@ -63,19 +63,26 @@ python scripts/rf_train.py --shard /tmp/b0_500.rfshard --multi-decision --train 
   --policy-config configs/riichiformer/local_research_policy.example.yaml
 ```
 
-| Seed | Steps | Decisions | Tokens | Wall | First loss | Last loss | Checkpoint SHA-256 |
+The preregistered 2,000-step budget was then run for both seeds:
+
+| Seed | Steps | Decisions | Tokens | Wall | Mean loss first 50 | Mean loss last 50 | Checkpoint SHA-256 |
 |---|---:|---:|---:|---:|---:|---:|---|
-| 20261121 | 500 | 26,918 | 432,147 | 86.0 s | 1.812336 | 1.239297 | `f21c8a3e2a20f8d4ca1706673e5881f9f2178976a4889512666d013fed55f3a8` |
-| 20261122 | 500 | 26,918 | 432,147 | 87.1 s | 1.800469 | 1.213882 | `ac7346d109570a32a6ab7345ede6b3cea36b4a6ddc83005ac852bf651fe5e65b` |
+| 20261121 | 2,000 | 107,026 | 1,766,242 | 299.81 s | 1.6464 | 1.2956 | `f3879cb8d9854534b594e591c53dc69933d74ba0ff1ee9cb8eeef7c6d8270789` |
+| 20261122 | 2,000 | 107,026 | 1,766,242 | 306.01 s | 1.6598 | 1.2946 | `3aa54cbe54fff516bfa384ba774169ebc0b194338032639f8b1003462ee5dfda` |
+
+A preliminary 500-step pass on the same corpus (26,918 decisions / 432,147 tokens
+per seed, ~86 s) showed the same trend (last loss 1.239 / 1.214) and is superseded
+by the 2,000-step checkpoints above.
 
 Both runs: 6-layer MVP-S, 5,217,582 params, finite loss every step, checkpoint
 model-config hash `771b3bc0…`, policy/provenance recorded. Peak `nvidia-smi`
-memory observed 4,649 MiB (includes the idle baseline; the isolated delta was not
-measured). This is ~8% of one epoch (6,191 batches), so it is a **pilot**, not a
-full B0.
+memory observed 4,649 MiB during the preliminary pass (includes the idle baseline;
+the isolated delta was not measured). 2,000 steps cover 107,026 / 333,224 =
+**32.1%** of the shard's decisions, not a full epoch, so this remains a **pilot**,
+not a full B0.
 
-Strict multi-path resume: seed 20261121 checkpoint → step 501, loss `1.102307`,
-tokens `432,672`, decisions `26,982`, checkpoint SHA-256
+Strict multi-path resume (preliminary 500-step checkpoint) → step 501, loss
+`1.102307`, tokens `432,672`, decisions `26,982`, checkpoint SHA-256
 `8b9d2c152c563980e06a0e73535c81ba0927394329cedb2a79ee7dd859ce9dbd`.
 Legacy checkpoints without `training_path` remain loadable; cross-path resume is
 refused by the integration tests.

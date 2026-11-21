@@ -107,6 +107,6 @@ selfplay POV→shard conversion, and applying 0014 to a fresh vendor.
 - Full suite on the patched integration tree: **707 passed, 2 skipped, 281 subtests**
   (182.20 s), log `docs/riichiformer/v3/logs/V3_2_W2_full_suite.log`.
 - 500-game deterministic B0 sample and shard: 333,224 decisions, shard sha
-  `f474a3f1…`; two 500-step GPU pilot seeds completed (26,918 decisions / 432,147
-  tokens per seed), checkpoint shas `f21c8a3e…` / `ac7346d1…`; strict resume to step
+  `f474a3f1…`; two 2,000-step GPU pilot seeds completed (107,026 decisions / 1,766,242
+  tokens per seed), checkpoint shas `f3879cb8…` / `3aa54cbe…`; strict resume to step
   501. Report `PR44_B0_PILOT.md`. This is a pilot, not full B0 and not strength.

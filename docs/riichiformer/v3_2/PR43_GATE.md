@@ -125,7 +125,7 @@ the model stays 6-layer / 5,217,582 and is labelled `kind=custom`. The full suit
 the fix is 683 passed.
 
 Resolved after this gate: PR-38 loader/trainer integration (20 new tests; 707-test suite)
-and a two-seed 500-step B0 pilot (`PR44_B0_PILOT.md`, 26,918 decisions/seed). The pilot
+and a two-seed 2,000-step B0 pilot (`PR44_B0_PILOT.md`, 107,026 decisions/seed). The pilot
 is a pipeline check, not a full B0 or a strength result.
 
 P1:
