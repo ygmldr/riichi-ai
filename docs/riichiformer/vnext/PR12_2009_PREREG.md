@@ -1,6 +1,6 @@
 # VNEXT-BC-2009-1 — Full-Year 2009 BC Run (operator-authorized)
 
-**Status**: `READY_TO_LAUNCH` (shard building)
+**Status**: `BUILDING_SHARD` (980/6,897 at 04:11; watcher will launch automatically)
 **Created**: 2026-11-22
 **Owner**: single Lead
 **Data**: local Tenhou-derived 2009, operator-authorized local research
