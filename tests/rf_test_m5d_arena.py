@@ -406,6 +406,16 @@ class BackendLifecycleTests(unittest.TestCase):
         self.assertEqual(calls, [(7, 3)])
         self.assertEqual(engine.streams[7].pov, 3)
 
+    def test_backend_reset_is_idempotent_per_game(self):
+        backend = _TinyBackend()
+        calls = []
+        backend.start_game = lambda index, pov: calls.append((index, pov))
+        engine = A.RFMjaiLogEngine(backend, A.ScoreRecorder("challenger"))
+        engine._ensure_backend_game(0)
+        engine._ensure_backend_game(0)
+        engine._ensure_backend_game(1)
+        self.assertEqual(calls, [(0, 0), (1, 1)])
+
 
 # ---------------------------------------------------------------------------
 # real native CPU smoke

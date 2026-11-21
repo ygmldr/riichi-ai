@@ -69,7 +69,11 @@ local M5D anchor:
 - synthetic fixture: false; strength claim: **NONE**.
 
 This proves the trained checkpoint can drive the native bridge; it is not a
-win-rate/dan/strength measurement.
+win-rate/dan/strength measurement.  A 4-set/16-game extension exposed a real
+lifecycle bug: the native driver did not always forward `start_game`, so a
+second set reused the prior POV adapter when the new kyoku id matched.  The
+engine now resets the optional backend exactly once per game from `_react` as
+well; the 16-game rerun passed with 2,792 decisions, 0 illegal, 0 fallback.
 
 ## 3. Pilot result
 

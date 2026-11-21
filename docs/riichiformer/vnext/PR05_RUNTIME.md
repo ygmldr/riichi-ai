@@ -31,7 +31,10 @@ multi-kan branch is still `NOT_RUN`.  This smoke used a local smoke-only
 registry because the worktree native build/patch identity differs from the
 frozen M5D registry.  A second 4-game smoke loaded the 5,000-step BC checkpoint
 (765 decisions, 0 illegal/fallback); it is an integration result, not a
-strength measurement, and still had `kan_selections=0`.
+strength measurement, and still had `kan_selections=0`.  A 4-set/16-game run
+exposed that the native driver does not always forward `start_game`; the engine
+now resets the backend once per game from `_react`, and the 16-game rerun passed
+with 2,792 decisions, 0 illegal/fallback.
 
 ## Parity policy
 

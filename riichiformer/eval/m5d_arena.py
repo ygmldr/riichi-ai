@@ -687,6 +687,7 @@ class RFMjaiLogEngine:
         self.name = name or backend.name
         self.player_ids: tuple[int, ...] | None = None
         self.streams: dict[int, PovDecisionStream] = {}
+        self._backend_game_index: int | None = None
         self.stats = {
             "decisions": 0, "illegal": 0, "fallback": 0,
             "bridge_errors": 0, "kan_selections": 0,
@@ -700,14 +701,27 @@ class RFMjaiLogEngine:
             raise BridgeError(f"challenger seat map is not a 0..3 rotation: {ids!r}")
         self.player_ids = ids
 
+    def _ensure_backend_game(self, index: int) -> None:
+        """Reset optional backend state exactly once per native game.
+
+        The native MortalBatchAgent does not consistently forward
+        ``start_game`` to Python engines, so ``_react`` also calls this hook.
+        """
+        index = int(index)
+        if self._backend_game_index == index:
+            return
+        self._backend_game_index = index
+        start = getattr(self.backend, "start_game", None)
+        if start is not None:
+            start(index, index % 4)
+
     def start_game(self, index: int) -> None:
         index = int(index)
         self.streams[index] = PovDecisionStream(index % 4)
         # Optional backend lifecycle hook.  VNext keeps one cacheless adapter per
         # game/POV; generic RFPolicyBackend has no such state and is unaffected.
-        start = getattr(self.backend, "start_game", None)
-        if start is not None:
-            start(index, index % 4)
+        self._backend_game_index = None
+        self._ensure_backend_game(index)
 
     def end_kyoku(self, index: int) -> None:
         return None
@@ -730,6 +744,7 @@ class RFMjaiLogEngine:
     def _react(self, game_state) -> str:
         state = game_state.state
         index = int(game_state.game_index)
+        self._ensure_backend_game(index)
         stream = self.streams.get(index)
         if stream is None:
             raise BridgeError(f"no RF stream for game index {index}")
