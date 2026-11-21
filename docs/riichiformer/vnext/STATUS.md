@@ -47,9 +47,10 @@ native Arena.
 
 ## Review
 
-[`REVIEW.md`](REVIEW.md) records the first independent review (verdict FAIL at
-`138a77b`), every P0/P1 disposition, and the post-fix evidence.  A second
-reviewer did not complete; no second-review PASS is claimed here.
+[`REVIEW.md`](REVIEW.md) records the first independent review (FAIL at
+`138a77b`), the second review (`PASS_WITH_P1` at `63ffd3b`), every P0/P1
+disposition, and the post-fix evidence.  P1s 3/7 (native multi-kan/EMA arena)
+remain `NOT_RUN`; no strength claim is made.
 
 ## Gate
 
