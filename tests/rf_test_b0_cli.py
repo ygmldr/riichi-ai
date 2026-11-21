@@ -402,6 +402,21 @@ class B0WrapperTests(unittest.TestCase):
         self.assertTrue((root / "out" / "EXP-B0-PRIVATE" / "run_seed11"
                         / "candidates" / "step_000002.pt").is_file())
 
+    def test_template_requires_max_steps(self):
+        model_config = self.root / "tiny.yaml"
+        model_config.write_text(
+            "model:\n  name: b0_tiny\n  hidden: 64\n  layers: 1\n"
+            "  heads: 4\n  ffn: 32\n  state_hidden: 32\n"
+            "  max_positions: 2048\n", encoding="utf-8")
+        code, _stdout, stderr = invoke(
+            "--emit-prereg-template", "--experiment-id", "EXP-B0-TEMPLATE",
+            "--shard", self.protocol.train_shard,
+            "--validation-shard", self.protocol.validation_shard,
+            "--model-config", model_config,
+            "--out", self.root / "template" / "no-max.json")
+        self.assertEqual(code, 2)
+        self.assertIn("requires --max-steps", stderr)
+
     def test_emit_prereg_template_roundtrips(self):
         model_config = self.root / "tiny.yaml"
         model_config.write_text(
@@ -415,8 +430,7 @@ class B0WrapperTests(unittest.TestCase):
             "--validation-shard", self.protocol.validation_shard,
             "--model-config", model_config, "--out", prereg,
             "--max-steps", "20", "--validation-every", "5",
-            "--candidate-every", "10", "--seed", "11", "--seed", "22",
-            "--device", "cpu")
+            "--candidate-every", "10", "--seed", "11", "--seed", "22")
         self.assertEqual(code, 0, stderr)
         self.assertIn("B0_PREREG_TEMPLATE", stdout)
         self.assertTrue(prereg.is_file())

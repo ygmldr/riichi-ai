@@ -429,6 +429,8 @@ def _emit_template(args) -> int:
     if args.candidate_every % args.validation_every:
         raise WrapperRefusal(
             "--candidate-every must be a multiple of --validation-every")
+    if args.max_steps is None:
+        raise WrapperRefusal("--emit-prereg-template requires --max-steps")
     if args.max_steps <= 0:
         raise WrapperRefusal("--max-steps must be > 0")
     seeds = tuple(args.seed) if args.seed else DEFAULT_SEEDS
@@ -479,7 +481,7 @@ def _emit_template(args) -> int:
         grad_accumulation=args.grad_accumulation, batch_size=args.batch_size,
         max_steps=args.max_steps, bf16=args.bf16,
         ema_decay=None if args.no_ema else args.ema_decay,
-        training_path=B0_TRAINING_PATH, device=args.device)
+        training_path=B0_TRAINING_PATH, device=(args.device or "cpu"))
     protocol = build_protocol_from_files(
         experiment_id=args.experiment_id, train_shard=args.shard,
         validation_shard=args.validation_shard, model_config=config,
