@@ -30,6 +30,11 @@ echo "[launch] $(date -Is) games=$GAMES decisions=$DECISIONS steps=$STEPS" | tee
 
 PYTHON="${PYTHON:-/home/ygsldr/riichi-ai/.venv/bin/python}"
 export PYTHONPATH="$ROOT/vendor/mortal/target/release:$ROOT/vendor/mortal:$ROOT"
+if ! "$PYTHON" scripts/rf_vnext_census.py \
+        --shard "$SHARD" --policy-config "$POLICY" \
+        --out docs/riichiformer/vnext/logs/VNEXT_CENSUS_2009.json 2>&1 | tee -a "$LOG"; then
+    echo "[warn] $(date -Is) census failed; continuing to training" | tee -a "$LOG"
+fi
 exec "$PYTHON" scripts/rf_train_vnext.py \
     --train-shard "$SHARD" \
     --val-shard "$VAL" \
