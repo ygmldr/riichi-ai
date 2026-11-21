@@ -26,9 +26,13 @@ import torch
 from torch import Tensor, nn
 
 from ..schemas.action_v3 import ACTION_SPACE
-from .batch import ModelBatch, ModelBatchError
+from .batch import ModelBatch, ModelBatchError, MultiDecisionBatch
 from .event_embedding import EventEmbedding
-from .local_transformer import DEFAULT_MAX_POSITIONS, LocalTransformer
+from .local_transformer import (
+    DEFAULT_MAX_POSITIONS,
+    LocalTransformer,
+    TransformerShapeError,
+)
 from .state_encoder import STATE_FEATURE_DIM, StateMLP
 
 #: MVP-S weight-count guardrails (measured 5.22M; see PR13_MODEL_REPORT.md).
@@ -132,8 +136,11 @@ class PolicyOutput:
     logits: Tensor                 # [N, 46] raw head output
     masked_logits: Tensor          # [N, 46] with -inf on illegal actions
     logprobs: Tensor               # [N, 46] log_softmax(masked_logits)
-    selected_decision_offsets: Tensor | None = None  # [N] flat B*L token offsets
+    selected_decision_offsets: Tensor | None = None  # [N] flat B*T token offsets
     legal_mask: Tensor | None = None                 # [N, 46] bool
+    #: PR-38 ``forward_multi`` metadata (None on the legacy single-prefix path).
+    selected_marker_offsets: Tensor | None = None    # [N] flat B*M marker slots
+    decision_cutoff_idx: Tensor | None = None        # [N] visible-event counts
 
     @property
     def probs(self) -> Tensor:
@@ -175,6 +182,16 @@ class PolicyOutput:
         if self.selected_decision_offsets is not None:
             if self.selected_decision_offsets.shape != (n_decisions,):
                 raise ModelBatchError("selected_decision_offsets must be [N]")
+        if self.selected_marker_offsets is not None:
+            if self.selected_marker_offsets.shape != (n_decisions,):
+                raise ModelBatchError("selected_marker_offsets must be [N]")
+            if torch.unique(self.selected_marker_offsets).numel() != n_decisions:
+                raise ModelBatchError("selected_marker_offsets must be unique")
+        if self.decision_cutoff_idx is not None:
+            if self.decision_cutoff_idx.shape != (n_decisions,):
+                raise ModelBatchError("decision_cutoff_idx must be [N]")
+            if int(self.decision_cutoff_idx.min()) < 1:
+                raise ModelBatchError("decision_cutoff_idx must be >= 1")
 
 
 class PolicyHead(nn.Module):
@@ -270,6 +287,171 @@ class Policy(nn.Module):
             legal_mask=legal,
         )
 
+    # --------------------------------------------------------- PR-38 multi
+    def forward_multi(self, batch: MultiDecisionBatch) -> PolicyOutput:
+        """One shared transformer pass for every decision of a POV stream.
+
+        Layout: the causal event stream ``[B, L]`` followed by ``M`` explicit
+        ``DECISION`` marker slots.  A marker for a decision with cutoff ``c``
+
+        * reuses the embedding of event token ``c - 1`` with the decision's own
+          phase substituted (the legacy forward put the decision's phase on that
+          last token),
+        * adds that decision's state encoding after the event embedding (the
+          legacy forward added it to the same token),
+        * is placed at RoPE position ``c - 1`` and attends only to event tokens
+          ``0 .. c - 2`` plus itself.
+
+        Consequently every marker hidden state is *exactly* the legacy
+        ``forward`` hidden state at that decision, while the event stream is
+        computed once.  Event tokens never attend to markers, so no marker's
+        state can leak into another decision.  Duplicate cutoffs (kan-selection
+        decisions share the prefix of the action they re-label) are supported
+        because each gets its own marker slot.
+
+        ``dropout == 0`` keeps the joint and per-prefix results equal up to
+        floating-point reduction order; see
+        ``tests/rf_test_multi_decision.py`` for the measured tolerances.
+        """
+        if not isinstance(batch, MultiDecisionBatch):
+            raise TypeError(
+                "Policy.forward_multi accepts only MultiDecisionBatch, got "
+                f"{type(batch).__name__}"
+            )
+        batch.validate_visibility()
+        parameter = self.policy_head.linear.weight
+        if batch.padding_mask.device != parameter.device:
+            raise ModelBatchError(
+                f"batch device {batch.padding_mask.device} != model device "
+                f"{parameter.device}; move the batch/model explicitly"
+            )
+        batch_size, seq_len = batch.batch_size, batch.seq_len
+        capacity = batch.marker_capacity
+        total = seq_len + capacity
+        if total > self.config.max_positions:
+            raise TransformerShapeError(
+                f"joined multi-decision length {total} (events {seq_len} + markers "
+                f"{capacity}) > max_positions {self.config.max_positions}; "
+                "refuse to truncate"
+            )
+        hidden_size = self.config.hidden
+        device = batch.padding_mask.device
+
+        # -- shared event stream ------------------------------------------
+        events = self.event_embedding(
+            batch.event_type_id,
+            batch.event_actor_rel,
+            batch.event_tile_kind,
+            batch.event_aka,
+            batch.event_tsumogiri,
+            batch.event_phase,
+            batch.event_kyoku_pos,
+            batch.padding_mask,
+            check_ids=False,  # MultiDecisionBatch already validated every id
+        )
+        state = self.state_encoder(batch.state_features, validate=False)  # [N, d]
+
+        # -- marker embeddings read their own cursor event + own state -----
+        flat_size = batch_size * seq_len
+        flat_source = batch.decision_batch_index * seq_len \
+            + batch.decision_source_index
+        flat_events = {
+            name: getattr(batch, name).reshape(flat_size)
+            for name in (
+                "event_type_id", "event_actor_rel", "event_tile_kind",
+                "event_aka", "event_tsumogiri", "event_phase", "event_kyoku_pos",
+            )
+        }
+        n_decisions = batch.n_decisions
+        marker_embedding = self.event_embedding(
+            flat_events["event_type_id"].index_select(0, flat_source).unsqueeze(1),
+            flat_events["event_actor_rel"].index_select(0, flat_source).unsqueeze(1),
+            flat_events["event_tile_kind"].index_select(0, flat_source).unsqueeze(1),
+            flat_events["event_aka"].index_select(0, flat_source).unsqueeze(1),
+            flat_events["event_tsumogiri"].index_select(0, flat_source).unsqueeze(1),
+            batch.decision_phase.unsqueeze(1),
+            flat_events["event_kyoku_pos"].index_select(0, flat_source).unsqueeze(1),
+            torch.ones((n_decisions, 1), dtype=torch.bool, device=device),
+            check_ids=False,
+        ).squeeze(1)
+        marker_hidden = marker_embedding + state.to(marker_embedding.dtype)
+
+        marker_block = events.new_zeros((batch_size * capacity, hidden_size))
+        marker_block.index_copy_(0, batch.flat_marker_offsets, marker_hidden)
+        x = torch.cat([events, marker_block.view(batch_size, capacity, hidden_size)],
+                      dim=1)
+
+        # -- positions and the two-block causal mask -----------------------
+        marker_positions = torch.zeros((batch_size * capacity,), dtype=torch.long,
+                                       device=device)
+        marker_positions.index_copy_(0, batch.flat_marker_offsets,
+                                     batch.decision_source_index)
+        marker_positions = marker_positions.view(batch_size, capacity)
+        event_positions = torch.arange(seq_len, device=device).unsqueeze(0).expand(
+            batch_size, seq_len)
+        position_ids = torch.cat([event_positions, marker_positions], dim=1)
+        joined_padding = torch.cat(
+            [batch.padding_mask, batch.marker_padding_mask], dim=1)
+        attn_mask = multi_decision_attention_mask(batch)
+
+        hidden = self.transformer(
+            x, joined_padding, attn_mask=attn_mask, position_ids=position_ids)
+
+        gather_offsets = batch.decision_batch_index * total + seq_len \
+            + batch.decision_marker_index
+        decision_hidden = hidden.reshape(batch_size * total, hidden_size).index_select(
+            0, gather_offsets)
+        logits = self.policy_head(decision_hidden)
+        legal = batch.legal_mask
+        masked_logits = logits.masked_fill(~legal, float("-inf"))
+        logprobs = torch.log_softmax(masked_logits, dim=-1)
+        return PolicyOutput(
+            logits=logits,
+            masked_logits=masked_logits,
+            logprobs=logprobs,
+            selected_decision_offsets=gather_offsets,
+            legal_mask=legal,
+            selected_marker_offsets=batch.flat_marker_offsets,
+            decision_cutoff_idx=batch.decision_cutoff_idx,
+        )
+
+
+def multi_decision_attention_mask(batch: MultiDecisionBatch) -> Tensor:
+    """``[B, 1, L+M, L+M]`` bool attention mask for :meth:`Policy.forward_multi`.
+
+    * event query ``i`` attends to event keys ``j <= i`` (padding masked out);
+    * marker query ``(b, m)`` attends to event keys ``j <= cutoff - 2`` and to
+      its own marker key only (never to another marker);
+    * event queries never attend to marker keys, so state encodings cannot leak
+      into the shared event stream or into another decision.
+    """
+    if not isinstance(batch, MultiDecisionBatch):
+        raise TypeError(
+            f"multi_decision_attention_mask needs MultiDecisionBatch, got "
+            f"{type(batch).__name__}"
+        )
+    device = batch.padding_mask.device
+    batch_size, seq_len = batch.batch_size, batch.seq_len
+    capacity = batch.marker_capacity
+    total = seq_len + capacity
+    events = torch.arange(seq_len, device=device)
+    marker_positions = torch.zeros((batch_size * capacity,), dtype=torch.long,
+                                   device=device)
+    marker_positions.index_copy_(0, batch.flat_marker_offsets,
+                                 batch.decision_source_index)
+    marker_positions = marker_positions.view(batch_size, capacity)
+    mask = torch.zeros((batch_size, total, total), dtype=torch.bool, device=device)
+    causal = events.unsqueeze(1) >= events.unsqueeze(0)  # [i, j] = j <= i
+    mask[:, :seq_len, :seq_len] = (
+        causal.unsqueeze(0) & batch.padding_mask.unsqueeze(1)
+    )
+    mask[:, seq_len:, :seq_len] = (
+        events.view(1, 1, seq_len) <= marker_positions.unsqueeze(-1) - 1
+    )
+    mask[:, seq_len:, seq_len:] = torch.eye(capacity, dtype=torch.bool,
+                                            device=device)
+    return mask.unsqueeze(1)
+
 
 def build_model(config: MVPConfig | None = None) -> Policy:
     """Construct an MVP-S :class:`Policy` (random init; no checkpoint loading)."""
@@ -299,5 +481,6 @@ def parameter_breakdown(model: nn.Module) -> dict[str, int]:
 __all__ = [
     "ACTION_SPACE", "MVPConfig", "MVPConfigError", "PARAMETER_BUDGET_MAX",
     "PARAMETER_BUDGET_MIN", "Policy", "PolicyHead", "PolicyOutput", "STATE_FEATURE_DIM",
-    "build_model", "count_parameters", "parameter_breakdown",
+    "build_model", "count_parameters", "multi_decision_attention_mask",
+    "parameter_breakdown",
 ]

@@ -22,9 +22,13 @@ from riichiformer.data.encode import (  # noqa: E402
     StreamMeta,
     encode_batch,
     encode_decision,
+    encode_multi_decision,
+    encode_multi_decision_batch,
     encoded_hash,
     encoded_payload,
+    multi_decision_hash,
 )
+from riichiformer.data.multi_decision import streams_from_samples  # noqa: E402
 from riichiformer.models.batch import ModelBatch  # noqa: E402
 from riichiformer.models.state_encoder import STATE_FEATURE_DIM  # noqa: E402
 from riichiformer.runtime.encoder import OnlineEncoder  # noqa: E402
@@ -175,6 +179,44 @@ class SyntheticParityTests(unittest.TestCase):
         with self.assertRaises(EncoderError):
             OnlineEncoder(max_events=len(sample.input.events) - 1).encode(
                 sample.input, sample.header)
+
+    def test_multi_decision_offline_online_mapping_agrees(self):
+        # PR-38: the single-stream and batched multi-decision entrances are the
+        # same pure mapping, and each decision prefix equals the per-decision
+        # encoder (the online path) byte for byte on the shared event fields.
+        samples = synthetic_samples()
+        streams = streams_from_samples(samples)
+        self.assertGreater(len(streams), 0)
+        for stream in streams:
+            meta = StreamMeta.from_header(stream.meta)
+            single = encode_multi_decision(stream.events, stream.decisions, meta,
+                                           verify_prefix="exact")
+            batched = encode_multi_decision_batch([stream], verify_prefix="exact")
+            self.assertEqual(multi_decision_hash(single),
+                             multi_decision_hash(batched))
+            row_samples = [sample for sample in samples
+                           if sample.header.pov == stream.pov]
+            self.assertEqual(len(row_samples), single.n_decisions)
+            for index, sample in enumerate(row_samples):
+                decision = encode_decision(sample.input, meta)
+                cutoff = int(single.decision_cutoff_idx[index])
+                self.assertEqual(cutoff, decision.decision_time_index + 1)
+                for field in ("event_type_id", "event_actor_rel", "event_tile_kind",
+                              "event_aka", "event_tsumogiri", "event_kyoku_pos"):
+                    self.assertTrue(torch.equal(
+                        getattr(single, field)[0, :cutoff],
+                        getattr(decision, field)), field)
+                self.assertTrue(torch.equal(single.state_features[index],
+                                            decision.state_features))
+                self.assertTrue(torch.equal(single.legal_mask[index],
+                                            decision.legal_mask))
+        # Online encoding of the same decision is still identical after the
+        # multi-decision path was added (no shared mutable state).
+        sample = samples[0]
+        online = OnlineEncoder().encode(sample.input, sample.header)
+        self.assertEqual(encoded_hash(encode_decision(
+            sample.input, StreamMeta.from_header(sample.header))),
+            encoded_hash(online))
 
     def test_encoded_hash_is_deterministic(self):
         sample = self.samples[0]

@@ -25,6 +25,7 @@ Sequence length is whatever the caller provides: this class never truncates.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 import torch
@@ -120,6 +121,134 @@ def _check_long_range(name: str, value: Tensor, low: int = 0,
         )
 
 
+def validate_event_block(padding_mask: Tensor, tensors: Mapping[str, Tensor],
+                         ) -> tuple[int, int]:
+    """Validate the padded categorical event block shared by both batch types.
+
+    ``tensors`` maps every name in :data:`EVENT_TENSOR_FIELDS` to its ``[B, L]``
+    ``torch.long`` tensor.  Padding must be a left-aligned True prefix per row (no
+    interior holes, no left padding) and every row needs at least one real token.
+    Returns ``(batch_size, seq_len)``.
+    """
+    if not isinstance(padding_mask, Tensor):
+        raise ModelBatchError(
+            f"padding_mask must be a torch.Tensor, got "
+            f"{type(padding_mask).__name__}"
+        )
+    _require_tensor("padding_mask", padding_mask, tuple(padding_mask.shape),
+                    dtype=torch.bool)
+    if padding_mask.dim() != 2:
+        raise ModelBatchError(
+            f"padding_mask must be [B, L], got {tuple(padding_mask.shape)}"
+        )
+    batch_size, seq_len = (int(size) for size in padding_mask.shape)
+    if batch_size <= 0 or seq_len <= 0:
+        raise ModelBatchError(f"empty batch shape {batch_size, seq_len}")
+    shape = (batch_size, seq_len)
+    for name, vocab in zip(EVENT_TENSOR_FIELDS, EVENT_TENSOR_VOCABS):
+        value = tensors[name]
+        _require_tensor(name, value, shape, dtype=torch.long)
+        _check_long_range(name, value, high=vocab)
+    lengths = padding_mask.sum(dim=1)
+    if int(lengths.min()) == 0:
+        raise ModelBatchError("every row needs at least one real event token")
+    expected_mask = (
+        torch.arange(seq_len, device=padding_mask.device).unsqueeze(0)
+        < lengths.unsqueeze(1)
+    )
+    if not torch.equal(padding_mask, expected_mask):
+        raise ModelBatchError(
+            "padding_mask must be a left-aligned True prefix per row "
+            "(no interior holes, no left padding); got non-prefix mask"
+        )
+    return batch_size, seq_len
+
+
+def validate_phase_legal_masks(legal_mask: Tensor, decision_phase: Tensor,
+                               n_decisions: int) -> None:
+    """Enforce the frozen 46-action, phase-aware mask contract."""
+    _require_tensor("legal_mask", legal_mask, (n_decisions, ACTION_SPACE),
+                    dtype=torch.bool)
+    for index in range(n_decisions):
+        phase = int(decision_phase[index])
+        mask_row = legal_mask[index]
+        if not bool(mask_row.any()):
+            raise ModelBatchError(f"legal_mask row {index} has no legal action")
+        legal = frozenset(int(i) for i in torch.nonzero(mask_row, as_tuple=False).flatten())
+        unexpected = legal - PHASE_LEGAL_INDEX_SETS[phase]
+        if unexpected:
+            raise ModelBatchError(
+                f"legal_mask row {index} has actions {sorted(unexpected)} illegal "
+                f"in phase {PHASE_ORDER[phase].value}"
+            )
+
+
+def validate_event_visibility(*, padding_mask: Tensor, event_type_id: Tensor,
+                              event_actor_rel: Tensor, event_tile_kind: Tensor,
+                              event_aka: Tensor, field_names,
+                              owner: str = "batch") -> None:
+    """Enforce POV visibility on the projected event ids (fail closed).
+
+    This is the shared implementation behind
+    :meth:`ModelBatch.validate_visibility` and
+    :meth:`MultiDecisionBatch.validate_visibility`; see the ``ModelBatch`` docstring
+    for the rules.  Padding slots are ignored, and no batch field may be a
+    label/target/oracle field.
+    """
+    forbidden = {
+        name for name in field_names
+        if any(word in name for word in FORBIDDEN_BATCH_FIELD_WORDS)
+    }
+    if forbidden:
+        raise ModelBatchError(
+            f"{owner} must not carry target/label fields: {sorted(forbidden)}"
+        )
+
+    visible = padding_mask
+    event_type = event_type_id
+    actor = event_actor_rel
+    tile = event_tile_kind
+    aka = event_aka
+
+    aka_or_unknown = (tile == UNKNOWN_TILE_KIND) & (aka != 0)
+    aka_kind_ok = (aka == 0)
+    for aka_index, kind in AKA_INDEX_TO_KIND:
+        aka_kind_ok = aka_kind_ok | ((aka == aka_index) & (tile == kind))
+    aka_kind_bad = ~aka_kind_ok
+    opponent_private = (event_type == TSUMO_EVENT_TYPE) | (
+        event_type == ANKAN_EVENT_TYPE
+    )
+    opponent_private_bad = opponent_private & (actor != 0) & (
+        (tile != UNKNOWN_TILE_KIND) | (aka != 0)
+    )
+
+    bad = (aka_or_unknown | aka_kind_bad | opponent_private_bad) & visible
+    if not bool(bad.any()):
+        return
+    # Only compute the detailed masks on the failure path (one extra device sync
+    # per check) so the hot path stays a single reduction.
+    if bool((aka_or_unknown & visible).any()):
+        raise ModelBatchError(
+            "tile_kind UNKNOWN (34) cannot carry an aka flag; use aka=0 (none)"
+        )
+    if bool((opponent_private_bad & visible).any()):
+        raise ModelBatchError(
+            "opponent tsumo/ankan tokens must hide the tile: expected "
+            f"tile_kind={UNKNOWN_TILE_KIND} (UNKNOWN) and aka=0"
+        )
+    index, row = (
+        int(value) for value in
+        torch.nonzero(aka_kind_bad & visible, as_tuple=False)[0].tolist()
+    )
+    kind = int(tile[index, row])
+    kind_name = TILE_KIND_NAMES[kind] if kind < len(TILE_KIND_NAMES) else "UNKNOWN"
+    raise ModelBatchError(
+        f"aka={int(aka[index, row])} is invalid for tile_kind={kind} "
+        f"({kind_name}); aka 1/2/3 must be exactly 5m/5p/5s (kinds 4/13/22) "
+        "and aka=0 means none"
+    )
+
+
 @dataclass
 class ModelBatch:
     """POV event/state/decision tensors for one forward pass.
@@ -160,37 +289,8 @@ class ModelBatch:
             raise ModelBatchError(
                 f"schema_version {self.schema_version!r} != {SCHEMA_VERSION!r}"
             )
-        if not isinstance(self.padding_mask, Tensor):
-            raise ModelBatchError(
-                f"padding_mask must be a torch.Tensor, got "
-                f"{type(self.padding_mask).__name__}"
-            )
-        _require_tensor("padding_mask", self.padding_mask,
-                        tuple(self.padding_mask.shape), dtype=torch.bool)
-        if self.padding_mask.dim() != 2:
-            raise ModelBatchError(
-                f"padding_mask must be [B, L], got {tuple(self.padding_mask.shape)}"
-            )
-        batch_size, seq_len = (int(size) for size in self.padding_mask.shape)
-        if batch_size <= 0 or seq_len <= 0:
-            raise ModelBatchError(f"empty batch shape {batch_size, seq_len}")
-        shape = (batch_size, seq_len)
-        for name, vocab in zip(EVENT_TENSOR_FIELDS, EVENT_TENSOR_VOCABS):
-            value = getattr(self, name)
-            _require_tensor(name, value, shape, dtype=torch.long)
-            _check_long_range(name, value, high=vocab)
-        lengths = self.padding_mask.sum(dim=1)
-        if int(lengths.min()) == 0:
-            raise ModelBatchError("every row needs at least one real event token")
-        expected_mask = (
-            torch.arange(seq_len, device=self.padding_mask.device).unsqueeze(0)
-            < lengths.unsqueeze(1)
-        )
-        if not torch.equal(self.padding_mask, expected_mask):
-            raise ModelBatchError(
-                "padding_mask must be a left-aligned True prefix per row "
-                "(no interior holes, no left padding); got non-prefix mask"
-            )
+        event_tensors = {name: getattr(self, name) for name in EVENT_TENSOR_FIELDS}
+        batch_size, seq_len = validate_event_block(self.padding_mask, event_tensors)
 
         n_decisions = int(self.decision_batch_index.numel())
         if n_decisions <= 0:
@@ -241,18 +341,7 @@ class ModelBatch:
             raise ModelBatchError("duplicate (batch, time) decision positions")
 
         # Phase-aware mask validation against the frozen 46-action contract.
-        for index in range(n_decisions):
-            phase = int(self.decision_phase[index])
-            mask_row = self.legal_mask[index]
-            if not bool(mask_row.any()):
-                raise ModelBatchError(f"legal_mask row {index} has no legal action")
-            legal = frozenset(int(i) for i in torch.nonzero(mask_row, as_tuple=False).flatten())
-            unexpected = legal - PHASE_LEGAL_INDEX_SETS[phase]
-            if unexpected:
-                raise ModelBatchError(
-                    f"legal_mask row {index} has actions {sorted(unexpected)} illegal "
-                    f"in phase {PHASE_ORDER[phase].value}"
-                )
+        validate_phase_legal_masks(self.legal_mask, self.decision_phase, n_decisions)
         self.validate_visibility()
 
     def validate_visibility(self) -> None:
@@ -280,58 +369,14 @@ class ModelBatch:
         ``__post_init__`` runs this, and ``Policy.forward`` calls it again so an
         in-place mutation after construction cannot bypass the check.
         """
-        names = set(self.__dataclass_fields__)  # type: ignore[attr-defined]
-        forbidden = {
-            name for name in names
-            if any(word in name for word in FORBIDDEN_BATCH_FIELD_WORDS)
-        }
-        if forbidden:
-            raise ModelBatchError(
-                f"ModelBatch must not carry target/label fields: {sorted(forbidden)}"
-            )
-
-        visible = self.padding_mask
-        event_type = self.event_type_id
-        actor = self.event_actor_rel
-        tile = self.event_tile_kind
-        aka = self.event_aka
-
-        aka_or_unknown = (tile == UNKNOWN_TILE_KIND) & (aka != 0)
-        aka_kind_ok = (aka == 0)
-        for aka_index, kind in AKA_INDEX_TO_KIND:
-            aka_kind_ok = aka_kind_ok | ((aka == aka_index) & (tile == kind))
-        aka_kind_bad = ~aka_kind_ok
-        opponent_private = (event_type == TSUMO_EVENT_TYPE) | (
-            event_type == ANKAN_EVENT_TYPE
-        )
-        opponent_private_bad = opponent_private & (actor != 0) & (
-            (tile != UNKNOWN_TILE_KIND) | (aka != 0)
-        )
-
-        bad = (aka_or_unknown | aka_kind_bad | opponent_private_bad) & visible
-        if not bool(bad.any()):
-            return
-        # Only compute the detailed masks on the failure path (one extra device sync
-        # per check) so the hot path stays a single reduction.
-        if bool((aka_or_unknown & visible).any()):
-            raise ModelBatchError(
-                "tile_kind UNKNOWN (34) cannot carry an aka flag; use aka=0 (none)"
-            )
-        if bool((opponent_private_bad & visible).any()):
-            raise ModelBatchError(
-                "opponent tsumo/ankan tokens must hide the tile: expected "
-                f"tile_kind={UNKNOWN_TILE_KIND} (UNKNOWN) and aka=0"
-            )
-        index, row = (
-            int(value) for value in
-            torch.nonzero(aka_kind_bad & visible, as_tuple=False)[0].tolist()
-        )
-        kind = int(tile[index, row])
-        kind_name = TILE_KIND_NAMES[kind] if kind < len(TILE_KIND_NAMES) else "UNKNOWN"
-        raise ModelBatchError(
-            f"aka={int(aka[index, row])} is invalid for tile_kind={kind} "
-            f"({kind_name}); aka 1/2/3 must be exactly 5m/5p/5s (kinds 4/13/22) "
-            "and aka=0 means none"
+        validate_event_visibility(
+            padding_mask=self.padding_mask,
+            event_type_id=self.event_type_id,
+            event_actor_rel=self.event_actor_rel,
+            event_tile_kind=self.event_tile_kind,
+            event_aka=self.event_aka,
+            field_names=set(self.__dataclass_fields__),  # type: ignore[attr-defined]
+            owner="ModelBatch",
         )
 
     # -------------------------------------------------------------- properties
@@ -405,7 +450,254 @@ class ModelBatch:
         return ModelBatch(schema_version=self.schema_version, **tensors)
 
 
+@dataclass
+class MultiDecisionBatch:
+    """Full causal POV event stream plus explicit ``DECISION`` marker tensors.
+
+    PR-38 layout (one row = one ``(game, POV)`` stream):
+
+    * ``event_*`` / ``padding_mask`` are ``[B, L]`` exactly like
+      :class:`ModelBatch`, except ``event_phase`` is **0 on every real token**:
+      the decision phase lives on the marker, never on the shared event stream.
+      A zero phase keeps every event token identical to the last token of the
+      corresponding single-decision prefix, so the legacy forward semantics are
+      reproduced exactly (see :meth:`riichiformer.models.policy.Policy.forward_multi`).
+    * Each decision owns one marker slot ``(decision_batch_index[i],
+      decision_marker_index[i])``.  The marker reads the event token at
+      ``decision_cutoff_idx[i] - 1`` (the decision's last visible event) and adds
+      that decision's own state encoding; it attends only to events strictly
+      before its cursor plus itself.  Decisions therefore never see future events,
+      each other's state, or opponent concealed tiles.
+    * ``decision_cutoff_idx`` is the number of visible events (``1..L``), i.e. the
+      exclusive prefix end.  Several decisions may share one cutoff (a kan-selection
+      opportunity and the action it re-labels); they get distinct markers, which is
+      the case a cursor-only design cannot express.
+    * Targets/labels/rank/oracle data are deliberately absent, exactly as in
+      :class:`ModelBatch`.
+
+    Marker slots of one row are contiguous ``0..count-1`` (left-aligned, like the
+    event padding) and cutoffs are non-decreasing in marker order.  Marker capacity
+    is ``max(decision_marker_index) + 1``; the joined transformer sequence is
+    ``L + marker_capacity`` and must fit the model's ``max_positions``.
+    """
+
+    # -- event main sequence (padded, left-aligned) --------------------------
+    event_type_id: Tensor
+    event_actor_rel: Tensor
+    event_tile_kind: Tensor
+    event_aka: Tensor
+    event_tsumogiri: Tensor
+    event_phase: Tensor
+    event_kyoku_pos: Tensor
+    padding_mask: Tensor
+
+    # -- decision markers (N rows, flattened over B) -------------------------
+    state_features: Tensor
+    decision_batch_index: Tensor
+    decision_marker_index: Tensor
+    decision_cutoff_idx: Tensor
+    decision_phase: Tensor
+    legal_mask: Tensor
+
+    #: Frozen schema version this batch was encoded against (metadata only).
+    schema_version: str = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        self.validate()
+
+    # ------------------------------------------------------------------ checks
+    def validate(self) -> None:
+        if self.schema_version != SCHEMA_VERSION:
+            raise ModelBatchError(
+                f"schema_version {self.schema_version!r} != {SCHEMA_VERSION!r}"
+            )
+        event_tensors = {name: getattr(self, name) for name in EVENT_TENSOR_FIELDS}
+        batch_size, seq_len = validate_event_block(self.padding_mask, event_tensors)
+        if bool((self.event_phase[self.padding_mask] != 0).any()):
+            raise ModelBatchError(
+                "multi-decision event_phase must be 0 on every real event token; "
+                "each decision's phase is carried by its DECISION marker"
+            )
+
+        n_decisions = int(self.decision_batch_index.numel())
+        if n_decisions <= 0:
+            raise ModelBatchError("batch must contain at least one decision marker")
+        for name in ("decision_batch_index", "decision_marker_index",
+                     "decision_cutoff_idx", "decision_phase"):
+            _require_tensor(name, getattr(self, name), (n_decisions,),
+                            dtype=torch.long)
+        if self.state_features.dim() != 2                 or self.state_features.size(0) != n_decisions:
+            raise ModelBatchError(
+                f"state_features must be [N={n_decisions}, F], got "
+                f"{tuple(self.state_features.shape)}"
+            )
+        if not self.state_features.is_floating_point():
+            raise ModelBatchError(
+                f"state_features must be floating point, got "
+                f"{self.state_features.dtype}"
+            )
+        if not bool(torch.isfinite(self.state_features).all()):
+            raise ModelBatchError("state_features contains NaN/Inf")
+
+        device = self.padding_mask.device
+        for name in ("state_features", "decision_batch_index", "decision_marker_index",
+                     "decision_cutoff_idx", "decision_phase", "legal_mask"):
+            value = getattr(self, name)
+            if value.device != device:
+                raise ModelBatchError(
+                    f"{name} device {value.device} != padding_mask device {device}"
+                )
+
+        _check_long_range("decision_batch_index", self.decision_batch_index,
+                          high=batch_size)
+        _check_long_range("decision_marker_index", self.decision_marker_index,
+                          high=n_decisions)
+        # A cutoff of 1..L: at least one visible event, never past the padded stream.
+        _check_long_range("decision_cutoff_idx", self.decision_cutoff_idx,
+                          low=1, high=seq_len + 1)
+        _check_long_range("decision_phase", self.decision_phase, high=PHASE_CLASSES)
+
+        source = self.decision_source_index
+        at_valid_token = self.padding_mask[self.decision_batch_index, source]
+        if not bool(at_valid_token.all()):
+            raise ModelBatchError(
+                "decision cutoffs must point at non-padded event tokens"
+            )
+        offsets = self.flat_marker_offsets
+        if torch.unique(offsets).numel() != n_decisions:
+            raise ModelBatchError("duplicate (batch, marker) decision positions")
+
+        counts = torch.bincount(self.decision_batch_index, minlength=batch_size)
+        for row in range(batch_size):
+            slots = self.decision_marker_index[self.decision_batch_index == row]
+            count = int(counts[row])
+            if count <= 0:
+                raise ModelBatchError(
+                    f"stream {row} has no decision marker; every stream needs at "
+                    "least one decision"
+                )
+            if sorted(int(value) for value in slots) != list(range(count)):
+                raise ModelBatchError(
+                    f"stream {row} marker slots must be contiguous 0..{count - 1}"
+                )
+            order = torch.argsort(slots)
+            cutoffs = self.decision_cutoff_idx[
+                self.decision_batch_index == row][order]
+            if bool((cutoffs[1:] < cutoffs[:-1]).any()):
+                raise ModelBatchError(
+                    f"stream {row} decision cutoffs must be non-decreasing in "
+                    "marker order"
+                )
+
+        validate_phase_legal_masks(self.legal_mask, self.decision_phase, n_decisions)
+        self.validate_visibility()
+
+    def validate_visibility(self) -> None:
+        """Same POV visibility rules as :meth:`ModelBatch.validate_visibility`."""
+        validate_event_visibility(
+            padding_mask=self.padding_mask,
+            event_type_id=self.event_type_id,
+            event_actor_rel=self.event_actor_rel,
+            event_tile_kind=self.event_tile_kind,
+            event_aka=self.event_aka,
+            field_names=set(self.__dataclass_fields__),  # type: ignore[attr-defined]
+            owner="MultiDecisionBatch",
+        )
+
+    # -------------------------------------------------------------- properties
+    @property
+    def batch_size(self) -> int:
+        return int(self.padding_mask.size(0))
+
+    @property
+    def seq_len(self) -> int:
+        return int(self.padding_mask.size(1))
+
+    @property
+    def lengths(self) -> Tensor:
+        return self.padding_mask.sum(dim=1)
+
+    @property
+    def n_decisions(self) -> int:
+        return int(self.decision_batch_index.numel())
+
+    @property
+    def marker_capacity(self) -> int:
+        """Marker slots per row (``max(decision_marker_index) + 1``)."""
+        return int(self.decision_marker_index.max()) + 1
+
+    @property
+    def marker_padding_mask(self) -> Tensor:
+        """``[B, M]`` bool: True for a real decision marker slot."""
+        counts = torch.bincount(self.decision_batch_index,
+                                minlength=self.batch_size)
+        slots = torch.arange(self.marker_capacity,
+                             device=self.padding_mask.device).unsqueeze(0)
+        return slots < counts.unsqueeze(1)
+
+    @property
+    def decision_source_index(self) -> Tensor:
+        """``[N]`` event-token index whose embedding seeds each marker."""
+        return self.decision_cutoff_idx - 1
+
+    @property
+    def flat_marker_offsets(self) -> Tensor:
+        """``[N]`` offsets into a flattened ``B * marker_capacity`` axis."""
+        return self.decision_batch_index * self.marker_capacity \
+            + self.decision_marker_index
+
+    @property
+    def decision_indices(self) -> Tensor:
+        """``[N, 2]`` ``(stream_idx, marker_slot)`` view (new tensor, cheap)."""
+        return torch.stack((self.decision_batch_index,
+                            self.decision_marker_index), dim=1)
+
+    @property
+    def decision_phases(self) -> tuple[ActionPhase, ...]:
+        return tuple(PHASE_ORDER[int(index)] for index in self.decision_phase)
+
+    # ------------------------------------------------------------------ helpers
+    def to(self, device: torch.device | str) -> "MultiDecisionBatch":
+        """Return a copy with every tensor moved to ``device`` (metadata kept)."""
+        moved = {
+            field: getattr(self, field).to(device)
+            for field in self.__dataclass_fields__  # type: ignore[attr-defined]
+            if isinstance(getattr(self, field), Tensor)
+        }
+        moved["schema_version"] = self.schema_version
+        return replace(self, **moved)
+
+    def select_rows(self, keep: Tensor) -> "MultiDecisionBatch":
+        """Subset the batch by stream rows, keeping every decision of those rows."""
+        if keep.dtype is not torch.long or keep.dim() != 1:
+            raise ModelBatchError("keep must be a 1-D long tensor of batch rows")
+        if keep.numel() == 0:
+            raise ModelBatchError("keep must select at least one batch row")
+        if int(keep.min()) < 0 or int(keep.max()) >= self.batch_size:
+            raise ModelBatchError("keep row index out of range")
+        device = self.decision_batch_index.device
+        keep = keep.to(device)
+        remap = torch.full((self.batch_size,), -1, dtype=torch.long, device=device)
+        remap[keep] = torch.arange(keep.numel(), device=device)
+        decision_keep = remap[self.decision_batch_index] >= 0
+        tensors = {
+            field: getattr(self, field)[keep]
+            for field in EVENT_TENSOR_FIELDS
+        }
+        tensors["padding_mask"] = self.padding_mask[keep]
+        tensors["state_features"] = self.state_features[decision_keep]
+        tensors["decision_batch_index"] = remap[
+            self.decision_batch_index[decision_keep]]
+        tensors["decision_marker_index"] = self.decision_marker_index[decision_keep]
+        tensors["decision_cutoff_idx"] = self.decision_cutoff_idx[decision_keep]
+        tensors["decision_phase"] = self.decision_phase[decision_keep]
+        tensors["legal_mask"] = self.legal_mask[decision_keep]
+        return MultiDecisionBatch(schema_version=self.schema_version, **tensors)
+
+
 __all__ = [
     "EVENT_TENSOR_FIELDS", "EVENT_TENSOR_VOCABS", "ModelBatch", "ModelBatchError",
-    "PHASE_INDEX", "PHASE_INDEX_TO_ENUM", "PHASE_LEGAL_INDEX_SETS", "PHASE_ORDER",
+    "MultiDecisionBatch", "PHASE_INDEX", "PHASE_INDEX_TO_ENUM",
+    "PHASE_LEGAL_INDEX_SETS", "PHASE_ORDER", "validate_event_block",
+    "validate_event_visibility", "validate_phase_legal_masks",
 ]

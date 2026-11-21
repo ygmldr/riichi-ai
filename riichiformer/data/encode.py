@@ -16,7 +16,7 @@ from typing import Mapping, Sequence
 import torch
 from torch import Tensor
 
-from ..models.batch import PHASE_INDEX, ModelBatch
+from ..models.batch import PHASE_INDEX, ModelBatch, MultiDecisionBatch
 from ..models.state_encoder import (
     STATE_FEATURE_DIM,
     StateSnapshot,
@@ -47,6 +47,12 @@ from ..schemas.event_v3 import (
     TileRef,
 )
 from ..schemas.schema_v3 import load_schema
+from .multi_decision import (
+    DecisionMarker,
+    MultiDecisionError,
+    check_event_sequence,
+    check_prefix,
+)
 from .pov import POV_PROJECTION_VERSION, ProjectedStreamHeader
 
 #: Frozen schema hash; a caller-provided hash must equal this exactly.
@@ -320,13 +326,14 @@ def _pad_tensor(rows: Sequence[Tensor], fill: int) -> Tensor:
     return out
 
 
-def encode_decision(decision: DecisionInput, stream_meta,
-                    max_events: int = MAX_EVENTS_DEFAULT) -> EncodedDecision:
-    """Pure mapping from one visible prefix to one PR-13 row."""
-    if not isinstance(max_events, int) or isinstance(max_events, bool) or max_events <= 0:
-        raise EncoderError(f"max_events must be a positive int, got {max_events!r}")
-    meta = StreamMeta.coerce(stream_meta)
-    events = _check_input(decision, meta, max_events)
+def _event_tensors(events: Sequence) -> dict[str, Tensor]:
+    """Projected event sequence -> the seven ``[L]`` PR-13 id tensors.
+
+    This is the one mapping shared by the per-decision encoder and the PR-38
+    multi-decision encoder.  ``event_phase`` starts at zero here: the
+    single-decision encoder overwrites its last token, while a multi-decision
+    stream carries every decision phase on its own marker.
+    """
     length = len(events)
     event_type = torch.empty(length, dtype=torch.long)
     actor = torch.empty(length, dtype=torch.long)
@@ -362,9 +369,29 @@ def encode_decision(decision: DecisionInput, stream_meta,
         tsumogiri[index] = int(bool(event.tsumogiri)) if isinstance(event, DahaiEvent) else 0
         kyoku_pos[index] = position
         position += 1
+    return {
+        "event_type_id": event_type,
+        "event_actor_rel": actor,
+        "event_tile_kind": tile_kind,
+        "event_aka": aka,
+        "event_tsumogiri": tsumogiri,
+        "event_phase": event_phase,
+        "event_kyoku_pos": kyoku_pos,
+    }
 
+
+def encode_decision(decision: DecisionInput, stream_meta,
+                    max_events: int = MAX_EVENTS_DEFAULT) -> EncodedDecision:
+    """Pure mapping from one visible prefix to one PR-13 row."""
+    if not isinstance(max_events, int) or isinstance(max_events, bool) or max_events <= 0:
+        raise EncoderError(f"max_events must be a positive int, got {max_events!r}")
+    meta = StreamMeta.coerce(stream_meta)
+    events = _check_input(decision, meta, max_events)
+    tensors = _event_tensors(events)
     phase_index = PHASE_INDEX[decision.phase]
-    event_phase[-1] = phase_index
+    # The single-decision prefix puts the decision phase on its last token; this is
+    # the only per-decision difference and stays local to this row.
+    tensors["event_phase"][-1] = phase_index
     state_features = state_features_from_snapshot(_state_snapshot(decision))
     if int(state_features.numel()) != STATE_FEATURE_DIM:
         raise EncoderError(
@@ -372,17 +399,18 @@ def encode_decision(decision: DecisionInput, stream_meta,
     legal_mask = torch.tensor(tuple(bool(value) for value in decision.legal_mask),
                               dtype=torch.bool)
     return EncodedDecision(
-        event_type_id=event_type,
-        event_actor_rel=actor,
-        event_tile_kind=tile_kind,
-        event_aka=aka,
-        event_tsumogiri=tsumogiri,
-        event_phase=event_phase,
-        event_kyoku_pos=kyoku_pos,
-        padding_mask=torch.ones(length, dtype=torch.bool),
+        event_type_id=tensors["event_type_id"],
+        event_actor_rel=tensors["event_actor_rel"],
+        event_tile_kind=tensors["event_tile_kind"],
+        event_aka=tensors["event_aka"],
+        event_tsumogiri=tensors["event_tsumogiri"],
+        event_phase=tensors["event_phase"],
+        event_kyoku_pos=tensors["event_kyoku_pos"],
+        padding_mask=torch.ones(int(tensors["event_type_id"].numel()),
+                                dtype=torch.bool),
         state_features=state_features,
         legal_mask=legal_mask,
-        decision_time_index=length - 1,
+        decision_time_index=int(tensors["event_type_id"].numel()) - 1,
         phase_index=phase_index,
         meta=meta,
     )
@@ -423,6 +451,221 @@ def encode_batch(decisions: Sequence[DecisionInput], stream_metas: Sequence,
         metas=tuple(row.meta for row in rows),
         lengths=tuple(row.event_count for row in rows),
     )
+
+
+def decision_marker_from_input(decision: DecisionInput) -> DecisionMarker:
+    """Normalize one visible-prefix decision into the target-free marker form.
+
+    The state vector is built from the decision's own visible snapshot
+    (``tile_state`` / ``players_public`` / ``global_public``); no target, rank or
+    oracle field is read, and the event sequence itself is not copied.
+    """
+    if not isinstance(decision, DecisionInput):
+        raise EncoderError(f"expected DecisionInput, got {type(decision).__name__}")
+    if decision.schema_version != SCHEMA_VERSION:
+        raise EncoderError(
+            f"DecisionInput.schema_version {decision.schema_version!r} != "
+            f"{SCHEMA_VERSION!r}"
+        )
+    if decision.before_event_idx != len(decision.events):
+        raise EncoderError(
+            "DecisionInput must be the exact visible prefix: "
+            f"before_event_idx={decision.before_event_idx}, "
+            f"events={len(decision.events)}"
+        )
+    return DecisionMarker(
+        cutoff_idx=decision.before_event_idx,
+        phase=decision.phase,
+        legal_mask=tuple(bool(value) for value in decision.legal_mask),
+        state_features=state_features_from_snapshot(_state_snapshot(decision)),
+    )
+
+
+def _check_multi_stream(game_events, max_events: int) -> tuple:
+    if isinstance(max_events, bool) or not isinstance(max_events, int) or max_events <= 0:
+        raise EncoderError(f"max_events must be a positive int, got {max_events!r}")
+    try:
+        events = check_event_sequence(game_events)
+    except MultiDecisionError as exc:
+        raise EncoderError(str(exc)) from exc
+    if len(events) > max_events:
+        raise EncoderError(
+            f"sequence length {len(events)} > max_events {max_events}; "
+            "refusing silent truncation")
+    return events
+
+
+def _normalize_multi_decisions(events, decisions, verify_prefix: str,
+                               ) -> list[DecisionMarker]:
+    if verify_prefix not in ("structural", "exact"):
+        raise EncoderError(
+            f"verify_prefix must be 'structural' or 'exact', got {verify_prefix!r}")
+    try:
+        # tuple() validates the local type without consuming a one-shot iterator.
+        decisions = tuple(decisions)
+    except TypeError as exc:
+        raise EncoderError(f"decisions must be a sequence: {exc}") from exc
+    if not decisions:
+        raise EncoderError("encode_multi_decision needs at least one decision")
+    markers: list[DecisionMarker] = []
+    previous_cutoff = 0
+    for index, decision in enumerate(decisions):
+        if isinstance(decision, DecisionInput):
+            if decision.before_event_idx != len(decision.events):
+                raise EncoderError(
+                    f"decision[{index}] must be the exact visible prefix: "
+                    f"before_event_idx={decision.before_event_idx}, "
+                    f"events={len(decision.events)}")
+            try:
+                check_prefix(decision.events, events, decision.before_event_idx,
+                             verify=verify_prefix)
+            except MultiDecisionError as exc:
+                raise EncoderError(f"decision[{index}]: {exc}") from exc
+            marker = decision_marker_from_input(decision)
+        elif isinstance(decision, DecisionMarker):
+            marker = decision
+        else:
+            raise EncoderError(
+                f"decision[{index}] must be DecisionInput or DecisionMarker, got "
+                f"{type(decision).__name__}")
+        if not 1 <= marker.cutoff_idx <= len(events):
+            raise EncoderError(
+                f"decision[{index}] cutoff {marker.cutoff_idx} outside "
+                f"[1, {len(events)}]")
+        if marker.cutoff_idx < previous_cutoff:
+            raise EncoderError(
+                f"decision[{index}] cutoff {marker.cutoff_idx} < previous cutoff "
+                f"{previous_cutoff}; decisions must stay in causal order")
+        previous_cutoff = marker.cutoff_idx
+        markers.append(marker)
+    return markers
+
+
+def _decision_tensors(markers: Sequence[DecisionMarker], batch_index: int) -> dict:
+    count = len(markers)
+    return {
+        "state_features": torch.stack([marker.state_features for marker in markers],
+                                      dim=0),
+        "decision_batch_index": torch.full((count,), int(batch_index),
+                                           dtype=torch.long),
+        "decision_marker_index": torch.arange(count, dtype=torch.long),
+        "decision_cutoff_idx": torch.tensor(
+            [marker.cutoff_idx for marker in markers], dtype=torch.long),
+        "decision_phase": torch.tensor(
+            [marker.phase_index for marker in markers], dtype=torch.long),
+        "legal_mask": torch.tensor([marker.legal_mask for marker in markers],
+                                   dtype=torch.bool),
+    }
+
+
+def encode_multi_decision(game_events, decisions, stream_meta, *,
+                          max_events: int = MAX_EVENTS_DEFAULT,
+                          verify_prefix: str = "structural") -> MultiDecisionBatch:
+    """Pure mapping: full causal POV stream + decisions -> MultiDecisionBatch.
+
+    This is the PR-38 counterpart of :func:`encode_decision` and shares its
+    event-id mapping.  ``game_events`` is the **full** projected POV event main
+    sequence (not a prefix); ``decisions`` are :class:`DecisionInput` objects whose
+    exact visible prefix ends at their cutoff, or pre-normalized
+    :class:`DecisionMarker` objects.  No target/label/rank/oracle parameter exists
+    and no event after a decision's cutoff can influence that decision's state.
+    """
+    meta = StreamMeta.coerce(stream_meta)
+    events = _check_multi_stream(game_events, max_events)
+    markers = _normalize_multi_decisions(events, decisions, verify_prefix)
+    tensors = {name: value.unsqueeze(0)
+               for name, value in _event_tensors(events).items()}
+    return MultiDecisionBatch(
+        **tensors,
+        padding_mask=torch.ones((1, len(events)), dtype=torch.bool),
+        **_decision_tensors(markers, 0),
+        schema_version=meta.schema_version,
+    )
+
+
+def encode_multi_decision_batch(streams, *,
+                                max_events: int = MAX_EVENTS_DEFAULT,
+                                verify_prefix: str = "structural",
+                                ) -> MultiDecisionBatch:
+    """Pad many :class:`MultiDecisionStream` objects into one batch.
+
+    Event streams use dynamic left-aligned padding (no truncation); each row's
+    decision markers keep their stream-local marker slot ``0..count-1``.
+    """
+    streams = tuple(streams)
+    if not streams:
+        raise EncoderError("encode_multi_decision_batch needs at least one stream")
+    encoded = []
+    for row, stream in enumerate(streams):
+        if not hasattr(stream, "events") or not hasattr(stream, "decisions"):
+            raise EncoderError(
+                f"stream[{row}] must expose events/decisions, got "
+                f"{type(stream).__name__}")
+        meta = StreamMeta.coerce(stream.meta)
+        events = _check_multi_stream(stream.events, max_events)
+        markers = _normalize_multi_decisions(events, stream.decisions,
+                                             verify_prefix)
+        encoded.append((meta, _event_tensors(events),
+                        _decision_tensors(markers, row)))
+    max_len = max(int(tensors["event_type_id"].numel())
+                  for _meta, tensors, _decisions in encoded)
+    batch_size = len(encoded)
+    padded = {
+        name: _pad_tensor([tensors[name] for _meta, tensors, _decisions in encoded],
+                          fill)
+        for name, fill in zip(
+            EVENT_TENSOR_FIELDS,
+            (EVENT_TYPE_PAD, ACTOR_REL_PAD, TILE_PAD, 0, 0, PHASE_PAD, 0),
+        )
+    }
+    padding_mask = torch.zeros((batch_size, max_len), dtype=torch.bool)
+    for row, (_meta, tensors, _decisions) in enumerate(encoded):
+        padding_mask[row, :int(tensors["event_type_id"].numel())] = True
+    decision_tensors = {
+        name: torch.cat([decisions[name]
+                         for _meta, _tensors, decisions in encoded], dim=0)
+        for name in ("state_features", "decision_batch_index",
+                     "decision_marker_index", "decision_cutoff_idx",
+                     "decision_phase", "legal_mask")
+    }
+    return MultiDecisionBatch(
+        **padded,
+        padding_mask=padding_mask,
+        **decision_tensors,
+        schema_version=encoded[0][0].schema_version,
+    )
+
+
+def multi_decision_payload(batch: MultiDecisionBatch) -> dict:
+    """Deterministic JSON-able payload used for the multi-decision hash."""
+    if not isinstance(batch, MultiDecisionBatch):
+        raise EncoderError(
+            f"multi_decision_payload expects MultiDecisionBatch, got "
+            f"{type(batch).__name__}")
+    payload = {
+        name: getattr(batch, name).detach().cpu().tolist()
+        for name in EVENT_TENSOR_FIELDS
+    }
+    payload.update({
+        "padding_mask": batch.padding_mask.detach().cpu().tolist(),
+        "state_features": batch.state_features.detach().cpu().tolist(),
+        "decision_batch_index":
+            batch.decision_batch_index.detach().cpu().tolist(),
+        "decision_marker_index":
+            batch.decision_marker_index.detach().cpu().tolist(),
+        "decision_cutoff_idx":
+            batch.decision_cutoff_idx.detach().cpu().tolist(),
+        "decision_phase": batch.decision_phase.detach().cpu().tolist(),
+        "legal_mask": batch.legal_mask.detach().cpu().tolist(),
+        "schema_version": batch.schema_version,
+    })
+    return payload
+
+
+def multi_decision_hash(batch: MultiDecisionBatch) -> str:
+    """SHA-256 over the canonical multi-decision payload (parity witness)."""
+    return hashlib.sha256(
+        canonical_json(multi_decision_payload(batch)).encode("utf-8")).hexdigest()
 
 
 def encoded_payload(encoded: EncodedDecision | EncodedBatch) -> dict:
@@ -468,6 +711,8 @@ def encoded_hash(encoded: EncodedDecision | EncodedBatch) -> str:
 __all__ = [
     "ACTOR_REL_PAD", "EncodedBatch", "EncodedDecision", "EncoderError",
     "EVENT_TENSOR_FIELDS", "EVENT_TYPE_PAD", "MAX_EVENTS_DEFAULT", "PHASE_PAD",
-    "SCHEMA_HASH", "StreamMeta", "TILE_PAD", "encode_batch", "encode_decision",
-    "encoded_hash", "encoded_payload",
+    "SCHEMA_HASH", "StreamMeta", "TILE_PAD", "decision_marker_from_input",
+    "encode_batch", "encode_decision", "encode_multi_decision",
+    "encode_multi_decision_batch", "encoded_hash", "encoded_payload",
+    "multi_decision_hash", "multi_decision_payload",
 ]
