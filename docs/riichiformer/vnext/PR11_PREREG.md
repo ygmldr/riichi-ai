@@ -38,8 +38,11 @@ is declared a winner before matched-budget results.
   decision count.
 * Pilot Census (1,000 train / 500 val): 661,627 / 326,798 decisions,
   658,379 / 325,291 supervised, prefix P99 1,547 / 1,497, max 2,491 / 2,180;
-  rank classes balanced.  The full 2.51M match-level Census remains `NOT_RUN`
-  because the full one-epoch pipeline is ~47 days at the measured data rate.
+  rank classes balanced.  The 2009 full-year shard Census is complete (6,897 games / 4,568,777
+  decisions; P50/P90/P99/max 549/1,096/1,524/4,861; 460 decisions above the
+  4,096 token bound skipped and counted).  The full 2.51M match-level Census
+  remains `NOT_RUN` because the full one-epoch pipeline is ~47 days at the
+  measured data rate.
 * Train/Validation split must be by complete match, never by POV.
 * Diagnostic validation shards may not be fed to the trainer.
 * Rights: 11 registry rows, **0 `ALLOWED`**, gate
