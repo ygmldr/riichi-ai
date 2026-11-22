@@ -30,7 +30,8 @@
 * 460 decisions above the 4,096 positional bound are skipped and counted
   (`--max-prefix-tokens 4096`), not silently truncated
 * full BC: **71,387 steps completed in 9,121.0 s**; batch 64, warmup+cosine;
-  `long_prefix_skipped=460`; output `runs/vnext_bc_2009`
+  `long_prefix_skipped=460`; one pass + ~0.01% replay to hit target
+  (`exhausted=true`); output `runs/vnext_bc_2009`
 * final 500-batch validation (32,000 decisions): **BC CE 1.3500**, rank CE
   **1.1276**, total 1.4628; final checkpoint `step_071387.pt` SHA
   `6d16c4bc...`

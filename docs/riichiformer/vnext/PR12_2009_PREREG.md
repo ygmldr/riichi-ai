@@ -69,6 +69,9 @@ to the Confirm pool and do not promote a checkpoint based on training loss.
 - wall: **9,121.0 s** (2 h 32 min)
 - `exhausted=true`, `stopped_reason=target_reached`
 - `long_prefix_skipped=460` / max prefix 4,096
+- because those 460 decisions are absent from batches, the shard exhausted at
+  about 71,379 batches; the trainer restarted the adapter and replayed ~450
+  decisions (0.01%) to reach the 71,387-step target (`exhausted=true`)
 - train loss first/last: 2.4687 / 2.5181; mean 1.5537 (last batch is noisy)
 - 50-batch last validation (70k): BC CE 1.3462, rank CE 1.2503
 - **final 500-batch validation (32,000 decisions): BC CE 1.3500, rank CE
