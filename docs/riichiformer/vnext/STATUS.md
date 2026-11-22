@@ -5,6 +5,7 @@
 **Base**: `8a915d1` / tag `rf3.3-w2`
 **Contract hash**: `6ce138249a06173e02804aea7e81e6c4b95cdaa22b57a03984c172eab0883e58`
 **Model params**: 6,538,716
+**External audit packet**: [`AUDIT_PACKET.md`](AUDIT_PACKET.md) (+ `AUDIT_EVIDENCE.json`)
 
 ## What exists now
 

@@ -1,0 +1,143 @@
+{
+  "changed": {
+    "deletions": 61,
+    "files": 101,
+    "insertions": 9810
+  },
+  "full_year_2009": {
+    "census": {
+      "log": "docs/riichiformer/vnext/logs/VNEXT_CENSUS_2009.json",
+      "phases": {
+        "CALL_RESPONSE": 927493,
+        "KAN_SELECTION": 5358,
+        "SELF_TURN": 3635926
+      },
+      "prefix_tokens": {
+        "max": 4861,
+        "p50": 549,
+        "p90": 1096,
+        "p99": 1524
+      },
+      "ranks": {
+        "1": 1149924,
+        "2": 1142387,
+        "3": 1139435,
+        "4": 1137031
+      }
+    },
+    "final_500batch": {
+      "bc_ce": 1.349995789815339,
+      "checkpoint_sha256": "6d16c4bc6dd97f744feab05d8cfa2d77e4646dde3a15358b4ff7cf85e6ac391c",
+      "decisions": 32000,
+      "log": "docs/riichiformer/vnext/logs/VNEXT_VALIDATE_2009_FINAL_500BATCH.log",
+      "rank_ce": 1.1275775090599245,
+      "total_loss": 1.4627535407213315
+    },
+    "final_checkpoint": {
+      "bytes": 78430634,
+      "local_only": true,
+      "path": "runs/vnext_bc_2009/candidates/step_071387.pt",
+      "sha256": "6d16c4bc6dd97f744feab05d8cfa2d77e4646dde3a15358b4ff7cf85e6ac391c",
+      "sidecar": "runs/vnext_bc_2009/candidates/step_071387.pt.json"
+    },
+    "shard": {
+      "content_sha256": "8abe4028d6c0e69263e96126e34aa7c881624bab3a3fa880a4d99616511bbd36",
+      "decisions": 4568777,
+      "external_license_status": "UNKNOWN",
+      "games": 6897,
+      "purpose": "train",
+      "research_policy": "operator_private_research",
+      "research_policy_hash": "f0d472ee710455672fc8866452c723d802b3e4e44d92ef2bbd7ac6aa976ce2bc",
+      "rights_status": "UNKNOWN",
+      "shard_sha256": "f411c9e2c219ffc3f38fca26c9acaf8195362baee2e833bdc2a8180c9ffaa76e",
+      "skipped": 0,
+      "source_id": "tenhou_old",
+      "split_manifest_sha256": "7fd1a4ca821aaae8a38f363ea1c83d83a90ae66d0546db15ea53974a28cd0360",
+      "supervised": 4545919,
+      "train_allowed": false,
+      "train_eligible_under_policy": true,
+      "written": 6897
+    },
+    "train": {
+      "batches_seen": 71387,
+      "counted_decisions": 4568765,
+      "exhausted": true,
+      "last_validation_50batch": {
+        "bc_ce": 1.3461721225611927,
+        "rank_ce": 1.2503219991455843,
+        "step": 70000
+      },
+      "long_prefix_skipped": 460,
+      "loss_first": 2.46868896484375,
+      "loss_last": 2.5181171894073486,
+      "loss_mean": 1.553654037598731,
+      "max_prefix_tokens": 4096,
+      "metrics_local_only": "runs/vnext_bc_2009/metrics.json",
+      "status": "COMPLETED",
+      "steps": 71387,
+      "stopped_reason": "target_reached",
+      "tokens": 32391386,
+      "wall_seconds": 9121.015974726004
+    }
+  },
+  "native_final": {
+    "checkpoint_sha256": "6d16c4bc6dd97f744feab05d8cfa2d77e4646dde3a15358b4ff7cf85e6ac391c",
+    "decisions": 2827,
+    "fallback": 0,
+    "games": 16,
+    "illegal": 0,
+    "kan_selections": 0,
+    "log": "docs/riichiformer/vnext/logs/VNEXT_NATIVE_2009_FINAL_16G.log",
+    "strength_claim": "NONE",
+    "synthetic_fixture": false
+  },
+  "not_run": [
+    "2.51M full corpus one epoch",
+    "Second 2009 epoch",
+    "Arena / strength / dan evaluation",
+    "Confirm pool",
+    "Full-corpus Census",
+    "End-to-end multi-kan (KAN_SELECTION) native test"
+  ],
+  "packet": "docs/riichiformer/vnext/AUDIT_PACKET.md",
+  "pilot": {
+    "checkpoint_500batch": {
+      "bc_ce": 1.474420758947451,
+      "checkpoint_sha256": "c63be5872df369fe58f166f04bf32200a78855ed08aa8cfda7bc77ac38bbdeb3",
+      "rank_ce": 1.1562070185476698
+    },
+    "steps": 10500,
+    "train_decisions": 661627,
+    "train_games": 1000,
+    "val_decisions": 326798,
+    "val_games": 500,
+    "wall_seconds": 1310.8704599839984
+  },
+  "rights_note": "External registry remains restrictive; local policy is operator-authorized local research, not an upstream licence. Raw data is not in git.",
+  "snapshot": {
+    "base_commit": "8a915d1",
+    "branch": "rf/vnext-core",
+    "branch_url": "https://github.com/ygmldr/riichi-ai/tree/rf/vnext-core",
+    "code_commit": "46c3b83",
+    "compare_url": "https://github.com/ygmldr/riichi-ai/compare/8a915d1...rf/vnext-core",
+    "pr_create_url": "https://github.com/ygmldr/riichi-ai/pull/new/rf/vnext-core",
+    "pushed": true,
+    "remote_branch": "origin/rf/vnext-core",
+    "repository": "github.com/ygmldr/riichi-ai"
+  },
+  "tests": {
+    "combined": {
+      "log": "docs/riichiformer/vnext/logs/VNEXT_COMBINED_REAL.log",
+      "passed": 149,
+      "seconds": 18.3,
+      "skipped": 6,
+      "subtests": 13
+    },
+    "vnext_only": {
+      "log": "docs/riichiformer/vnext/logs/VNEXT_REAL_TRAIN_SUITE.log",
+      "passed": 79,
+      "seconds": 3.61,
+      "skipped": 0
+    }
+  }
+}
