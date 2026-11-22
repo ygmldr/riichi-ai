@@ -50,8 +50,8 @@
   **1.3766 / 1.1345**. At 55,000: 50-batch **1.3612 / 1.2673**; 500-batch
   **1.3675 / 1.1295**. At 60,000: 50-batch **1.3567 / 1.2551**; 500-batch
   **1.3609 / 1.1244**. At 65,000: 50-batch **1.3515 / 1.2600**. At 70,000: 50-batch
-  **1.3462 / 1.2503**; checkpoints
-  `step_005000.pt` / `step_010000.pt`.
+  **1.3462 / 1.2503**; checkpoints every 5,000 steps through
+  `step_071387.pt` (final).
 
 ## Current measured evidence
 
@@ -73,11 +73,12 @@
 * Synthetic CUDA BC/GRP/RL: 100 BC steps finite, checkpoint state round-trip
   unchanged, GRP 50 steps finite, behavior/AWR/PPO/PBRS/GAE finite.
   `logs/VNEXT_GPU_SMOKE_AFTER_SYNC_FIX.log`.
-* **Native trained-checkpoint smoke**: 4 games / 765 decisions and a
-  16-game lifecycle rerun / 2,792 decisions and 8-game / 16-game 10.5k-checkpoint runs /
-  1,296 / 2,893 decisions, 0 illegal/fallback; the 16-game run exposed and fixed a
-  missing per-game backend reset.
-  `logs/VNEXT_NATIVE_TRAINED_SMOKE.log`, `logs/VNEXT_NATIVE_TRAINED_16G.log`;
+* **Native trained-checkpoint smoke**: 4 games / 765 decisions, a 16-game
+  lifecycle rerun / 2,792 decisions, 8-game / 16-game 10.5k-checkpoint runs /
+  1,296 / 2,893 decisions, and the final 2009 16-game run / 2,827 decisions;
+  all 0 illegal/fallback.  The 16-game run exposed and fixed a missing
+  per-game backend reset.  `logs/VNEXT_NATIVE_TRAINED_SMOKE.log`,
+  `logs/VNEXT_NATIVE_TRAINED_16G.log`, `logs/VNEXT_NATIVE_2009_FINAL_16G.log`;
   two repeated 8-game runs produced identical action-trace hashes
   (`logs/VNEXT_NATIVE_DETERMINISM.log`).
 * **Real-data pilot**: 1,000 games / 661,627 decisions train; 500 games /
@@ -113,8 +114,9 @@ rewritten.  A local smoke-only registry was generated under
 
 ## What is NOT done
 
-* Real 2.51M-match one epoch: measured ~47 days at the current CPU-bound data
-  rate; only a full 2009-year run is feasible in this window (build in progress).
+* Real 2.51M-match one epoch: **NOT_RUN**. At the final 2009 run rate (~501
+  decisions/s), compute is ~38 days; shard build at ~0.7 games/s is ~41 days.
+  The 2009 full-year run is completed instead.
 * Full B0 epoch, broad GRP fit, AWR/PPO league, Trend/Select/Confirm.
 * End-to-end multi-kan (`KAN_SELECTION`) native test; this smoke had only
   single-candidate ankan/kakan.
