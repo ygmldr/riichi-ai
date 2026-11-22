@@ -1,0 +1,11 @@
+{
+  "batches": 500,
+  "bc_ce": 1.4182149080440547,
+  "bc_weight": 31867.0,
+  "checkpoint": "/home/ygsldr/riichi-ai/worktrees/vnext-core/runs/vnext_bc_2009/candidates/step_035000.pt",
+  "checkpoint_sha256": "8ca5506b7b5167da693e8fb51074a6658319bba105210d617e87fb35f86b90f8",
+  "decisions": 32000,
+  "rank_ce": 1.1359664704542507,
+  "rank_rows": 31867,
+  "total_loss": 1.5318115550894797
+}
