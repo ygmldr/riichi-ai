@@ -49,7 +49,7 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
   `COMPLETED`;
 * validation CE recorded at the fixed schedule; 500-batch re-eval: 5,000-step
   1.5019 / 1.1787; 10,000-step 1.4895 / 1.1472; 15,000-step 1.4720 /
-  1.1363; 20,000-step 1.4551 / 1.1400; 25,000-step 1.4426 / 1.1363;
+  1.1363; 20,000-step 1.4551 / 1.1400; 25,000-step 1.4426 / 1.1363; 30,000-step 50-batch 1.4211 / 1.2763;
 * checkpoint provenance carries source/split/canonical/policy hashes;
 * no strength, dan, Arena or Confirm claim;
 * `max_prefix_tokens=4096`; decisions above the positional bound are skipped
