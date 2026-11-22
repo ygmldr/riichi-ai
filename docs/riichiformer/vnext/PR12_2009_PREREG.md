@@ -1,6 +1,6 @@
 # VNEXT-BC-2009-1 — Full-Year 2009 BC Run (operator-authorized)
 
-**Status**: `TRAINING` (shard complete 07:00; 6,897 games / 4,568,777 decisions; 71,387 steps)
+**Status**: `COMPLETED` (71,387 steps in 9,121.0 s; final checkpoint 71,387)
 **Created**: 2026-11-22
 **Owner**: single Lead
 **Data**: local Tenhou-derived 2009, operator-authorized local research
@@ -62,3 +62,22 @@ Train and validation match IDs are disjoint by year.  No Confirm pool is used.
 
 Stop on non-finite loss, shard/policy hash mismatch, or wall cap.  Do not switch
 to the Confirm pool and do not promote a checkpoint based on training loss.
+
+## Result (completed 09:37)
+
+- steps: **71,387**
+- wall: **9,121.0 s** (2 h 32 min)
+- `exhausted=true`, `stopped_reason=target_reached`
+- `long_prefix_skipped=460` / max prefix 4,096
+- train loss first/last: 2.4687 / 2.5181; mean 1.5537 (last batch is noisy)
+- 50-batch last validation (70k): BC CE 1.3462, rank CE 1.2503
+- **final 500-batch validation (32,000 decisions): BC CE 1.3500, rank CE
+  1.1276, total 1.4628**
+- final checkpoint: `candidates/step_071387.pt`, SHA
+  `6d16c4bc6dd97f744feab05d8cfa2d77e4646dde3a15358b4ff7cf85e6ac391c`
+- final native smoke: 16 games, 2,827 decisions, 0 illegal, 0 fallback,
+  `kan_selections=0`, `strength_claim=NONE`
+- logs: `logs/VNEXT_VALIDATE_2009_FINAL_500BATCH.log`,
+  `logs/VNEXT_NATIVE_2009_FINAL_16G.log`
+
+This is a full-year BC loss result, not a strength/dan/Arena result.

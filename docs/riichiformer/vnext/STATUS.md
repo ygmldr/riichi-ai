@@ -21,7 +21,7 @@
 | V3.3 P1 | `m5d_arena.py`, `b0.py`, `rf_train_b0.py` | synthetic tests |
 | Native submodule | `vendor/mortal` @ `0cff2b5` | local build + smoke |
 
-## 2009 full-year run (launched 07:01)
+## 2009 full-year run (completed 09:37)
 
 * shard complete: **6,897 games / 4,568,777 decisions / 4,545,919 supervised**
 * shard SHA `f411c9e2...`; source `tenhou_old`; policy `f0d472ee...`
@@ -29,8 +29,13 @@
   prefix P50/P90/P99/max 549/1,096/1,524/4,861
 * 460 decisions above the 4,096 positional bound are skipped and counted
   (`--max-prefix-tokens 4096`), not silently truncated
-* full BC: 71,387 steps, batch 64, warmup+cosine, 5-hour cap, output
-  `runs/vnext_bc_2009`
+* full BC: **71,387 steps completed in 9,121.0 s**; batch 64, warmup+cosine;
+  `long_prefix_skipped=460`; output `runs/vnext_bc_2009`
+* final 500-batch validation (32,000 decisions): **BC CE 1.3500**, rank CE
+  **1.1276**, total 1.4628; final checkpoint `step_071387.pt` SHA
+  `6d16c4bc...`
+* final native smoke: 16 games / 2,827 decisions, 0 illegal/fallback,
+  `kan_selections=0`, `strength_claim=NONE`
 * validation at 5,000: 50-batch BC CE 1.4891 / rank 1.2881; 500-batch re-eval
   **1.5019 / 1.1787**. At 10,000: 50-batch 1.4666 / 1.2870; 500-batch
   1.4895 / 1.1472. At 15,000: 50-batch **1.4539 / 1.2557**; 500-batch

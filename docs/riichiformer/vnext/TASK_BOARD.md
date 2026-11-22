@@ -20,7 +20,7 @@ tests (or recorded `NOT_RUN`), and received an independent review verdict.
 | PR-09 RL contracts | Lead/RL | `INTEGRATED` (toy) | Behavior μ/guard, PBRS/Mortal delta, GAE, AWR/PPO tests; synthetic CUDA finite; native rollout `NOT_RUN`. |
 | PR-10 League | Lead/RL | `INTEGRATED` (toy) | League manifest/toy only; native 1v3 league `NOT_RUN`. |
 | PR-11 Preregistration | Lead | `IN_PROGRESS` | Pilot Census complete: 661,627 train / 326,798 val decisions; prefix P99 1,547 / 1,497; max 2,491 / 2,180. Full-corpus Census `NOT_RUN`. |
-| PR-12 Formal BC/RL/Arena | Lead | `IN_PROGRESS` | 5,000-step BC pilot + trained-checkpoint native smoke passed; 2009 full-year shard complete (6,897 games / 4,568,777 decisions); full BC training launched 07:02 with 71,387 steps and 4,096-token prefix cap. No Arena/strength claim. |
+| PR-12 Formal BC/RL/Arena | Lead | `INTEGRATED` (full-year BC) | 2009 full-year shard complete (6,897 games / 4,568,777 decisions); full BC completed 71,387 steps in 9,121 s; final 500-batch BC CE 1.3500 / rank 1.1276; final native smoke 16 games, 0 illegal/fallback. No Arena/strength claim; Confirm untouched. |
 
 ## Current blockers
 
